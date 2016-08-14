@@ -45,9 +45,9 @@ public class StorageDir {
         final private Map<String, byte[]> toAdd = new HashMap<>();
         final private List<String> toDelete = new ArrayList<>();
 
-        private void notifyTipChanged(DatabaseDiff diff, String base, String tip) {
+        private void notifyTipChanged(DatabaseDiff diff, HashValue base, HashValue tip) {
             for (IListener listener : getListeners())
-                listener.onTipChanged(diff, base, tip);
+                listener.onTipChanged(diff, base.toHex(), tip.toHex());
         }
 
         public StorageDirCache(IDatabaseInterface database) {
@@ -101,24 +101,24 @@ public class StorageDir {
             if (!needsCommit())
                 return;
             flush();
-            String base = getDatabase().getTip();
+            HashValue base = getDatabase().getTip();
             database.commit();
 
             if (getListeners().size() > 0) {
-                String tip = getDatabase().getTip();
+                HashValue tip = getDatabase().getTip();
                 DatabaseDiff diff = getDatabase().getDiff(base, tip);
                 notifyTipChanged(diff, base, tip);
             }
         }
 
-        public void merge(String theirCommit) throws IOException {
+        public void merge(HashValue theirCommit) throws IOException {
             commit();
 
-            String base = getDatabase().getTip();
+            HashValue base = getDatabase().getTip();
             database.merge(theirCommit);
 
             if (getListeners().size() > 0) {
-                String tip = getDatabase().getTip();
+                HashValue tip = getDatabase().getTip();
                 DatabaseDiff diff = getDatabase().getDiff(base, tip);
                 notifyTipChanged(diff, base, tip);
             }
@@ -250,23 +250,19 @@ public class StorageDir {
         cache.commit();
     }
 
-    public String getTip() throws IOException {
+    public HashValue getTip() throws IOException {
         return getDatabase().getTip();
-    }
-
-    public String getDatabasePath() {
-        return getDatabase().getPath();
     }
 
     public String getBranch() {
         return getDatabase().getBranch();
     }
 
-    public DatabaseDiff getDiff(String baseCommit, String endCommit) throws IOException {
+    public DatabaseDiff getDiff(HashValue baseCommit, HashValue endCommit) throws IOException {
         return getDatabase().getDiff(baseCommit, endCommit);
     }
 
-    public void merge(String theirCommit) throws IOException {
+    public void merge(HashValue theirCommit) throws IOException {
         cache.merge(theirCommit);
     }
 }

@@ -7,6 +7,7 @@
  */
 package org.fejoa.library;
 
+import org.fejoa.chunkstore.HashValue;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.crypto.CryptoSettings;
 import org.fejoa.library.database.JGitInterface;
@@ -159,7 +160,7 @@ public class Client {
                     @Override
                     public void onResult(GitPullJob.Result result) {
                         try {
-                            contactBranch.merge(result.pulledRev);
+                            contactBranch.merge(HashValue.fromHex(result.pulledRev));
                         } catch (IOException exception) {
                             observer.onException(exception);
                         }

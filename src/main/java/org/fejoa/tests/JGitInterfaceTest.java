@@ -8,6 +8,8 @@
 package org.fejoa.tests;
 
 import junit.framework.TestCase;
+import org.fejoa.chunkstore.Config;
+import org.fejoa.chunkstore.HashValue;
 import org.fejoa.library.database.DatabaseDiff;
 import org.fejoa.library.database.DatabaseDir;
 import org.fejoa.library.support.StorageLib;
@@ -180,13 +182,6 @@ public class JGitInterfaceTest extends TestCase {
         git.remove("dir");
         entries = git.listDirectories("");
         assertTrue(entries.size() == 0);
-
-        final String remoteUid = "testRemoteUid";
-        final String remoteBranch = "testRemoteBranch";
-        final String tip = git.getTip();
-        git.updateLastSyncCommit(remoteUid, remoteBranch, tip);
-        String readRemoteTip = git.getLastSyncCommit(remoteUid, remoteBranch);
-        assertEquals(readRemoteTip, tip);
     }
 
     private boolean equals(List<String> list1, List<String> list2) {
@@ -228,15 +223,15 @@ public class JGitInterfaceTest extends TestCase {
         git.init(gitDir, "testBranch", true);
 
         add(git, content, new DatabaseStingEntry("test1", "data1"));
-        String commit1 = git.commit();
+        HashValue commit1 = git.commit();
 
         add(git, content, new DatabaseStingEntry("folder/test2", "data2"));
         add(git, content, new DatabaseStingEntry("folder/test3", "data2"));
 
-        String commit2 = git.commit();
+        HashValue commit2 = git.commit();
         assertEquals(commit2, git.getTip());
 
-        DatabaseDiff diff = git.getDiff("", commit2);
+        DatabaseDiff diff = git.getDiff(Config.newSha1Hash(), commit2);
         assertTrue(diff.added.getFiles().contains("test1"));
         DatabaseDir folderDir = diff.added.findDirectory("folder");
         assertNotNull(folderDir);

@@ -15,6 +15,7 @@ import org.eclipse.jgit.dircache.DirCacheBuilder;
 import org.eclipse.jgit.dircache.DirCacheEditor;
 import org.eclipse.jgit.dircache.DirCacheEntry;
 import org.eclipse.jgit.lib.*;
+import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.merge.MergeStrategy;
 import org.eclipse.jgit.merge.Merger;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -25,7 +26,7 @@ import org.eclipse.jgit.treewalk.AbstractTreeIterator;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
-import org.fejoa.chunkstore.HashValue;
+import org.fejoa.chunkstore.*;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -38,7 +39,6 @@ public class JGitInterface implements IDatabaseInterface {
     private String branch = "";
     private ObjectId rootTree = ObjectId.zeroId();
 
-    @Override
     public void init(String path, String branch, boolean create) throws IOException {
         this.path = path;
         this.branch = branch;
@@ -72,7 +72,6 @@ public class JGitInterface implements IDatabaseInterface {
         return commit.getTree().toObjectId();
     }
 
-    @Override
     public String getPath() {
         return path;
     }
@@ -82,17 +81,6 @@ public class JGitInterface implements IDatabaseInterface {
         return branch;
     }
 
-    @Override
-    public InputStream read(String path) throws IOException {
-        TreeWalk treeWalk = cdFile(path);
-        if (!treeWalk.next())
-            throw new FileNotFoundException();
-
-        ObjectId objectId = treeWalk.getObjectId(0);
-        return repository.open(objectId).openStream();
-    }
-
-    @Override
     public void write(String path, long length, InputStream stream) throws IOException {
         // first remove old entry if there is any
         try {
@@ -181,7 +169,7 @@ public class JGitInterface implements IDatabaseInterface {
     }
 
     @Override
-    public String commit() throws IOException {
+    public HashValue commit() throws IOException {
         if (rootTree.equals(ObjectId.zeroId()))
             throw new InvalidObjectException("invalid root tree");
 
@@ -191,12 +179,12 @@ public class JGitInterface implements IDatabaseInterface {
         commit.setAuthor(personIdent);
         commit.setMessage("client commit");
         commit.setTreeId(rootTree);
-        String tip = getTip();
+        HashValue tip = getTip();
         ObjectId oldTip;
-        if (tip.equals(""))
+        if (tip.isZero())
             oldTip = ObjectId.zeroId();
         else {
-            oldTip = ObjectId.fromString(tip);
+            oldTip = ObjectId.fromString(tip.toHex());
             commit.setParentId(oldTip);
         }
 
@@ -214,7 +202,7 @@ public class JGitInterface implements IDatabaseInterface {
         if (result == RefUpdate.Result.REJECTED)
             throw new IOException();
 
-        return commitId.name();
+        return HashValue.fromHex(commitId.name());
     }
 
     private TreeWalk cdFile(String path) throws IOException {
@@ -309,19 +297,18 @@ public class JGitInterface implements IDatabaseInterface {
     }
 
     @Override
-    public String getTip() throws IOException {
+    public HashValue getTip() throws IOException {
         Ref head = getHeadRef();
         if (head == null)
-            return "";
-        return head.getObjectId().name();
+            return org.fejoa.chunkstore.Config.newSha1Hash();
+        return HashValue.fromHex(head.getObjectId().name());
     }
 
     private Ref getHeadRef() throws IOException {
         return repository.getRef("refs/heads/" + branch);
     }
 
-    @Override
-    public void updateTip(String commit) throws IOException {
+    private void updateTip(String commit) throws IOException {
         String refPath = getPath() + "/refs/heads/";
         refPath += branch;
 
@@ -349,12 +336,12 @@ public class JGitInterface implements IDatabaseInterface {
         commit.setTreeId(tree);
         commit.addParentId(parent1);
         commit.addParentId(parent2);
-        String tip = getTip();
+        HashValue tip = getTip();
         ObjectId oldTip;
-        if (tip.equals(""))
+        if (tip.isZero())
             oldTip = ObjectId.zeroId();
         else {
-            oldTip = ObjectId.fromString(tip);
+            oldTip = ObjectId.fromString(tip.toHex());
         }
 
         ObjectInserter objectInserter = repository.newObjectInserter();
@@ -375,14 +362,14 @@ public class JGitInterface implements IDatabaseInterface {
     }
 
     @Override
-    public void merge(String theirCommitId) throws IOException {
+    public void merge(HashValue theirCommitId) throws IOException {
         if (theirCommitId.equals(""))
             return;
         // commit if necessary
         if (needsCommit())
             commit();
 
-        ObjectId theirs = ObjectId.fromString(theirCommitId);
+        ObjectId theirs = ObjectId.fromString(theirCommitId.toHex());
         RevCommit theirsCommit = new RevWalk(repository).parseCommit(theirs);
 
         Ref headRef = getHeadRef();
@@ -433,12 +420,12 @@ public class JGitInterface implements IDatabaseInterface {
     }
 
     @Override
-    public DatabaseDiff getDiff(String baseCommit, String endCommit) throws IOException {
-        if (baseCommit.equals("")) {
+    public DatabaseDiff getDiff(HashValue baseCommit, HashValue endCommit) throws IOException {
+        if (baseCommit.isZero()) {
             // list commit tree
 
             RevWalk walk = new RevWalk(repository);
-            RevCommit commit = walk.parseCommit(ObjectId.fromString(endCommit));
+            RevCommit commit = walk.parseCommit(ObjectId.fromString(endCommit.toHex()));
             walk.dispose();
 
             DatabaseDiff databaseDiff = new DatabaseDiff();
@@ -455,8 +442,8 @@ public class JGitInterface implements IDatabaseInterface {
 
             return databaseDiff;
         }
-        AbstractTreeIterator baseTree = prepareTreeParser(repository, baseCommit);
-        AbstractTreeIterator newTree = prepareTreeParser(repository, endCommit);
+        AbstractTreeIterator baseTree = prepareTreeParser(repository, baseCommit.toHex());
+        AbstractTreeIterator newTree = prepareTreeParser(repository, endCommit.toHex());
 
         List<DiffEntry> diff;
         try {
@@ -536,42 +523,5 @@ public class JGitInterface implements IDatabaseInterface {
 
     private void rmDirectory(String path) throws IOException {
         rm(new DirCacheEditor.DeleteTree(path));
-    }
-
-    @Override
-    public String getLastSyncCommit(String remoteName, String remoteBranch) throws IOException {
-        String refPath = new String(path);
-        refPath += "/refs/remotes/";
-        refPath += remoteName;
-        refPath += "/";
-        refPath += remoteBranch;
-
-        BufferedReader reader = null;
-        try {
-            reader = new BufferedReader(new InputStreamReader((new FileInputStream(refPath))));
-            return reader.readLine();
-        } catch (Exception e) {
-            return "";
-        } finally {
-            if (reader != null)
-                reader.close();
-        }
-    }
-
-    @Override
-    public void updateLastSyncCommit(String remoteName, String remoteBranch, String uid) throws IOException {
-        String refPath = new String(path);
-        refPath += "/refs/remotes/";
-        refPath += remoteName;
-        File dir = new File(refPath);
-        dir.mkdirs();
-
-        File file = new File(dir, remoteBranch);
-        PrintWriter out = new PrintWriter(file);
-        try {
-            out.println(uid);
-        } finally {
-            out.close();
-        }
     }
 }

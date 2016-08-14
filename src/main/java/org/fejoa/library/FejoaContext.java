@@ -27,7 +27,7 @@ public class FejoaContext {
     final private String homeDir;
     private CryptoSettings cryptoSettings = CryptoSettings.getDefault();
 
-    private List<StorageDir> secureStorageDirs = new ArrayList<>();
+    private Map<String, StorageDir> secureStorageDirs = new HashMap<>();
     private Map<String, String> rootPasswords = new HashMap<>();
 
     public FejoaContext(String homeDir) {
@@ -53,16 +53,16 @@ public class FejoaContext {
 
     public StorageDir get(String path, String branch) throws IOException {
         path = StorageDir.appendDir(homeDir, path);
-        for (StorageDir dir : secureStorageDirs) {
-            if (dir.getDatabasePath().equals(path) && dir.getBranch().equals(branch))
-                return new StorageDir(dir);
-        }
+        StorageDir dir = secureStorageDirs.get(path);
+        if (dir != null && dir.getBranch().equals(branch))
+            return new StorageDir(dir);
+
         // not found create one
         JGitInterface database = new JGitInterface();
         database.init(path, branch, true);
 
         StorageDir storageDir = new StorageDir(database, "");
-        secureStorageDirs.add(storageDir);
+        secureStorageDirs.put(path, storageDir);
         return new StorageDir(storageDir);
     }
 

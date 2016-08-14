@@ -1,6 +1,7 @@
 package org.fejoa.tests;
 
 import junit.framework.TestCase;
+import org.fejoa.chunkstore.HashValue;
 import org.fejoa.library.crypto.CryptoSettings;
 import org.fejoa.library.database.JGitInterface;
 import org.fejoa.library.remote.*;
@@ -152,9 +153,10 @@ public class JettyTest extends TestCase {
             public void onResult(GitPullJob.Result result) {
                 observer.onResult(result);
                 try {
-                    gitInterface.merge(result.pulledRev);
-                    String tip = gitInterface.getTip();
-                    if (tip.equals(result.pulledRev))
+                    HashValue pullRevHash = HashValue.fromHex(result.pulledRev);
+                    gitInterface.merge(pullRevHash);
+                    HashValue tip = gitInterface.getTip();
+                    if (tip.equals(pullRevHash))
                         return;
                     connectionManager.submit(new GitPushJob(gitInterface.getRepository(), serverUser,
                             gitInterface.getBranch()), connectionInfo, authInfo, observer);

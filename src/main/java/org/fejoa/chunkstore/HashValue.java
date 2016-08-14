@@ -14,6 +14,7 @@ import java.util.Arrays;
 
 
 public class HashValue implements Comparable<HashValue> {
+    final public static short SHA1_SIZE = 20;
     final public static short HASH_SIZE = 32;
     final private byte[] hash;
 

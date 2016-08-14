@@ -68,7 +68,7 @@ public class WatchJob extends SimpleJsonRemoteJob<WatchJob.Result> {
             StorageDir dir = context.getStorage(storage.getId());
             JsonRPC.ArgumentSet argumentSet = new JsonRPC.ArgumentSet(
                     new JsonRPC.Argument(BRANCH_KEY, dir.getBranch()),
-                    new JsonRPC.Argument(BRANCH_TIP_KEY, dir.getTip())
+                    new JsonRPC.Argument(BRANCH_TIP_KEY, dir.getTip().toHex())
             );
             branches.add(argumentSet);
         }

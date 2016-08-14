@@ -9,6 +9,10 @@ package org.fejoa.chunkstore;
 
 
 public class Config {
+    static public HashValue newSha1Hash() {
+        return new HashValue(HashValue.SHA1_SIZE);
+    }
+
     static public HashValue newBoxHash() {
         return new HashValue(HashValue.HASH_SIZE);
     }

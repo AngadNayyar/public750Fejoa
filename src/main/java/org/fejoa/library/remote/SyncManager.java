@@ -7,6 +7,7 @@
  */
 package org.fejoa.library.remote;
 
+import org.fejoa.chunkstore.HashValue;
 import org.fejoa.library.database.JGitInterface;
 import org.fejoa.library.FejoaContext;
 import org.fejoa.library.Remote;
@@ -150,9 +151,10 @@ public class SyncManager {
                     @Override
                     public void onResult(GitPullJob.Result result) {
                         try {
-                            dir.merge(result.pulledRev);
-                            String tip = dir.getTip();
-                            if (tip.equals(result.pulledRev)) {
+                            HashValue pullRevHash = HashValue.fromHex(result.pulledRev);
+                            dir.merge(pullRevHash);
+                            HashValue tip = dir.getTip();
+                            if (tip.equals(pullRevHash)) {
                                 jobFinished(id, observer, nJobs, "sync after pull: " + id);
                                 return;
                             }
