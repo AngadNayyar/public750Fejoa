@@ -137,7 +137,7 @@ public class PullPushTest extends RepositoryTestBase {
         // change the remote repo
         List<DatabaseStingEntry> remoteContent = new ArrayList<>();
         add(remoteRepo, remoteContent, new DatabaseStingEntry("testFile", "Hello World"));
-        BoxPointer boxPointer = remoteRepo.commit();
+        BoxPointer boxPointer = remoteRepo.commit("");
 
         pulledTip = pullRequest.pull(senderPipe, branch);
         containsContent(requestRepo, remoteContent);
@@ -145,7 +145,7 @@ public class PullPushTest extends RepositoryTestBase {
 
         // make another remote change
         add(remoteRepo, remoteContent, new DatabaseStingEntry("testFile2", "Hello World 2"));
-        boxPointer = remoteRepo.commit();
+        boxPointer = remoteRepo.commit("");
 
         pulledTip = pullRequest.pull(senderPipe, branch);
         containsContent(requestRepo, remoteContent);

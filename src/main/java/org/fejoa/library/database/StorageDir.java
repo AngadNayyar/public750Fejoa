@@ -8,6 +8,7 @@
 package org.fejoa.library.database;
 
 import org.fejoa.chunkstore.HashValue;
+import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.crypto.CryptoHelper;
 import org.fejoa.library.support.WeakListenable;
 
@@ -72,22 +73,34 @@ public class StorageDir {
                     bytes = filter.readFilter(bytes);
                 return new HashValue(CryptoHelper.sha1Hash(bytes));
             }
-            return database.getHash(path);
+            try {
+                return database.getHash(path);
+            } catch (CryptoException e) {
+                throw new IOException(e);
+            }
         }
 
         public byte[] readBytes(String path) throws IOException {
             if (toAdd.containsKey(path))
                 return toAdd.get(path);
-            return database.readBytes(path);
+            try {
+                return database.readBytes(path);
+            } catch (CryptoException e) {
+                throw new IOException(e);
+            }
         }
 
         public void flush() throws IOException {
-            for (Map.Entry<String, byte[]> entry : toAdd.entrySet())
-                database.writeBytes(entry.getKey(), entry.getValue());
-            toAdd.clear();
+            try {
+                for (Map.Entry<String, byte[]> entry : toAdd.entrySet())
+                    database.writeBytes(entry.getKey(), entry.getValue());
 
-            for (String path : toDelete)
-                database.remove(path);
+                for (String path : toDelete)
+                    database.remove(path);
+            } catch (CryptoException e) {
+                throw new IOException(e);
+            }
+            toAdd.clear();
             toDelete.clear();
         }
 
@@ -102,36 +115,46 @@ public class StorageDir {
                 return;
             flush();
             HashValue base = getDatabase().getTip();
-            database.commit();
+            try {
+                database.commit();
 
-            if (getListeners().size() > 0) {
-                HashValue tip = getDatabase().getTip();
-                DatabaseDiff diff = getDatabase().getDiff(base, tip);
-                notifyTipChanged(diff, base, tip);
+                if (getListeners().size() > 0) {
+                    HashValue tip = getDatabase().getTip();
+                    DatabaseDiff diff = getDatabase().getDiff(base, tip);
+                    notifyTipChanged(diff, base, tip);
+                }
+            } catch (CryptoException e) {
+                throw new IOException(e);
             }
         }
 
-        public void merge(HashValue theirCommit) throws IOException {
-            commit();
-
-            HashValue base = getDatabase().getTip();
-            database.merge(theirCommit);
-
+        public void onTipUpdated(HashValue old, HashValue newTip) throws IOException {
             if (getListeners().size() > 0) {
-                HashValue tip = getDatabase().getTip();
-                DatabaseDiff diff = getDatabase().getDiff(base, tip);
-                notifyTipChanged(diff, base, tip);
+                try {
+                    DatabaseDiff diff = getDatabase().getDiff(old, newTip);
+                    notifyTipChanged(diff, old, newTip);
+                } catch (CryptoException e) {
+                    throw new IOException(e);
+                }
             }
         }
 
         public List<String> listFiles(String path) throws IOException {
             flush();
-            return database.listFiles(path);
+            try {
+                return database.listFiles(path);
+            } catch (CryptoException e) {
+                throw new IOException(e);
+            }
         }
 
         public List<String> listDirectories(String path) throws IOException {
             flush();
-            return database.listDirectories(path);
+            try {
+                return database.listDirectories(path);
+            } catch (CryptoException e) {
+                throw new IOException(e);
+            }
         }
 
         public void remove(String path) {
@@ -259,10 +282,14 @@ public class StorageDir {
     }
 
     public DatabaseDiff getDiff(HashValue baseCommit, HashValue endCommit) throws IOException {
-        return getDatabase().getDiff(baseCommit, endCommit);
+        try {
+            return getDatabase().getDiff(baseCommit, endCommit);
+        } catch (CryptoException e) {
+            throw new IOException(e);
+        }
     }
 
-    public void merge(HashValue theirCommit) throws IOException {
-        cache.merge(theirCommit);
+    public void onTipUpdated(HashValue old, HashValue newTip) throws IOException {
+        cache.onTipUpdated(old, newTip);
     }
 }

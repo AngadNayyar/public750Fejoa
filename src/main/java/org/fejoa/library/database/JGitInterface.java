@@ -361,9 +361,8 @@ public class JGitInterface implements IDatabaseInterface {
         return commitId.name();
     }
 
-    @Override
     public void merge(HashValue theirCommitId) throws IOException {
-        if (theirCommitId.equals(""))
+        if (theirCommitId.isZero())
             return;
         // commit if necessary
         if (needsCommit())
