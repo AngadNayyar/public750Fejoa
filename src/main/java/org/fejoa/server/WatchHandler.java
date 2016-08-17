@@ -8,6 +8,7 @@
 package org.fejoa.server;
 
 
+import org.fejoa.chunkstore.HashValue;
 import org.fejoa.library.database.JGitInterface;
 import org.fejoa.library.Constants;
 import org.fejoa.library.remote.JsonRPC;
@@ -96,7 +97,7 @@ public class WatchHandler extends JsonRequestHandler {
         while (status.isEmpty()) {
             for (Map.Entry<String, String> entry : branches.entrySet()) {
                 String branch = entry.getKey();
-                String tip = entry.getValue();
+                HashValue tip = HashValue.fromHex(entry.getValue());
                 JGitInterface gitInterface;
                 try {
                     gitInterface = accessControl.getReadDatabase(branch);

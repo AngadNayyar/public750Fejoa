@@ -160,7 +160,12 @@ public class Client {
                     @Override
                     public void onResult(GitPullJob.Result result) {
                         try {
-                            contactBranch.merge(HashValue.fromHex(result.pulledRev));
+                            HashValue pullRevHash = HashValue.fromHex(result.pulledRev);
+                            contactBranch.commit();
+                            JGitInterface gitInterface = (JGitInterface)contactBranch.getDatabase();
+                            HashValue base = gitInterface.getTip();
+                            gitInterface.merge(pullRevHash);
+                            contactBranch.onTipUpdated(base, pullRevHash);
                         } catch (IOException exception) {
                             observer.onException(exception);
                         }

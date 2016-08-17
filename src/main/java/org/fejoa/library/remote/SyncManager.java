@@ -8,6 +8,7 @@
 package org.fejoa.library.remote;
 
 import org.fejoa.chunkstore.HashValue;
+import org.fejoa.library.database.IDatabaseInterface;
 import org.fejoa.library.database.JGitInterface;
 import org.fejoa.library.FejoaContext;
 import org.fejoa.library.Remote;
@@ -123,24 +124,13 @@ public class SyncManager {
         }
     }
 
-    private void sync(final String id, final int nJobs, final Task.IObserver<TaskUpdate, Void> observer) {
-        final StorageDir dir;
-        try {
-            dir = context.getStorage(id);
-        } catch (IOException e) {
-            e.printStackTrace();
-            observer.onException(e);
-            ongoingSyncJobs.remove(id);
-            return;
-        }
-
-        final ConnectionManager.ConnectionInfo connectionInfo = new ConnectionManager.ConnectionInfo(remote.getUser(),
-                remote.getServer());
-        final ConnectionManager.AuthInfo authInfo = context.getRootAuthInfo(remote.getUser(), remote.getServer());
-        final JGitInterface gitInterface = (JGitInterface)dir.getDatabase();
-        // pull
-        final Task.ICancelFunction job = connectionManager.submit(new GitPullJob(gitInterface.getRepository(),
-                remote.getUser(), dir.getBranch()),
+    private Task.ICancelFunction gitSync(final JGitInterface gitInterface, final StorageDir dir, final int nJobs,
+                                         final Task.IObserver<TaskUpdate, Void> observer,
+                                         final ConnectionManager.ConnectionInfo connectionInfo,
+                                         final ConnectionManager.AuthInfo authInfo) {
+        final String id = dir.getBranch();
+        return connectionManager.submit(new GitPullJob(gitInterface.getRepository(),
+                        remote.getUser(), dir.getBranch()),
                 connectionInfo, authInfo,
                 new Task.IObserver<Void, GitPullJob.Result>() {
                     @Override
@@ -152,7 +142,10 @@ public class SyncManager {
                     public void onResult(GitPullJob.Result result) {
                         try {
                             HashValue pullRevHash = HashValue.fromHex(result.pulledRev);
-                            dir.merge(pullRevHash);
+                            dir.commit();
+                            HashValue base = gitInterface.getTip();
+                            gitInterface.merge(pullRevHash);
+                            dir.onTipUpdated(base, pullRevHash);
                             HashValue tip = dir.getTip();
                             if (tip.equals(pullRevHash)) {
                                 jobFinished(id, observer, nJobs, "sync after pull: " + id);
@@ -164,24 +157,24 @@ public class SyncManager {
 
                         // push
                         connectionManager.submit(new GitPushJob(gitInterface.getRepository(), remote.getUser(),
-                                gitInterface.getBranch()), connectionInfo, authInfo,
+                                        gitInterface.getBranch()), connectionInfo, authInfo,
                                 new Task.IObserver<Void, RemoteJob.Result>() {
-                            @Override
-                            public void onProgress(Void aVoid) {
-                                //observer.onProgress(aVoid);
-                            }
+                                    @Override
+                                    public void onProgress(Void aVoid) {
+                                        //observer.onProgress(aVoid);
+                                    }
 
-                            @Override
-                            public void onResult(RemoteJob.Result result) {
-                                jobFinished(id, observer, nJobs, "sync after push: " + id);
-                            }
+                                    @Override
+                                    public void onResult(RemoteJob.Result result) {
+                                        jobFinished(id, observer, nJobs, "sync after push: " + id);
+                                    }
 
-                            @Override
-                            public void onException(Exception exception) {
-                                observer.onException(exception);
-                                jobFinished(id, observer, nJobs, "exception");
-                            }
-                        });
+                                    @Override
+                                    public void onException(Exception exception) {
+                                        observer.onException(exception);
+                                        jobFinished(id, observer, nJobs, "exception");
+                                    }
+                                });
                     }
 
                     @Override
@@ -190,8 +183,34 @@ public class SyncManager {
                         jobFinished(id, observer, nJobs, "exception");
                     }
                 });
+    }
 
-        // only add the job if the
+    private void sync(final String id, final int nJobs, final Task.IObserver<TaskUpdate, Void> observer) {
+        final StorageDir dir;
+        try {
+            dir = context.getStorage(id);
+            if (dir.getDatabase().getTip().isZero()) {
+                ongoingSyncJobs.remove(id);
+                return;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            observer.onException(e);
+            ongoingSyncJobs.remove(id);
+            return;
+        }
+
+        final ConnectionManager.ConnectionInfo connectionInfo = new ConnectionManager.ConnectionInfo(remote.getUser(),
+                remote.getServer());
+        final ConnectionManager.AuthInfo authInfo = context.getRootAuthInfo(remote.getUser(), remote.getServer());
+        final IDatabaseInterface database = dir.getDatabase();
+        Task.ICancelFunction job;
+        if (database instanceof JGitInterface)
+            job = gitSync((JGitInterface)database, dir, nJobs, observer, connectionInfo, authInfo);
+        else
+            throw new RuntimeException("Unsupported database.");
+
+        // only add the job if it is still in the list, e.g. when the request is sync the job is already gone
         if (ongoingSyncJobs.containsKey(id))
             ongoingSyncJobs.put(id, job);
     }

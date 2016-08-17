@@ -53,7 +53,7 @@ public class FejoaContext {
 
     public StorageDir get(String path, String branch) throws IOException {
         path = StorageDir.appendDir(homeDir, path);
-        StorageDir dir = secureStorageDirs.get(path);
+        StorageDir dir = secureStorageDirs.get(path + ":" + branch);
         if (dir != null && dir.getBranch().equals(branch))
             return new StorageDir(dir);
 
@@ -62,7 +62,7 @@ public class FejoaContext {
         database.init(path, branch, true);
 
         StorageDir storageDir = new StorageDir(database, "");
-        secureStorageDirs.put(path, storageDir);
+        secureStorageDirs.put(path + ":" + branch, storageDir);
         return new StorageDir(storageDir);
     }
 
