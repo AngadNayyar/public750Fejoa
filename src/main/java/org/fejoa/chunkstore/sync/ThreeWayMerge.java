@@ -16,46 +16,6 @@ import java.util.Iterator;
 import java.util.List;
 
 
-class TreeIterator implements Iterator<DiffIterator.Change<DirectoryBox.Entry>> {
-    final private IChunkAccessor ourAccessor;
-    final private IChunkAccessor theirAccessor;
-    final private List<DirBoxDiffIterator> iterators = new ArrayList<>();
-    private DirBoxDiffIterator current;
-
-    public TreeIterator(IChunkAccessor ourAccessor, DirectoryBox ours, IChunkAccessor theirAccessor,
-                        DirectoryBox theirs) {
-        this.ourAccessor = ourAccessor;
-        this.theirAccessor = theirAccessor;
-        current = new DirBoxDiffIterator("", ours, theirs);
-    }
-
-    @Override
-    public boolean hasNext() {
-        return current.hasNext();
-    }
-
-    @Override
-    public DiffIterator.Change<DirectoryBox.Entry> next() {
-        DiffIterator.Change<DirectoryBox.Entry> next = current.next();
-        if (next.type == DiffIterator.Type.MODIFIED && !next.ours.isFile() && !next.theirs.isFile()) {
-            try {
-                iterators.add(new DirBoxDiffIterator(next.path, DirectoryBox.read(ourAccessor, next.ours.getDataPointer()),
-                        DirectoryBox.read(theirAccessor, next.theirs.getDataPointer())));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        if (!hasNext() && iterators.size() > 0)
-            current = iterators.remove(0);
-        return next;
-    }
-
-    @Override
-    public void remove() {
-
-    }
-}
-
 public class ThreeWayMerge {
     public interface IConflictSolver {
         DirectoryBox.Entry solve(DirectoryBox.Entry ours, DirectoryBox.Entry theirs);
