@@ -7,20 +7,70 @@
  */
 package org.fejoa.chunkstore;
 
-import org.fejoa.chunkstore.sync.ChunkFetcher;
-import org.fejoa.chunkstore.sync.CommonAncestorsFinder;
-import org.fejoa.chunkstore.sync.ThreeWayMerge;
+import org.fejoa.chunkstore.sync.*;
 import org.fejoa.library.crypto.CryptoException;
+import org.fejoa.library.database.DatabaseDiff;
+import org.fejoa.library.database.IDatabaseInterface;
 import org.fejoa.library.support.StreamHelper;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 
-public class Repository {
+class CommitCache {
+    final private Map<HashValue, CommitBox> commitCache = new HashMap<>();
+    // All commits in this list as well are their parent are in the cached.
+    final private LinkedList<CommitBox> tailList = new LinkedList<>();
+    final private Repository repository;
+
+    public CommitCache(Repository repository) {
+        this.repository = repository;
+    }
+
+    public CommitBox getCommit(HashValue hashValue) throws IOException, CryptoException {
+        CommitBox commitBox = commitCache.get(hashValue);
+        if (commitBox != null)
+            return commitBox;
+        return loadCommit(hashValue);
+    }
+
+    private CommitBox loadCommit(final HashValue hashValue) throws IOException, CryptoException {
+        CommitBox head = repository.getHeadCommit();
+        if (head == null)
+            return null;
+        HashValue headHash = head.hash();
+        if (!commitCache.containsKey(headHash)) {
+            commitCache.put(headHash, head);
+            tailList.addFirst(head);
+            if (headHash.equals(hashValue))
+                return head;
+        }
+
+        while (tailList.size() > 0) {
+            CommitBox currentCommit = tailList.removeFirst();
+            CommitBox foundCommit = null;
+            for (BoxPointer boxPointer : currentCommit.getParents()) {
+                CommitBox parent = CommitBox.read(getCommitAccessor(), boxPointer);
+                HashValue parentHash = boxPointer.getDataHash();
+                if (parentHash.equals(hashValue))
+                    foundCommit = parent;
+                if (!commitCache.containsKey(parentHash)) {
+                    tailList.add(parent);
+                    commitCache.put(parentHash, parent);
+                }
+            }
+            if (foundCommit != null)
+                return foundCommit;
+        }
+        return null;
+    }
+
+    private IChunkAccessor getCommitAccessor() {
+        return repository.getCurrentTransaction().getCommitAccessor();
+    }
+}
+
+public class Repository implements IDatabaseInterface {
     final private File dir;
     final private String branch;
     final private ChunkStoreBranchLog log;
@@ -29,6 +79,7 @@ public class Repository {
     final private IRepoChunkAccessors accessors;
     private LogRepoTransaction transaction;
     private TreeAccessor treeAccessor;
+    final private CommitCache commitCache;
     final private ChunkSplitter chunkSplitter = new RabinSplitter();
 
     public interface ICommitCallback {
@@ -57,6 +108,7 @@ public class Repository {
             root = DirectoryBox.read(transaction.getTreeAccessor(), headCommit.getTree());
         }
         this.treeAccessor = new TreeAccessor(root, transaction);
+        commitCache = new CommitCache(this);
     }
 
     static public ChunkSplitter defaultNodeSplitter(int targetChunkSize) {
@@ -71,6 +123,24 @@ public class Repository {
 
     public String getBranch() {
         return branch;
+    }
+
+    public IRepoChunkAccessors.ITransaction getCurrentTransaction() {
+        return transaction;
+    }
+
+    @Override
+    public HashValue getTip() throws IOException {
+        return getHeadCommit().hash();
+    }
+
+    @Override
+    public HashValue getHash(String path) throws IOException, CryptoException {
+        DirectoryBox.Entry entry = treeAccessor.get(path);
+        if (!entry.isFile())
+            throw new IOException("Not a file path.");
+        FileBox fileBox = FileBox.read(transaction.getFileAccessor(path), entry.getDataPointer());
+        return fileBox.getDataContainer().hash();
     }
 
     private File getBranchDir() {
@@ -97,6 +167,7 @@ public class Repository {
         }
     }
 
+    @Override
     public List<String> listFiles(String path) throws IOException {
         DirectoryBox directoryBox = getDirBox(path);
         if (directoryBox == null)
@@ -107,6 +178,7 @@ public class Repository {
         return entries;
     }
 
+    @Override
     public List<String> listDirectories(String path) throws IOException {
         DirectoryBox directoryBox = getDirBox(path);
         if (directoryBox == null)
@@ -117,12 +189,19 @@ public class Repository {
         return entries;
     }
 
+    @Override
     public byte[] readBytes(String path) throws IOException, CryptoException {
         return treeAccessor.read(path);
     }
 
+    @Override
     public void writeBytes(String path, byte[] bytes) throws IOException, CryptoException {
         treeAccessor.put(path, writeToFileBox(path, bytes));
+    }
+
+    @Override
+    public void remove(String path) throws IOException, CryptoException {
+        treeAccessor.remove(path);
     }
 
     private FileBox writeToFileBox(String path, byte[] data) throws IOException {
@@ -219,8 +298,9 @@ public class Repository {
         }
     }
 
-    public BoxPointer commit() throws IOException, CryptoException {
-        return commit("Repo commit");
+    @Override
+    public HashValue commit() throws IOException, CryptoException {
+        return commit("Repo commit").getDataHash();
     }
 
     private boolean needCommit() {
@@ -255,5 +335,34 @@ public class Repository {
 
     public ChunkStoreBranchLog getBranchLog() throws IOException {
         return log;
+    }
+
+    @Override
+    public DatabaseDiff getDiff(HashValue baseCommitHash, HashValue endCommitHash) throws IOException, CryptoException {
+        CommitBox baseCommit = commitCache.getCommit(baseCommitHash);
+        CommitBox endCommit = commitCache.getCommit(endCommitHash);
+
+        DatabaseDiff databaseDiff = new DatabaseDiff();
+
+        IChunkAccessor treeAccessor = transaction.getTreeAccessor();
+        TreeIterator diffIterator = new TreeIterator(treeAccessor, baseCommit, treeAccessor, endCommit);
+        while (diffIterator.hasNext()) {
+            DiffIterator.Change<DirectoryBox.Entry> change = diffIterator.next();
+            switch (change.type) {
+                case MODIFIED:
+                    databaseDiff.modified.addPath(change.path);
+                    break;
+
+                case ADDED:
+                    databaseDiff.added.addPath(change.path);
+                    break;
+
+                case REMOVED:
+                    databaseDiff.removed.addPath(change.path);
+                    break;
+            }
+        }
+
+        return databaseDiff;
     }
 }
