@@ -63,6 +63,8 @@ public class TreeAccessor {
      * @throws CryptoException
      */
     public DirectoryBox.Entry get(String[] parts, int nDirs) throws IOException, CryptoException {
+        if (root == null)
+            return null;
         DirectoryBox.Entry entry = null;
         DirectoryBox currentDir = root;
         for (int i = 0; i < nDirs; i++) {
@@ -87,6 +89,8 @@ public class TreeAccessor {
 
     public byte[] read(String path) throws IOException, CryptoException {
         DirectoryBox.Entry fileEntry = get(path);
+        if (fileEntry == null)
+            throw new IOException("Entry not found");
         assert fileEntry.isFile();
 
         FileBox fileBox = FileBox.read(transaction.getFileAccessor(path), fileEntry.getDataPointer());

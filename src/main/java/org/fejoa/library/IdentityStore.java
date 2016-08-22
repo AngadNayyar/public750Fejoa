@@ -57,8 +57,8 @@ public class IdentityStore extends StorageKeyStore {
         return myself;
     }
 
-    public String addSignatureKeyPair(KeyPair pair, CryptoSettings.KeyTypeSettings keyTypeSettings) throws IOException {
-        KeyPairItem keyPairItem = new KeyPairItem(pair, keyTypeSettings);
+    public String addSignatureKeyPair(KeyPair pair, CryptoSettings.Signature keyTypeSettings) throws IOException {
+        SigningKeyPair keyPairItem = new SigningKeyPair(pair, keyTypeSettings);
         myself.addSignatureKey(keyPairItem);
         return keyPairItem.getId();
     }
@@ -68,7 +68,7 @@ public class IdentityStore extends StorageKeyStore {
     }
 
     public String addEncryptionKeyPair(KeyPair pair, CryptoSettings.Asymmetric keyTypeSettings) throws IOException {
-        KeyPairItem keyPairItem = new KeyPairItem(pair, keyTypeSettings);
+        EncryptionKeyPair keyPairItem = new EncryptionKeyPair(pair, keyTypeSettings);
         myself.addEncryptionKey(keyPairItem);
         return keyPairItem.getId();
     }

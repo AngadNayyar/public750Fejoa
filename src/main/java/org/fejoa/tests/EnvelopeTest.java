@@ -56,9 +56,8 @@ public class EnvelopeTest extends TestCase {
         final String message = "Hallo Fejoa";
 
         // signature
-        KeyPairItem keyItemPair = myself.getSignatureKeys().getDefault();
-        byte[] signedData = SignatureEnvelope.sign(message.getBytes(), true, myself, keyItemPair.getKeyId(),
-                cryptoSettings.signature);
+        SigningKeyPair keyItemPair = myself.getSignatureKeys().getDefault();
+        byte[] signedData = SignatureEnvelope.sign(message.getBytes(), true, myself, keyItemPair);
         byte[] verifiedData = Envelope.unpack(signedData, myself, finder, context);
 
         assertEquals(message, new String(verifiedData));
@@ -73,7 +72,7 @@ public class EnvelopeTest extends TestCase {
         assertEquals(message, new String(unzippedData));
 
         // public, sym encryption
-        KeyPairItem key = myself.getEncryptionKeys().getDefault();
+        KeyPairData key = myself.getEncryptionKeys().getDefault();
         byte[] encryptedData = PublicCryptoEnvelope.encrypt(message.getBytes(), true, key.getKeyId(),
                 key.getKeyPair().getPublic(), context);
         byte[] decryptedData = IOUtils.toByteArray(envelope.unpack(new ByteArrayInputStream(encryptedData), myself,
@@ -82,8 +81,7 @@ public class EnvelopeTest extends TestCase {
         assertEquals(message, new String(decryptedData));
 
         // combination
-        InputStream signStream = SignatureEnvelope.signStream(message.getBytes(), true, myself, keyItemPair.getKeyId(),
-                cryptoSettings.signature);
+        InputStream signStream = SignatureEnvelope.signStream(message.getBytes(), true, myself, keyItemPair);
         InputStream zipStream = ZipEnvelope.zip(signStream, false);
         InputStream encryptStream = PublicCryptoEnvelope.encrypt(zipStream, false, key.getKeyId(),
                 key.getKeyPair().getPublic(), context);

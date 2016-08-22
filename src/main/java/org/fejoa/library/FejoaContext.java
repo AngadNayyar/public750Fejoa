@@ -1,5 +1,5 @@
 /*
- * Copyright 2015.
+ * Copyright 2015-2016.
  * Distributed under the terms of the GPLv3 License.
  *
  * Authors:
@@ -7,18 +7,19 @@
  */
 package org.fejoa.library;
 
+import org.fejoa.chunkstore.*;
 import org.fejoa.library.crypto.Crypto;
+import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.crypto.CryptoSettings;
 import org.fejoa.library.crypto.ICryptoInterface;
+import org.fejoa.library.database.CSRepositoryBuilder;
+import org.fejoa.library.database.ICommitSignature;
 import org.fejoa.library.database.JGitInterface;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.remote.ConnectionManager;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 public class FejoaContext {
@@ -64,6 +65,25 @@ public class FejoaContext {
         StorageDir storageDir = new StorageDir(database, "");
         secureStorageDirs.put(path + ":" + branch, storageDir);
         return new StorageDir(storageDir);
+    }
+
+    public StorageDir getNew(String path, String branch, SymmetricKeyData cryptoKeyData,
+                             ICommitSignature commitSignature) throws IOException, CryptoException {
+        path = StorageDir.appendDir(homeDir, path);
+        StorageDir dir = secureStorageDirs.get(path + ":" + branch);
+        if (dir != null && dir.getBranch().equals(branch))
+            return new StorageDir(dir);
+
+        // not found create one
+        File pathFile = new File(path);
+        pathFile.mkdirs();
+
+        Repository repository = CSRepositoryBuilder.openOrCreate(this, pathFile, branch, cryptoKeyData);
+        StorageDir storageDir = new StorageDir(repository, "");
+        secureStorageDirs.put(path + ":" + branch, storageDir);
+        storageDir = new StorageDir(storageDir);
+        storageDir.setCommitSignature(commitSignature);
+        return storageDir;
     }
 
     public void setUserDataId(String id) throws IOException {

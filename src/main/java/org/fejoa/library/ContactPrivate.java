@@ -17,19 +17,27 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 
 
-public class ContactPrivate extends Contact<KeyPairItem> implements IContactPrivate {
+public class ContactPrivate extends Contact<SigningKeyPair, EncryptionKeyPair> implements IContactPrivate {
     protected ContactPrivate(FejoaContext context, StorageDir dir) {
-        super(context, new StorageDirList.AbstractEntryIO<KeyPairItem>() {
+        super(context, new StorageDirList.AbstractEntryIO<SigningKeyPair>() {
             @Override
-            public String getId(KeyPairItem entry) {
+            public String getId(SigningKeyPair entry) {
                 return entry.getId();
             }
 
             @Override
-            public KeyPairItem read(StorageDir dir) throws IOException {
-                KeyPairItem keyPairItem = new KeyPairItem();
-                keyPairItem.read(dir);
-                return keyPairItem;
+            public SigningKeyPair read(StorageDir dir) throws IOException {
+                return SigningKeyPair.open(dir);
+            }
+        }, new StorageDirList.AbstractEntryIO<EncryptionKeyPair>() {
+            @Override
+            public String getId(EncryptionKeyPair entry) {
+                return entry.getId();
+            }
+
+            @Override
+            public EncryptionKeyPair read(StorageDir dir) throws IOException {
+                return EncryptionKeyPair.open(dir);
             }
         }, dir);
     }
@@ -40,9 +48,11 @@ public class ContactPrivate extends Contact<KeyPairItem> implements IContactPriv
     }
 
     @Override
-    public byte[] sign(KeyId keyId, byte[] data, CryptoSettings.Signature signatureSettings) throws CryptoException {
-        ICryptoInterface crypto = context.getCrypto();
-        PrivateKey publicKey = signatureKeys.get(keyId.toString()).getKeyPair().getPrivate();
-        return crypto.sign(data, publicKey, signatureSettings);
+    public byte[] sign(SigningKeyPair signingKeyPair, byte[] data) throws CryptoException {
+        return sign(context, signingKeyPair, data);
+    }
+
+    static public byte[] sign(FejoaContext context, SigningKeyPair key, byte[] data) throws CryptoException {
+        return context.getCrypto().sign(data, key.getKeyPair().getPrivate(), key.getSignatureSettings());
     }
 }

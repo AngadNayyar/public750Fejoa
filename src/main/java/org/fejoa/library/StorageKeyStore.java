@@ -75,4 +75,8 @@ public class StorageKeyStore {
     public String getId() {
         return storageDir.getBranch();
     }
+
+    public StorageDir getStorageDir() {
+        return storageDir;
+    }
 }

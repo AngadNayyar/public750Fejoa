@@ -7,15 +7,12 @@
  */
 package org.fejoa.library.messages;
 
-import org.fejoa.library.KeyId;
+import org.fejoa.library.*;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.crypto.CryptoHelper;
 import org.fejoa.library.crypto.CryptoSettings;
 import org.fejoa.library.crypto.JsonCryptoSettings;
 import org.fejoa.library.support.StreamHelper;
-import org.fejoa.library.IContactFinder;
-import org.fejoa.library.IContactPrivate;
-import org.fejoa.library.IContactPublic;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -39,19 +36,19 @@ public class SignatureEnvelope {
         }
     }
 
-    static public InputStream signStream(byte[] data, boolean isRawData, IContactPrivate contactPrivate, KeyId keyId,
-                                    CryptoSettings.Signature settings) throws IOException, CryptoException,
-                                    JSONException {
+    static public InputStream signStream(byte[] data, boolean isRawData, IContactPrivate contactPrivate,
+                                         SigningKeyPair signingKeyPair)
+            throws IOException, CryptoException, JSONException {
         byte[] hash = CryptoHelper.sha256Hash(data);
-        String signature = CryptoHelper.toHex(contactPrivate.sign(keyId, hash, settings));
+        String signature = CryptoHelper.toHex(contactPrivate.sign(signingKeyPair, hash));
         JSONObject object = new JSONObject();
         object.put(Envelope.PACK_TYPE_KEY, SIGNATURE_TYPE);
         if (isRawData)
             object.put(Envelope.CONTAINS_DATA_KEY, 1);
-        object.put(KEY_ID_KEY, keyId.toString());
+        object.put(KEY_ID_KEY, signingKeyPair.toString());
         object.put(SENDER_ID_KEY, contactPrivate.getId());
         object.put(SIGNATURE_KEY, signature);
-        object.put(SETTINGS_KEY, JsonCryptoSettings.toJson(settings));
+        object.put(SETTINGS_KEY, JsonCryptoSettings.toJson(signingKeyPair.getSignatureSettings()));
         String header = object.toString() + "\n";
 
         return new SequenceInputStream(new ByteArrayInputStream(header.getBytes()), new ByteArrayInputStream(data));
@@ -91,18 +88,18 @@ public class SignatureEnvelope {
     }
 
 
-    static public byte[] sign(byte[] data, boolean isRawData, IContactPrivate contactPrivate, KeyId keyId,
-                              CryptoSettings.Signature settings) throws CryptoException, JSONException, IOException {
+    static public byte[] sign(byte[] data, boolean isRawData, IContactPrivate contactPrivate,
+                              SigningKeyPair signingKeyPair) throws CryptoException, JSONException, IOException {
         byte[] hash = CryptoHelper.sha256Hash(data);
-        String signature = CryptoHelper.toHex(contactPrivate.sign(keyId, hash, settings));
+        String signature = CryptoHelper.toHex(contactPrivate.sign(signingKeyPair, hash));
         JSONObject object = new JSONObject();
         object.put(Envelope.PACK_TYPE_KEY, SIGNATURE_TYPE);
         if (isRawData)
             object.put(Envelope.CONTAINS_DATA_KEY, 1);
-        object.put(KEY_ID_KEY, keyId.toString());
+        object.put(KEY_ID_KEY, signingKeyPair.getId().toString());
         object.put(SENDER_ID_KEY, contactPrivate.getId());
         object.put(SIGNATURE_KEY, signature);
-        object.put(SETTINGS_KEY, JsonCryptoSettings.toJson(settings));
+        object.put(SETTINGS_KEY, JsonCryptoSettings.toJson(signingKeyPair.getSignatureSettings()));
         String header = object.toString() + "\n";
 
         ByteArrayOutputStream outStream = new ByteArrayOutputStream();

@@ -27,9 +27,11 @@ import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
 import org.fejoa.chunkstore.*;
+import org.fejoa.library.crypto.CryptoException;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 
@@ -168,8 +170,12 @@ public class JGitInterface implements IDatabaseInterface {
         objectInserter.flush();
     }
 
-    @Override
     public HashValue commit() throws IOException {
+        return commit("", null);
+    }
+
+    @Override
+    public HashValue commit(String message, ICommitSignature commitSignature) throws IOException {
         if (rootTree.equals(ObjectId.zeroId()))
             throw new InvalidObjectException("invalid root tree");
 
@@ -177,7 +183,7 @@ public class JGitInterface implements IDatabaseInterface {
         PersonIdent personIdent = new PersonIdent("client", "");
         commit.setCommitter(personIdent);
         commit.setAuthor(personIdent);
-        commit.setMessage("client commit");
+        commit.setMessage(message);
         commit.setTreeId(rootTree);
         HashValue tip = getTip();
         ObjectId oldTip;
@@ -366,7 +372,7 @@ public class JGitInterface implements IDatabaseInterface {
             return;
         // commit if necessary
         if (needsCommit())
-            commit();
+            commit("", null);
 
         ObjectId theirs = ObjectId.fromString(theirCommitId.toHex());
         RevCommit theirsCommit = new RevWalk(repository).parseCommit(theirs);

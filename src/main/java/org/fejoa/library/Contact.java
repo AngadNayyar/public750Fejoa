@@ -14,22 +14,25 @@ import java.io.IOException;
 import java.security.PublicKey;
 
 
-abstract class Contact<T> implements IContactPublic {
+abstract class Contact<SignKey, EncKey> implements IContactPublic {
     final static private String SIGNATURE_KEYS_DIR = "signatureKeys";
     final static private String ENCRYPTION_KEYS_DIR = "encryptionKeys";
 
     final protected FejoaContext context;
-    final protected StorageDirList.IEntryIO<T> entryIO;
+    final protected StorageDirList.IEntryIO<SignKey> signEntryIO;
+    final protected StorageDirList.IEntryIO<EncKey> encEntryIO;
     protected StorageDir storageDir;
 
     protected String id = "";
 
-    protected StorageDirList<T> signatureKeys;
-    protected StorageDirList<T> encryptionKeys;
+    protected StorageDirList<SignKey> signatureKeys;
+    protected StorageDirList<EncKey> encryptionKeys;
 
-    protected Contact(FejoaContext context, StorageDirList.IEntryIO<T> entryIO, StorageDir dir) {
+    protected Contact(FejoaContext context, StorageDirList.IEntryIO<SignKey> signEntryIO,
+                      StorageDirList.IEntryIO<EncKey> encEntryIO, StorageDir dir) {
         this.context = context;
-        this.entryIO = entryIO;
+        this.signEntryIO = signEntryIO;
+        this.encEntryIO = encEntryIO;
 
         if (dir != null)
             setStorageDir(dir);
@@ -44,8 +47,8 @@ abstract class Contact<T> implements IContactPublic {
             //e.printStackTrace();
         }
 
-        signatureKeys = new StorageDirList<>(new StorageDir(dir, SIGNATURE_KEYS_DIR), entryIO);
-        encryptionKeys = new StorageDirList<>(new StorageDir(dir, ENCRYPTION_KEYS_DIR), entryIO);
+        signatureKeys = new StorageDirList<>(new StorageDir(dir, SIGNATURE_KEYS_DIR), signEntryIO);
+        encryptionKeys = new StorageDirList<>(new StorageDir(dir, ENCRYPTION_KEYS_DIR), encEntryIO);
     }
 
     abstract public PublicKey getVerificationKey(KeyId keyId);
@@ -66,31 +69,31 @@ abstract class Contact<T> implements IContactPublic {
         return id;
     }
 
-    public StorageDirList<T> getSignatureKeys() {
+    public StorageDirList<SignKey> getSignatureKeys() {
         return signatureKeys;
     }
 
-    public StorageDirList<T> getEncryptionKeys() {
+    public StorageDirList<EncKey> getEncryptionKeys() {
         return encryptionKeys;
     }
 
-    public void addSignatureKey(T key) throws IOException {
+    public void addSignatureKey(SignKey key) throws IOException {
         signatureKeys.add(key);
     }
 
-    public T getSignatureKey(KeyId id) {
+    public SignKey getSignatureKey(KeyId id) {
         return signatureKeys.get(id.toString());
     }
 
-    public void addEncryptionKey(T key) throws IOException {
+    public void addEncryptionKey(EncKey key) throws IOException {
         encryptionKeys.add(key);
     }
 
-    public T getEncryptionKey(KeyId id) {
+    public EncKey getEncryptionKey(KeyId id) {
         return getEncryptionKey(id.toString());
     }
 
-    public T getEncryptionKey(String id) {
+    public EncKey getEncryptionKey(String id) {
         return encryptionKeys.get(id);
     }
 }

@@ -10,8 +10,8 @@ package org.fejoa.chunkstore;
 import org.fejoa.chunkstore.sync.*;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.database.DatabaseDiff;
+import org.fejoa.library.database.ICommitSignature;
 import org.fejoa.library.database.IDatabaseInterface;
-import org.fejoa.library.support.StreamHelper;
 
 import java.io.*;
 import java.util.*;
@@ -83,9 +83,8 @@ public class Repository implements IDatabaseInterface {
     final private ChunkSplitter chunkSplitter = new RabinSplitter();
 
     public interface ICommitCallback {
-        String commitPointerToLog(BoxPointer commitPointer);
-        BoxPointer commitPointerFromLog(String logEntry);
-        byte[] createCommitMessage(String message, BoxPointer rootTree, Collection<BoxPointer> parents);
+        String commitPointerToLog(BoxPointer commitPointer) throws CryptoException;
+        BoxPointer commitPointerFromLog(String logEntry) throws CryptoException;
      }
 
     public Repository(File dir, String branch, IRepoChunkAccessors chunkAccessors, ICommitCallback commitCallback)
@@ -131,7 +130,18 @@ public class Repository implements IDatabaseInterface {
 
     @Override
     public HashValue getTip() throws IOException {
+        if (getHeadCommit() == null)
+            return Config.newDataHash();
         return getHeadCommit().hash();
+    }
+
+    private Collection<HashValue> getParents() {
+        if (headCommit == null)
+            return Collections.emptyList();
+        List<HashValue> parents = new ArrayList<>();
+        for (BoxPointer parent : headCommit.getParents())
+            parents.add(parent.getDataHash());
+        return parents;
     }
 
     @Override
@@ -248,14 +258,14 @@ public class Repository implements IDatabaseInterface {
     public void merge(IRepoChunkAccessors.ITransaction otherTransaction, CommitBox otherBranch)
             throws IOException, CryptoException {
         // TODO: check if the transaction is valid, i.e. contains object compatible with otherBranch?
+        // TODO: verify commits
         assert otherBranch != null;
+        assert !treeAccessor.isModified();
 
         // 1) Find common ancestor
         // 2) Pull missing objects into the other transaction
         // 3) Merge head with otherBranch and commit the other transaction
         synchronized (Repository.this) {
-            commit();
-
             if (headCommit == null) {
                 // we are empty just use the other branch
                 otherTransaction.finishTransaction();
@@ -294,20 +304,24 @@ public class Repository implements IDatabaseInterface {
             // merge branches
             treeAccessor = ThreeWayMerge.merge(transaction, transaction, headCommit, otherTransaction,
                     otherBranch, shortestChain.getOldest(), ThreeWayMerge.ourSolver());
-            commit("Merge.");
         }
     }
 
-    @Override
-    public HashValue commit() throws IOException, CryptoException {
-        return commit("Repo commit").getDataHash();
+    public HashValue commit(ICommitSignature commitSignature) throws IOException, CryptoException {
+        return commit("Repo commit", commitSignature);
     }
 
     private boolean needCommit() {
         return treeAccessor.isModified();
     }
 
-    public BoxPointer commit(String message) throws IOException, CryptoException {
+    @Override
+    public HashValue commit(String message, ICommitSignature commitSignature) throws IOException, CryptoException {
+        return commitInternal(message, commitSignature).getDataHash();
+    }
+
+    public BoxPointer commitInternal(String message, ICommitSignature commitSignature) throws IOException,
+            CryptoException {
         if (!needCommit())
             return null;
 
@@ -317,7 +331,9 @@ public class Repository implements IDatabaseInterface {
             commitBox.setTree(rootTree);
             if (headCommit != null)
                 commitBox.addParent(headCommit.getBoxPointer());
-            commitBox.setCommitMessage(commitCallback.createCommitMessage(message, rootTree, commitBox.getParents()));
+            if (commitSignature != null)
+                message = commitSignature.signMessage(message, rootTree.getDataHash(), getParents());
+            commitBox.setCommitMessage(message.getBytes());
             HashValue boxHash = put(commitBox, transaction.getCommitAccessor());
             BoxPointer commitPointer = new BoxPointer(commitBox.hash(), boxHash);
             commitBox.setBoxPointer(commitPointer);

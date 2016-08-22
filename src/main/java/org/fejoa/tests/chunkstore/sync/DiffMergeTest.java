@@ -114,13 +114,13 @@ public class DiffMergeTest extends RepositoryTest {
         Repository repository2 = new Repository(directory2, branch, accessors, simpleCommitCallback);
 
         repository.writeBytes("file1", "file1".getBytes());
-        repository.commit();
+        repository.commit(null);
 
         repository2.writeBytes("file1", "file1".getBytes());
-        repository2.commit();
+        repository2.commit(null);
 
         repository2.writeBytes("file2", "file2".getBytes());
-        repository2.commit();
+        repository2.commit(null);
 
         List<DatabaseStingEntry> mergedContent = new ArrayList<>();
         mergedContent.add(new DatabaseStingEntry("file1", "file1"));
@@ -140,15 +140,17 @@ public class DiffMergeTest extends RepositoryTest {
         assertTrue(parent.hash().equals(repository.getHeadCommit().hash()));
 
         repository.merge(transaction, theirs);
+        repository.commit("merge1", null);
         containsContent(repository, mergedContent);
 
         repository.writeBytes("file2", "our file 2".getBytes());
-        repository.commit();
+        repository.commit(null);
         repository2.writeBytes("file2", "their file 2".getBytes());
-        repository2.commit();
+        repository2.commit(null);
 
         theirs = repository2.getHeadCommit();
         repository.merge(transaction, theirs);
+        repository.commit("merge2", null);
 
         mergedContent.clear();
         mergedContent.add(new DatabaseStingEntry("file1", "file1"));

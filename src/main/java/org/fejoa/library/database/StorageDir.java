@@ -8,8 +8,7 @@
 package org.fejoa.library.database;
 
 import org.fejoa.chunkstore.HashValue;
-import org.fejoa.library.crypto.CryptoException;
-import org.fejoa.library.crypto.CryptoHelper;
+import org.fejoa.library.crypto.*;
 import org.fejoa.library.support.WeakListenable;
 
 import java.io.IOException;
@@ -42,6 +41,7 @@ public class StorageDir {
      * The StorageDirCache is shared between all StorageDir that are build from the same parent.
      */
     static class StorageDirCache extends WeakListenable<StorageDir.IListener> {
+        private ICommitSignature commitSignature;
         final private IDatabaseInterface database;
         final private Map<String, byte[]> toAdd = new HashMap<>();
         final private List<String> toDelete = new ArrayList<>();
@@ -57,6 +57,10 @@ public class StorageDir {
 
         public IDatabaseInterface getDatabase() {
             return database;
+        }
+
+        public void setCommitSignature(ICommitSignature commitSignature) {
+            this.commitSignature = commitSignature;
         }
 
         public void writeBytes(String path, byte[] data) throws IOException {
@@ -110,13 +114,13 @@ public class StorageDir {
             return true;
         }
 
-        public void commit() throws IOException {
+        public void commit(String message) throws IOException {
             if (!needsCommit())
                 return;
             flush();
             HashValue base = getDatabase().getTip();
             try {
-                database.commit();
+                database.commit(message, commitSignature);
 
                 if (getListeners().size() > 0) {
                     HashValue tip = getDatabase().getTip();
@@ -182,6 +186,10 @@ public class StorageDir {
     public StorageDir(IDatabaseInterface database, String baseDir) {
         this.baseDir = baseDir;
         this.cache = new StorageDirCache(database);
+    }
+
+    public void setCommitSignature(ICommitSignature commitSignature) {
+        this.cache.setCommitSignature(commitSignature);
     }
 
     public void setFilter(IIOFilter filter) {
@@ -269,8 +277,12 @@ public class StorageDir {
         return cache.listDirectories(getRealPath(path));
     }
 
+    public void commit(String message) throws IOException {
+        cache.commit(message);
+    }
+
     public void commit() throws IOException {
-        cache.commit();
+        commit("Client commit");
     }
 
     public HashValue getTip() throws IOException {

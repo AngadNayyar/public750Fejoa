@@ -7,7 +7,6 @@
  */
 package org.fejoa.library.command;
 
-import org.fejoa.library.KeyId;
 import org.fejoa.library.crypto.*;
 import org.fejoa.library.*;
 import org.json.JSONException;
@@ -34,10 +33,10 @@ public class ContactRequestCommand {
 
     static String makeInfoCommand(FejoaContext context, ContactPrivate myself, Remote myServer,
                               boolean reply) throws JSONException, CryptoException {
-        KeyId signKeyId= myself.getSignatureKeys().getDefault().getKeyId();
-        byte[] signKey = myself.getSignatureKey(signKeyId).getKeyPair().getPublic().getEncoded();
-        String base64SignKey = DatatypeConverter.printBase64Binary(signKey);
-        KeyPairItem publicKeyPair = myself.getEncryptionKeys().getDefault();
+        SigningKeyPair signingKeyPair = myself.getSignatureKeys().getDefault();
+        byte[] pubSignKey = signingKeyPair.getKeyPair().getPublic().getEncoded();
+        String base64SignKey = DatatypeConverter.printBase64Binary(pubSignKey);
+        KeyPairData publicKeyPair = myself.getEncryptionKeys().getDefault();
         byte[] publicKey = publicKeyPair.getKeyPair().getPublic().getEncoded();
         String base64PublicKey = DatatypeConverter.printBase64Binary(publicKey);
 
@@ -48,8 +47,7 @@ public class ContactRequestCommand {
         object.put(Constants.SERVER_KEY, myServer.getServer());
         object.put(Constants.SENDER_ID_KEY, myself.getId());
         object.put(SIGNING_KEY_KEY, base64SignKey);
-        object.put(SIGNING_KEY_SETTINGS_KEY, JsonCryptoSettings.toJson(
-                myself.getSignatureKey(signKeyId).getKeyTypeSettings()));
+        object.put(SIGNING_KEY_SETTINGS_KEY, JsonCryptoSettings.toJson(signingKeyPair.getKeyTypeSettings()));
         object.put(PUBLIC_KEY_KEY, base64PublicKey);
         object.put(PUBLIC_KEY_SETTINGS_KEY, JsonCryptoSettings.toJson(publicKeyPair.getKeyTypeSettings()));
 
@@ -59,12 +57,11 @@ public class ContactRequestCommand {
             object.put(STATE, REPLY_STATE);
 
         String hash = CryptoHelper.sha256HashHex(myself.getId() + base64SignKey + base64PublicKey);
-        CryptoSettings.Signature signatureSettings = context.getCryptoSettings().signature;
-        String signature = DatatypeConverter.printBase64Binary(myself.sign(signKeyId, hash.getBytes(),
-                signatureSettings));
+        String signature = DatatypeConverter.printBase64Binary(myself.sign(signingKeyPair, hash.getBytes()));
 
         object.put(SIGNATURE_KEY, signature);
-        object.put(SIGNATURE_SETTINGS_KEY, JsonCryptoSettings.toJson(signatureSettings));
+        object.put(SIGNATURE_SETTINGS_KEY,
+                JsonCryptoSettings.toJson(signingKeyPair.getSignatureSettings()));
 
         return object.toString();
     }

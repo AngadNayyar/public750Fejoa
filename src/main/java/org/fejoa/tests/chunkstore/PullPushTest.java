@@ -35,7 +35,7 @@ public class PullPushTest extends RepositoryTestBase {
             }
 
             @Override
-            public PutResult<HashValue> putChunk(byte[] data) throws IOException {
+            public PutResult<HashValue> putChunk(byte[] data, HashValue ivHash) throws IOException {
                 return transaction.put(data);
             }
 
@@ -137,7 +137,7 @@ public class PullPushTest extends RepositoryTestBase {
         // change the remote repo
         List<DatabaseStingEntry> remoteContent = new ArrayList<>();
         add(remoteRepo, remoteContent, new DatabaseStingEntry("testFile", "Hello World"));
-        BoxPointer boxPointer = remoteRepo.commit("");
+        BoxPointer boxPointer = remoteRepo.commitInternal("", null);
 
         pulledTip = pullRequest.pull(senderPipe, branch);
         containsContent(requestRepo, remoteContent);
@@ -145,7 +145,7 @@ public class PullPushTest extends RepositoryTestBase {
 
         // make another remote change
         add(remoteRepo, remoteContent, new DatabaseStingEntry("testFile2", "Hello World 2"));
-        boxPointer = remoteRepo.commit("");
+        boxPointer = remoteRepo.commitInternal("", null);
 
         pulledTip = pullRequest.pull(senderPipe, branch);
         containsContent(requestRepo, remoteContent);
@@ -186,7 +186,7 @@ public class PullPushTest extends RepositoryTestBase {
         // change the local repo
         List<DatabaseStingEntry> localContent = new ArrayList<>();
         add(localRepo, localContent, new DatabaseStingEntry("testFile", "Hello World!"));
-        localRepo.commit();
+        localRepo.commit(null);
 
         IRepoChunkAccessors.ITransaction localTransaction = localRepo.getChunkAccessors().startTransaction();
         PushRequest pushRequest = new PushRequest(localRepo);
@@ -198,7 +198,7 @@ public class PullPushTest extends RepositoryTestBase {
 
         // add more
         add(localRepo, localContent, new DatabaseStingEntry("testFile2", "Hello World 2"));
-        localRepo.commit();
+        localRepo.commit(null);
         // push changes
         pushRequest.push(senderPipe, localTransaction, branch);
         remoteRepo = new Repository(remoteDirectory, branch, getRepoChunkAccessors(remoteChunkStore),

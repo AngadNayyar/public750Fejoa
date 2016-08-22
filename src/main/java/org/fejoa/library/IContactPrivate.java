@@ -12,5 +12,5 @@ import org.fejoa.library.crypto.CryptoSettings;
 
 
 public interface IContactPrivate extends IContactPublic {
-    byte[] sign(KeyId keyId, byte data[], CryptoSettings.Signature signatureSettings) throws CryptoException;
+    byte[] sign(SigningKeyPair signingKeyPair, byte data[]) throws CryptoException;
 }

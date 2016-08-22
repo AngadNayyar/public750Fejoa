@@ -25,10 +25,8 @@ public class EncryptedZipSignedCommand implements ICommand {
 
     public EncryptedZipSignedCommand(FejoaContext context, String command, ContactPrivate sender,
                                      ContactPublic receiver) throws IOException, CryptoException, JSONException {
-        KeyPairItem signKey = sender.getSignatureKeys().getDefault();
-        CryptoSettings cryptoSettings = context.getCryptoSettings();
-        InputStream signStream = SignatureEnvelope.signStream(command.getBytes(), true, sender, signKey.getKeyId(),
-                cryptoSettings.signature);
+        SigningKeyPair signKey = sender.getSignatureKeys().getDefault();
+        InputStream signStream = SignatureEnvelope.signStream(command.getBytes(), true, sender, signKey);
         InputStream zipStream = ZipEnvelope.zip(signStream, false);
 
         PublicKeyItem pubKey = receiver.getEncryptionKeys().getDefault();

@@ -14,8 +14,14 @@ public class Constants {
     static final public String SERVER_KEY = "server";
     static final public String KEY_SIZE_KEY = "keySize";
     static final public String KEY_TYPE_KEY = "keyType";
+    static final public String KEY_ID_KEY = "keyId";
     static final public String ALGORITHM_KEY = "algorithm";
     static final public String IV_SIZE_KEY = "ivSize";
+    static final public String IV_KEY = "iv";
+    static final public String SIGNATURE_KEY = "signature";
+    static final public String SIGNATURE_SETTINGS_KEY = "signatureSettings";
+    static final public String MESSAGE_KEY = "message";
+
 
     static final public String SERVER_USER_KEY = "serverUser";
     static final public String BRANCH_KEY = "branch";

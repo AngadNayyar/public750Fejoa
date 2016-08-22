@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.security.PublicKey;
 
 
-public class ContactPublic extends Contact<PublicKeyItem> {
+public class ContactPublic extends Contact<PublicKeyItem, PublicKeyItem> {
     final static private String REMOTES_DIR = "remotes";
     final static private String ACCESS_DIR = "access";
 
@@ -26,11 +26,12 @@ public class ContactPublic extends Contact<PublicKeyItem> {
      * @param context the used context.
      */
     ContactPublic(FejoaContext context) {
-        super(context, getEntryIO(), null);
+        super(context, getEntryIO(), getEntryIO(), null);
     }
 
     protected ContactPublic(FejoaContext context, StorageDir storageDir) {
-        super(context, getEntryIO(), storageDir);
+        super(context, getEntryIO(), getEntryIO(),
+                storageDir);
     }
 
     static private StorageDirList.AbstractEntryIO<PublicKeyItem> getEntryIO() {

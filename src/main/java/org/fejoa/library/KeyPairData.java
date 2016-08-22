@@ -18,22 +18,22 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 
 
-public class KeyPairItem implements IStorageDirBundle {
+public class KeyPairData implements IStorageDirBundle {
     final private String PATH_PRIVATE_KEY = "privateKey";
     final private String PATH_PUBLIC_KEY = "publicKey";
 
     private String id;
     private KeyPair keyPair;
-    private CryptoSettings.KeyTypeSettings typeSettings;
+    final protected CryptoSettings.KeyTypeSettings settings;
 
-    KeyPairItem() {
-        typeSettings = new CryptoSettings.KeyTypeSettings();
+    protected KeyPairData(CryptoSettings.KeyTypeSettings settings) {
+        this.settings = settings;
     }
 
-    public KeyPairItem(KeyPair keyPair, CryptoSettings.KeyTypeSettings typeSettings) {
+    public KeyPairData(KeyPair keyPair, CryptoSettings.KeyTypeSettings settings) {
         this.id = CryptoHelper.sha1HashHex(keyPair.getPublic().getEncoded());
         this.keyPair = keyPair;
-        this.typeSettings = typeSettings;
+        this.settings = settings;
     }
 
     @Override
@@ -41,18 +41,18 @@ public class KeyPairItem implements IStorageDirBundle {
         dir.writeString(Constants.ID_KEY, id);
         dir.writeBytes(PATH_PRIVATE_KEY, keyPair.getPrivate().getEncoded());
         dir.writeBytes(PATH_PUBLIC_KEY, keyPair.getPublic().getEncoded());
-        CryptoSettingsIO.write(typeSettings, dir, "");
+        CryptoSettingsIO.write(settings, dir, "");
     }
 
     @Override
     public void read(StorageDir dir) throws IOException {
         id = dir.readString(Constants.ID_KEY);
-        CryptoSettingsIO.read(typeSettings, dir, "");
+        CryptoSettingsIO.read(settings, dir, "");
         PrivateKey privateKey;
         PublicKey publicKey;
         try {
-            privateKey = CryptoHelper.privateKeyFromRaw(dir.readBytes(PATH_PRIVATE_KEY), typeSettings.keyType);
-            publicKey = CryptoHelper.publicKeyFromRaw(dir.readBytes(PATH_PUBLIC_KEY), typeSettings.keyType);
+            privateKey = CryptoHelper.privateKeyFromRaw(dir.readBytes(PATH_PRIVATE_KEY), settings.keyType);
+            publicKey = CryptoHelper.publicKeyFromRaw(dir.readBytes(PATH_PUBLIC_KEY), settings.keyType);
         } catch (Exception e) {
             throw new IOException(e.getMessage());
         }
@@ -72,6 +72,6 @@ public class KeyPairItem implements IStorageDirBundle {
     }
 
     public CryptoSettings.KeyTypeSettings getKeyTypeSettings() {
-        return typeSettings;
+        return settings;
     }
 }

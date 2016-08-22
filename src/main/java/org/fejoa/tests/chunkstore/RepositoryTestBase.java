@@ -95,11 +95,6 @@ public class RepositoryTestBase extends TestCase {
             }
             return null;
         }
-
-        @Override
-        public byte[] createCommitMessage(String message, BoxPointer rootTree, Collection<BoxPointer> parents) {
-            return message.getBytes();
-        }
     };
 
     protected void add(Repository database, List<DatabaseStingEntry> content, DatabaseStingEntry entry)

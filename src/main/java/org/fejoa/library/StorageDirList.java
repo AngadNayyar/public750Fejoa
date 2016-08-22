@@ -20,10 +20,30 @@ public class StorageDirList<T> {
         void write(T entry, StorageDir dir) throws IOException;
     }
 
+    abstract static public class AbstractIdEntry implements IStorageDirBundle {
+        private String id;
+
+        public AbstractIdEntry(String id) {
+            this.id = id;
+        }
+
+        public String getId() {
+            return id;
+        }
+    }
+
     abstract static public class AbstractEntryIO<T extends IStorageDirBundle> implements IEntryIO<T> {
         @Override
         public void write(T entry, StorageDir dir) throws IOException {
             entry.write(dir);
+        }
+
+        protected String idFromStoragePath(StorageDir dir) {
+            String baseDir = dir.getBaseDir();
+            int lastSlash = baseDir.lastIndexOf("/");
+            if (lastSlash < 0)
+                return baseDir;
+            return baseDir.substring(lastSlash + 1);
         }
     }
 

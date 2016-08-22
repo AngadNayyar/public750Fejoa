@@ -53,7 +53,7 @@ public class ChunkContainerTest extends TestCase {
             }
 
             @Override
-            public PutResult<HashValue> putChunk(byte[] data) throws IOException {
+            public PutResult<HashValue> putChunk(byte[] data, HashValue ivHash) throws IOException {
                 return transaction.put(data);
             }
 
@@ -81,10 +81,10 @@ public class ChunkContainerTest extends TestCase {
             }
 
             @Override
-            public PutResult<HashValue> putChunk(byte[] data) throws IOException, CryptoException {
+            public PutResult<HashValue> putChunk(byte[] data, HashValue ivHash) throws IOException, CryptoException {
                 ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
                 OutputStream cryptoStream = cryptoInterface.encryptSymmetric(outputStream, secretKey,
-                        getIv(CryptoHelper.sha256Hash(data)), settings.symmetric);
+                        getIv(ivHash.getBytes()), settings.symmetric);
                 cryptoStream.write(data);
                 return transaction.put(outputStream.toByteArray());
             }

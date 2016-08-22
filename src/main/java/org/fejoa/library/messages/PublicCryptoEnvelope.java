@@ -13,7 +13,7 @@ import org.fejoa.library.crypto.*;
 import org.fejoa.library.support.StreamHelper;
 import org.fejoa.library.ContactPrivate;
 import org.fejoa.library.FejoaContext;
-import org.fejoa.library.KeyPairItem;
+import org.fejoa.library.KeyPairData;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -72,10 +72,10 @@ public class PublicCryptoEnvelope {
                 SYMMETRIC_SETTINGS_KEY));
 
         ICryptoInterface crypto = context.getCrypto();
-        KeyPairItem keyPairItem = contact.getEncryptionKey(keyId);
-        if (keyPairItem == null)
+        KeyPairData keyPairData = contact.getEncryptionKey(keyId);
+        if (keyPairData == null)
             throw new IOException("key not found");
-        byte[] symKey = crypto.decryptAsymmetric(encSymKey,keyPairItem.getKeyPair().getPrivate(), asymSettings);
+        byte[] symKey = crypto.decryptAsymmetric(encSymKey, keyPairData.getKeyPair().getPrivate(), asymSettings);
         SecretKey key;
         try {
             key = CryptoHelper.secretKey(symKey, symSettings);
@@ -130,10 +130,10 @@ public class PublicCryptoEnvelope {
                 SYMMETRIC_SETTINGS_KEY));
 
         ICryptoInterface crypto = context.getCrypto();
-        KeyPairItem keyPairItem = contact.getEncryptionKey(keyId);
-        if (keyPairItem == null)
+        KeyPairData keyPairData = contact.getEncryptionKey(keyId);
+        if (keyPairData == null)
             throw new IOException("key not found");
-        byte[] symKey = crypto.decryptAsymmetric(encSymKey,keyPairItem.getKeyPair().getPrivate(), asymSettings);
+        byte[] symKey = crypto.decryptAsymmetric(encSymKey, keyPairData.getKeyPair().getPrivate(), asymSettings);
         SecretKey key;
         try {
             key = CryptoHelper.secretKey(symKey, symSettings);

@@ -27,7 +27,7 @@ public class RepositoryTest extends RepositoryTestBase {
             }
 
             @Override
-            public PutResult<HashValue> putChunk(byte[] data) throws IOException {
+            public PutResult<HashValue> putChunk(byte[] data, HashValue ivHash) throws IOException {
                 return chunkStoreTransaction.put(data);
             }
 
@@ -232,7 +232,7 @@ public class RepositoryTest extends RepositoryTestBase {
         add(repository, content, new DatabaseStingEntry("dir2/file4", "file4"));
         add(repository, content, new DatabaseStingEntry("dir1/sub1/file5", "file5"));
 
-        repository.commit();
+        repository.commit(null);
 
         containsContent(repository, content);
     }
