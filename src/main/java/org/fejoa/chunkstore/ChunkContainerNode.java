@@ -338,7 +338,7 @@ public class ChunkContainerNode implements IChunk {
             }
             byte[] data = getData();
             HashValue oldBoxHash = that.getBoxPointer().getBoxHash();
-            HashValue boxHash = blobAccessor.putChunk(data).key;
+            HashValue boxHash = blobAccessor.putChunk(data, hash()).key;
             // cleanup old chunk
             if (!boxHash.equals(oldBoxHash) && !oldBoxHash.isZero())
                 blobAccessor.releaseChunk(oldBoxHash);

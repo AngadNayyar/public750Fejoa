@@ -246,7 +246,7 @@ public class ChunkContainer extends ChunkContainerNode {
     private IChunkPointer putDataChunk(DataChunk blob) throws IOException, CryptoException {
         byte[] rawBlob = blob.getData();
         HashValue hash = blob.hash();
-        HashValue boxedHash = blobAccessor.putChunk(rawBlob).key;
+        HashValue boxedHash = blobAccessor.putChunk(rawBlob, hash).key;
         BoxPointer boxPointer = new BoxPointer(hash, boxedHash);
         return new ChunkPointer(boxPointer, rawBlob.length, blob, DATA_LEVEL);
     }

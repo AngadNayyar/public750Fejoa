@@ -15,6 +15,6 @@ import java.io.IOException;
 
 public interface IChunkAccessor {
     DataInputStream getChunk(BoxPointer hash) throws IOException, CryptoException;
-    PutResult<HashValue> putChunk(byte[] data) throws IOException, CryptoException;
+    PutResult<HashValue> putChunk(byte[] data, HashValue ivHash) throws IOException, CryptoException;
     void releaseChunk(HashValue data);
 }

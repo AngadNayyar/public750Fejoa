@@ -57,8 +57,8 @@ public class LogRepoTransaction implements IRepoChunkAccessors.ITransaction {
             }
 
             @Override
-            public PutResult<HashValue> putChunk(byte[] data) throws IOException, CryptoException {
-                PutResult<HashValue> result = chunkAccessor.putChunk(data);
+            public PutResult<HashValue> putChunk(byte[] data, HashValue ivHash) throws IOException, CryptoException {
+                PutResult<HashValue> result = chunkAccessor.putChunk(data, ivHash);
                 if (!result.wasInDatabase)
                     objectsWritten.add(result.key);
 
