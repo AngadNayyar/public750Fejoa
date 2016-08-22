@@ -17,12 +17,12 @@ public class BoxPointer {
     private HashValue boxHash;
 
     public BoxPointer() {
-        dataHash = new HashValue(HashValue.HASH_SIZE);
-        boxHash = new HashValue(HashValue.HASH_SIZE);
+        dataHash = Config.newDataHash();
+        boxHash = Config.newBoxHash();
     }
 
     public BoxPointer(HashValue data, HashValue box) {
-        assert data.size() == HashValue.HASH_SIZE && box.size() == HashValue.HASH_SIZE;
+        assert data.size() == Config.DATA_HASH_SIZE && box.size() == Config.BOX_HASH_SIZE;
         this.dataHash = data;
         this.boxHash = box;
     }
@@ -45,7 +45,7 @@ public class BoxPointer {
     }
 
     static public int getPointerLength() {
-        return 2 * HashValue.HASH_SIZE;
+        return Config.DATA_HASH_SIZE + Config.BOX_HASH_SIZE;
     }
 
     public void read(DataInputStream inputStream) throws IOException {

@@ -7,6 +7,7 @@
  */
 package org.fejoa.filestorage;
 
+import org.fejoa.chunkstore.Config;
 import org.fejoa.chunkstore.HashValue;
 import org.fejoa.library.database.StorageDir;
 import org.json.JSONException;
@@ -40,7 +41,7 @@ public class Index {
         }
 
         private Entry() {
-            this.hash = new HashValue(HashValue.HASH_SIZE);
+            this.hash = Config.newBoxHash();
         }
 
         static public Entry open(String bundle) throws JSONException {

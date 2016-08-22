@@ -48,7 +48,7 @@ public class PullRequest {
                 }
 
                 for (int i = 0; i < chunkCount; i++) {
-                    HashValue hashValue = new HashValue(HashValue.HASH_SIZE);
+                    HashValue hashValue = Config.newBoxHash();
                     inputStream.readFully(hashValue.getBytes());
                     int size = inputStream.readInt();
                     byte[] buffer = new byte[size];

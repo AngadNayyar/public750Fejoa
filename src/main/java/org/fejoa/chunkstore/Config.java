@@ -9,15 +9,20 @@ package org.fejoa.chunkstore;
 
 
 public class Config {
+    final public static short SHA1_SIZE = 20;
+    final public static short SHA256_SIZE = 32;
+
     static public HashValue newSha1Hash() {
-        return new HashValue(HashValue.SHA1_SIZE);
+        return new HashValue(SHA1_SIZE);
     }
 
+    static final public short BOX_HASH_SIZE = SHA256_SIZE;
     static public HashValue newBoxHash() {
-        return new HashValue(HashValue.HASH_SIZE);
+        return new HashValue(BOX_HASH_SIZE);
     }
 
+    static final public short DATA_HASH_SIZE = SHA256_SIZE;
     static public HashValue newDataHash() {
-        return new HashValue(HashValue.HASH_SIZE);
+        return new HashValue(DATA_HASH_SIZE);
     }
 }
