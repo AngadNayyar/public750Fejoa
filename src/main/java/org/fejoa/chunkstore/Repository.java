@@ -38,7 +38,7 @@ class CommitCache {
         CommitBox head = repository.getHeadCommit();
         if (head == null)
             return null;
-        HashValue headHash = head.hash();
+        HashValue headHash = head.dataHash();
         if (!commitCache.containsKey(headHash)) {
             commitCache.put(headHash, head);
             tailList.addFirst(head);
@@ -132,7 +132,7 @@ public class Repository implements IDatabaseInterface {
     public HashValue getTip() throws IOException {
         if (getHeadCommit() == null)
             return Config.newDataHash();
-        return getHeadCommit().hash();
+        return getHeadCommit().dataHash();
     }
 
     private Collection<HashValue> getParents() {
@@ -278,7 +278,7 @@ public class Repository implements IDatabaseInterface {
                         transaction);
                 return;
             }
-            if (headCommit.hash().equals(otherBranch.hash()))
+            if (headCommit.dataHash().equals(otherBranch.dataHash()))
                 return;
 
             CommonAncestorsFinder.Chains chains = CommonAncestorsFinder.find(transaction.getCommitAccessor(),
@@ -288,7 +288,7 @@ public class Repository implements IDatabaseInterface {
             CommonAncestorsFinder.SingleCommitChain shortestChain = chains.getShortestChain();
             if (shortestChain == null)
                 throw new IOException("Branches don't have common ancestor.");
-            if (shortestChain.getOldest().hash().equals(headCommit.hash())) {
+            if (shortestChain.getOldest().dataHash().equals(headCommit.dataHash())) {
                 // not local commits just use the remote head
                 otherTransaction.finishTransaction();
                 headCommit = otherBranch;
@@ -335,7 +335,7 @@ public class Repository implements IDatabaseInterface {
                 message = commitSignature.signMessage(message, rootTree.getDataHash(), getParents());
             commitBox.setCommitMessage(message.getBytes());
             HashValue boxHash = put(commitBox, transaction.getCommitAccessor());
-            BoxPointer commitPointer = new BoxPointer(commitBox.hash(), boxHash);
+            BoxPointer commitPointer = new BoxPointer(commitBox.dataHash(), boxHash, commitBox.rawHash());
             commitBox.setBoxPointer(commitPointer);
             headCommit = commitBox;
 

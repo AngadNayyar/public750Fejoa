@@ -11,7 +11,6 @@ import org.fejoa.chunkstore.*;
 import org.fejoa.chunkstore.sync.CommonAncestorsFinder;
 import org.fejoa.chunkstore.sync.DiffIterator;
 import org.fejoa.chunkstore.sync.DirBoxDiffIterator;
-import org.fejoa.chunkstore.sync.ThreeWayMerge;
 import org.fejoa.library.crypto.Crypto;
 import org.fejoa.library.crypto.CryptoHelper;
 import org.fejoa.library.support.StorageLib;
@@ -32,8 +31,9 @@ public class DiffMergeTest extends RepositoryTest {
     }
 
     private BoxPointer addFile(DirectoryBox box, String name) {
-        BoxPointer fakeFilePointer = new BoxPointer(new HashValue(CryptoHelper.sha256Hash(Crypto.get().generateSalt())),
-                new HashValue(CryptoHelper.sha256Hash(Crypto.get().generateSalt())));
+        HashValue dataHash = new HashValue(CryptoHelper.sha256Hash(Crypto.get().generateSalt()));
+        BoxPointer fakeFilePointer = new BoxPointer(dataHash,
+                new HashValue(CryptoHelper.sha256Hash(Crypto.get().generateSalt())), dataHash);
         box.addFile(name, fakeFilePointer);
         return fakeFilePointer;
     }
@@ -137,7 +137,7 @@ public class DiffMergeTest extends RepositoryTest {
         CommonAncestorsFinder.SingleCommitChain chain = chains.chains.get(0);
         assertTrue(chain.commits.size() == 2);
         CommitBox parent = chain.commits.get(chain.commits.size() - 1);
-        assertTrue(parent.hash().equals(repository.getHeadCommit().hash()));
+        assertTrue(parent.dataHash().equals(repository.getHeadCommit().dataHash()));
 
         repository.merge(transaction, theirs);
         repository.commit("merge1", null);

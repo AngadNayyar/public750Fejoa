@@ -69,6 +69,7 @@ public class RepositoryTestBase extends TestCase {
     protected Repository.ICommitCallback simpleCommitCallback = new Repository.ICommitCallback() {
         static final String DATA_HASH_KEY = "dataHash";
         static final String BOX_HASH_KEY = "boxHash";
+        static final String IV_KEY = "iv";
 
         @Override
         public String commitPointerToLog(BoxPointer commitPointer) {
@@ -76,6 +77,7 @@ public class RepositoryTestBase extends TestCase {
             try {
                 jsonObject.put(DATA_HASH_KEY, commitPointer.getDataHash().toHex());
                 jsonObject.put(BOX_HASH_KEY, commitPointer.getBoxHash().toHex());
+                jsonObject.put(IV_KEY, Base64.encodeBase64String(commitPointer.getIV()));
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -89,7 +91,8 @@ public class RepositoryTestBase extends TestCase {
             try {
                 JSONObject jsonObject = new JSONObject(jsonString);
                 return new BoxPointer(HashValue.fromHex(jsonObject.getString(DATA_HASH_KEY)),
-                        HashValue.fromHex(jsonObject.getString(BOX_HASH_KEY)));
+                        HashValue.fromHex(jsonObject.getString(BOX_HASH_KEY)),
+                        Base64.decodeBase64(jsonObject.getString(IV_KEY)));
             } catch (JSONException e) {
                 e.printStackTrace();
             }

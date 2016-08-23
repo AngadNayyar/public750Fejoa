@@ -247,7 +247,7 @@ public class ChunkContainer extends ChunkContainerNode {
         byte[] rawBlob = blob.getData();
         HashValue hash = blob.hash();
         HashValue boxedHash = blobAccessor.putChunk(rawBlob, hash).key;
-        BoxPointer boxPointer = new BoxPointer(hash, boxedHash);
+        BoxPointer boxPointer = new BoxPointer(hash, boxedHash, hash);
         return new ChunkPointer(boxPointer, rawBlob.length, blob, DATA_LEVEL);
     }
 

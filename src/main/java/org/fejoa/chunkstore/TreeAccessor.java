@@ -171,7 +171,7 @@ public class TreeAccessor {
             child.setDataPointer(dataPointer);
         }
         HashValue boxHash = Repository.put(dir, transaction.getTreeAccessor());
-        return new BoxPointer(dir.hash(), boxHash);
+        return new BoxPointer(dir.hash(), boxHash, dir.rawHash());
     }
 
     public DirectoryBox getRoot() {

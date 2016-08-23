@@ -338,7 +338,7 @@ public class ChunkContainerNode implements IChunk {
             }
             byte[] data = getData();
             HashValue oldBoxHash = that.getBoxPointer().getBoxHash();
-            HashValue boxHash = blobAccessor.putChunk(data, hash()).key;
+            HashValue boxHash = blobAccessor.putChunk(data, rawHash()).key;
             // cleanup old chunk
             if (!boxHash.equals(oldBoxHash) && !oldBoxHash.isZero())
                 blobAccessor.releaseChunk(oldBoxHash);
@@ -346,7 +346,7 @@ public class ChunkContainerNode implements IChunk {
             if (parent != null)
                 parent.invalidate();
 
-            that.setBoxPointer(new BoxPointer(hash(), boxHash));
+            that.setBoxPointer(new BoxPointer(hash(), boxHash, rawHash()));
 
             onDisk = true;
         }
@@ -386,6 +386,10 @@ public class ChunkContainerNode implements IChunk {
             dataHash = calculateDataHash();
 
         return calculateDataHash();
+    }
+
+    private HashValue rawHash() throws IOException {
+        return new HashValue(CryptoHelper.sha256Hash(getData()));
     }
 
     public BoxPointer getBoxPointer() {

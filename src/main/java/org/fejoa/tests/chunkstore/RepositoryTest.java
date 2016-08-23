@@ -97,7 +97,8 @@ public class RepositoryTest extends RepositoryTestBase {
         TestCommit testCommit = new TestCommit();
         testCommit.message = commitMessage;
         testCommit.directory = root;
-        testCommit.boxPointer = new BoxPointer(commitBox.hash(), write(accessors.getCommitAccessor(), commitBox));
+        testCommit.boxPointer = new BoxPointer(commitBox.dataHash(), write(accessors.getCommitAccessor(), commitBox),
+                commitBox.rawHash());
 
         return testCommit;
     }
@@ -130,7 +131,8 @@ public class RepositoryTest extends RepositoryTestBase {
             directoryBox.addFile(entry.getKey(), testFile.boxPointer);
         }
 
-        dir.boxPointer = new BoxPointer(directoryBox.hash(), write(accessors.getTreeAccessor(), directoryBox));
+        dir.boxPointer = new BoxPointer(directoryBox.hash(), write(accessors.getTreeAccessor(), directoryBox),
+                directoryBox.rawHash());
         return dir.boxPointer;
     }
 

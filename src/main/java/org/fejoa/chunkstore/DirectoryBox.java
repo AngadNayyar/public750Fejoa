@@ -87,7 +87,7 @@ abstract class DirectoryEntry {
      *
      * @param messageDigest
      */
-    public void hash(MessageDigest messageDigest) {
+    public void dataHash(MessageDigest messageDigest) {
         DigestOutputStream digestOutputStream = new DigestOutputStream(new OutputStream() {
             @Override
             public void write(int i) throws IOException {
@@ -96,10 +96,22 @@ abstract class DirectoryEntry {
         }, messageDigest);
         DataOutputStream outputStream = new DataOutputStream(digestOutputStream);
         try {
-            write(outputStream);
+            writePlainData(outputStream);
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private void writePlainData(DataOutputStream outputStream) throws IOException {
+        StreamHelper.writeString(outputStream, name);
+        writeShortAttrs(outputStream);
+        outputStream.write(dataPointer.getDataHash().getBytes());
+        byte hasAttrsDir = 0x0;
+        if (attrsDir != null)
+            hasAttrsDir = 0x1;
+        outputStream.writeByte(hasAttrsDir);
+        if (attrsDir != null)
+            outputStream.write(attrsDir.getDataHash().getBytes());
     }
 
     public void write(DataOutputStream outputStream) throws IOException {
@@ -277,7 +289,7 @@ public class DirectoryBox extends TypedBlob {
             MessageDigest messageDigest = CryptoHelper.sha256Hash();
             messageDigest.reset();
             for (Entry entry : entries.values())
-                entry.hash(messageDigest);
+                entry.dataHash(messageDigest);
 
             return new HashValue(messageDigest.digest());
         } catch (NoSuchAlgorithmException e) {

@@ -130,7 +130,7 @@ public class PushRequest {
 
             boolean remoteCommitIsCommonAncestor = false;
             for (CommonAncestorsFinder.SingleCommitChain chain : chainsToPush.chains) {
-                if (chain.getOldest().hash().equals(remoteCommit.hash())) {
+                if (chain.getOldest().dataHash().equals(remoteCommit.dataHash())) {
                     remoteCommitIsCommonAncestor = true;
                     break;
                 }

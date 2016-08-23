@@ -90,7 +90,7 @@ public class CommitBox extends TypedBlob {
         return parents;
     }
 
-    public HashValue hash() {
+    public HashValue dataHash() {
         try {
             MessageDigest messageDigest = CryptoHelper.sha256Hash();
             messageDigest.reset();

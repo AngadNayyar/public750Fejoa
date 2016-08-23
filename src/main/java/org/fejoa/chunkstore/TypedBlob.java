@@ -9,11 +9,12 @@ package org.fejoa.chunkstore;
 
 
 import org.fejoa.library.crypto.CryptoException;
+import org.fejoa.library.crypto.CryptoHelper;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
+import java.security.DigestOutputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 abstract public class TypedBlob {
     final protected short type;
@@ -39,5 +40,25 @@ abstract public class TypedBlob {
         dataOut.close();
         byte[] data = byteArrayOutputStream.toByteArray();
         outputStream.write(data);
+    }
+
+    public byte[] rawHash() throws IOException, CryptoException {
+        MessageDigest messageDigest;
+        try {
+            messageDigest = CryptoHelper.sha256Hash();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+            throw new RuntimeException();
+        }
+
+        DigestOutputStream digestOutputStream = new DigestOutputStream(new OutputStream() {
+            @Override
+            public void write(int i) throws IOException {
+
+            }
+        }, messageDigest);
+        DataOutputStream outputStream = new DataOutputStream(digestOutputStream);
+        write(outputStream);
+        return messageDigest.digest();
     }
 }

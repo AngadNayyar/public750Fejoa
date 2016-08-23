@@ -40,6 +40,7 @@ public class CSRepositoryBuilder {
 
     static final String DATA_HASH_KEY = "dataHash";
     static final String BOX_HASH_KEY = "boxHash";
+    static final String BOX_IV_KEY = "boxIV";
 
     private static Repository.ICommitCallback getEncCommitCallback(final FejoaContext context,
                                                                    final SymmetricKeyData keyData) {
@@ -60,6 +61,7 @@ public class CSRepositoryBuilder {
                 try {
                     jsonObject.put(DATA_HASH_KEY, commitPointer.getDataHash().toHex());
                     jsonObject.put(BOX_HASH_KEY, commitPointer.getBoxHash().toHex());
+                    jsonObject.put(BOX_IV_KEY, Base64.encodeBase64String(commitPointer.getIV()));
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -86,7 +88,8 @@ public class CSRepositoryBuilder {
                     byte[] plain = decrypt(Base64.decodeBase64(in.getString(Constants.MESSAGE_KEY)), iv);
                     JSONObject jsonObject = new JSONObject(new String(plain));
                     return new BoxPointer(HashValue.fromHex(jsonObject.getString(DATA_HASH_KEY)),
-                            HashValue.fromHex(jsonObject.getString(BOX_HASH_KEY)));
+                            HashValue.fromHex(jsonObject.getString(BOX_HASH_KEY)),
+                            Base64.decodeBase64(jsonObject.getString(BOX_IV_KEY)));
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -103,6 +106,7 @@ public class CSRepositoryBuilder {
                 try {
                     jsonObject.put(DATA_HASH_KEY, commitPointer.getDataHash().toHex());
                     jsonObject.put(BOX_HASH_KEY, commitPointer.getBoxHash().toHex());
+                    jsonObject.put(BOX_IV_KEY, Base64.encodeBase64String(commitPointer.getIV()));
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -116,7 +120,8 @@ public class CSRepositoryBuilder {
                 try {
                     JSONObject jsonObject = new JSONObject(jsonString);
                     return new BoxPointer(HashValue.fromHex(jsonObject.getString(DATA_HASH_KEY)),
-                            HashValue.fromHex(jsonObject.getString(BOX_HASH_KEY)));
+                            HashValue.fromHex(jsonObject.getString(BOX_HASH_KEY)),
+                            Base64.decodeBase64(jsonObject.getString(BOX_IV_KEY)));
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -150,7 +155,7 @@ public class CSRepositoryBuilder {
 
             @Override
             public DataInputStream getChunk(BoxPointer hash) throws IOException, CryptoException {
-                byte[] iv = getIv(hash.getDataHash().getBytes());
+                byte[] iv = getIv(hash.getIV());
                 return new DataInputStream(cryptoInterface.decryptSymmetric(new ByteArrayInputStream(
                                 transaction.getChunk(hash.getBoxHash())),
                         keyData.key, iv, keyData.settings));

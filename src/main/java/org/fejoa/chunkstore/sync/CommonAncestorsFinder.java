@@ -111,7 +111,7 @@ public class CommonAncestorsFinder {
         //TODO: can be optimized by remembering which combinations we already checked, i.e. maintain a marker per chain
         for (CommitBox other : otherChain.commits) {
             for (CommitBox local : localChain.commits) {
-                if (local.hash().equals(other.hash()))
+                if (local.dataHash().equals(other.dataHash()))
                     return other;
             }
         }
