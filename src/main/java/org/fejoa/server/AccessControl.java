@@ -28,6 +28,8 @@ public class AccessControl {
     }
 
     private boolean hasAccess(String branch, int rights) {
+        if (DebugSingleton.get().isNoAccessControl())
+            return true;
         if (session.hasRootRole(user))
             return true;
         int roleRights = session.getRoleRights(user, branch);

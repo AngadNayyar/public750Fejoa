@@ -33,6 +33,7 @@ public class JettyTest extends TestCase {
         cleanUpDirs.add(TEST_DIR);
 
         server = new JettyServer(SERVER_TEST_DIR);
+        server.setDebugNoAccessControl(true);
         server.start();
 
         connectionInfo = new ConnectionManager.ConnectionInfo("", "http://localhost:8080/");

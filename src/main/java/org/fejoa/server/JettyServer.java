@@ -14,6 +14,27 @@ import org.eclipse.jetty.server.session.HashSessionManager;
 import org.eclipse.jetty.server.session.SessionHandler;
 
 
+class DebugSingleton {
+    private boolean noAccessControl = false;
+
+    static private DebugSingleton INSTANCE = null;
+
+    static public DebugSingleton get() {
+        if (INSTANCE != null)
+            return INSTANCE;
+        INSTANCE = new DebugSingleton();
+        return INSTANCE;
+    }
+
+    public void setNoAccessControl(boolean noAccessControl) {
+        this.noAccessControl = noAccessControl;
+    }
+
+    public boolean isNoAccessControl() {
+        return noAccessControl;
+    }
+}
+
 public class JettyServer {
     final Server server;
 
@@ -45,6 +66,10 @@ public class JettyServer {
     public void stop() throws Exception {
         server.stop();
         server.join();
+    }
+
+    public void setDebugNoAccessControl(boolean noAccessControl) {
+        DebugSingleton.get().setNoAccessControl(noAccessControl);
     }
 }
 

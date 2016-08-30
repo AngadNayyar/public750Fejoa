@@ -10,12 +10,17 @@ package org.fejoa.server;
 import org.fejoa.library.AccessTokenServer;
 import org.fejoa.library.FejoaContext;
 import org.fejoa.library.UserData;
+import org.fejoa.library.UserDataSettings;
 import org.fejoa.library.command.IncomingCommandQueue;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.remote.CreateAccountJob;
+import org.fejoa.library.support.StreamHelper;
 import org.json.JSONObject;
 
 import javax.servlet.http.HttpSession;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
 
@@ -94,32 +99,25 @@ public class Session {
         return new AccountSettings(getServerUserDir(serverUser));
     }
 
-    private String getUserDataBranch(String serverUser) throws Exception {
-        JSONObject settings = getAccountSettings(serverUser).getSettings();
-        if (!settings.has(CreateAccountJob.USER_DATA_BRANCH_KEY))
-            throw new Exception("No user data branch set");
-        return settings.getString(CreateAccountJob.USER_DATA_BRANCH_KEY);
-    }
-
     public FejoaContext getContext(String serverUser) {
         return new FejoaContext(getServerUserDir(serverUser));
     }
 
+    public UserDataSettings getUserDataSettings(String serverUser) throws Exception {
+        return new UserDataSettings(getAccountSettings(serverUser).getSettings());
+    }
+
     public IncomingCommandQueue getIncomingCommandQueue(String serverUser) throws Exception {
-        String userDataBranch = getUserDataBranch(serverUser);
         FejoaContext context = getContext(serverUser);
-        StorageDir userDataDir = context.getStorage(userDataBranch);
-        String incomingQueueBranch = userDataDir.readString(UserData.IN_COMMAND_QUEUE_ID_KEY);
-        StorageDir incomingQueueDir = context.getStorage(incomingQueueBranch);
+        UserDataSettings userDataSettings = getUserDataSettings(serverUser);
+        StorageDir incomingQueueDir = context.getStorage(userDataSettings.inQueue);
         return new IncomingCommandQueue(incomingQueueDir);
     }
 
     public AccessTokenServer getAccessToken(String serverUser, String tokenId) throws Exception {
-        String userDataBranch = getUserDataBranch(serverUser);
         FejoaContext context = getContext(serverUser);
-        StorageDir userDataDir = context.getStorage(userDataBranch);
-        String accessStoreId = userDataDir.readString(UserData.ACCESS_STORE_KEY);
-        StorageDir tokenDir = new StorageDir(context.getStorage(accessStoreId), tokenId);
+        UserDataSettings userDataSettings = getUserDataSettings(serverUser);
+        StorageDir tokenDir = new StorageDir(context.getStorage(userDataSettings.accessStore), tokenId);
         try {
             return new AccessTokenServer(context, tokenDir);
         } catch (IOException e) {
