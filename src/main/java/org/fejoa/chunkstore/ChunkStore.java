@@ -60,6 +60,10 @@ public class ChunkStore {
         return chunkStore;
     }
 
+    static public boolean exists(File dir, String name) {
+        return new File(dir, name + ".idx").exists();
+    }
+
     public byte[] getChunk(HashValue hash) throws IOException {
         return getChunk(hash.getBytes());
     }

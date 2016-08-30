@@ -171,7 +171,10 @@ public class Repository implements IDatabaseInterface {
             if (entry == null)
                 return null;
             assert !entry.isFile();
-            return  (DirectoryBox)entry.getObject();
+            if (entry.getObject() == null)
+                entry.setObject(DirectoryBox.read(transaction.getTreeAccessor(), entry.getDataPointer()));
+
+            return (DirectoryBox)entry.getObject();
         } catch (CryptoException e) {
             throw new IOException(e.getMessage());
         }
@@ -224,7 +227,7 @@ public class Repository implements IDatabaseInterface {
         return file;
     }
 
-    static HashValue put(TypedBlob blob, IChunkAccessor accessor) throws IOException, CryptoException {
+    static BoxPointer put(TypedBlob blob, IChunkAccessor accessor) throws IOException, CryptoException {
         ChunkSplitter nodeSplitter = Repository.defaultNodeSplitter(RabinSplitter.CHUNK_8KB);
         ChunkContainer chunkContainer = new ChunkContainer(accessor, nodeSplitter);
 
@@ -233,7 +236,7 @@ public class Repository implements IDatabaseInterface {
         chunkContainer.append(new DataChunk(outputStream.toByteArray()));
         chunkContainer.flush(false);
 
-        return chunkContainer.getBoxPointer().getBoxHash();
+        return chunkContainer.getBoxPointer();
     }
 
     private void copyMissingCommits(CommitBox commitBox,
@@ -334,8 +337,7 @@ public class Repository implements IDatabaseInterface {
             if (commitSignature != null)
                 message = commitSignature.signMessage(message, rootTree.getDataHash(), getParents());
             commitBox.setCommitMessage(message.getBytes());
-            HashValue boxHash = put(commitBox, transaction.getCommitAccessor());
-            BoxPointer commitPointer = new BoxPointer(commitBox.dataHash(), boxHash, commitBox.rawHash());
+            BoxPointer commitPointer = put(commitBox, transaction.getCommitAccessor());
             commitBox.setBoxPointer(commitPointer);
             headCommit = commitBox;
 

@@ -79,6 +79,7 @@ public class TreeAccessor {
             }
             IChunkAccessor accessor = transaction.getTreeAccessor();
             currentDir = DirectoryBox.read(accessor, entry.getDataPointer());
+            entry.setObject(currentDir);
         }
         if (currentDir == root) {
             entry = new DirectoryBox.Entry("", null, false);
@@ -170,8 +171,7 @@ public class TreeAccessor {
             BoxPointer dataPointer = put(fileBox);
             child.setDataPointer(dataPointer);
         }
-        HashValue boxHash = Repository.put(dir, transaction.getTreeAccessor());
-        return new BoxPointer(dir.hash(), boxHash, dir.rawHash());
+        return Repository.put(dir, transaction.getTreeAccessor());
     }
 
     public DirectoryBox getRoot() {

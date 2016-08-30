@@ -42,7 +42,7 @@ abstract public class TypedBlob {
         outputStream.write(data);
     }
 
-    public byte[] rawHash() throws IOException, CryptoException {
+    public HashValue rawHash() throws IOException, CryptoException {
         MessageDigest messageDigest;
         try {
             messageDigest = CryptoHelper.sha256Hash();
@@ -59,6 +59,6 @@ abstract public class TypedBlob {
         }, messageDigest);
         DataOutputStream outputStream = new DataOutputStream(digestOutputStream);
         write(outputStream);
-        return messageDigest.digest();
+        return new HashValue(messageDigest.digest());
     }
 }

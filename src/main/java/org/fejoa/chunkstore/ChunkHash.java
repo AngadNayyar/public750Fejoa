@@ -12,12 +12,44 @@ import java.security.NoSuchAlgorithmException;
 
 
 public class ChunkHash {
+    static private class BufferedHash {
+        final MessageDigest hash;
+        byte[] buffer = new byte[1024 * 128];
+        int bufferSize = 0;
+
+        public BufferedHash(MessageDigest hash) {
+            this.hash = hash;
+        }
+
+        public void update(byte b) {
+            buffer[bufferSize] = b;
+            bufferSize++;
+            if (bufferSize == buffer.length) {
+                hash.update(buffer);
+                bufferSize = 0;
+            }
+        }
+
+        public byte[] digest() {
+            if (bufferSize > 0) {
+                hash.update(buffer, 0, bufferSize);
+                bufferSize = 0;
+            }
+            return hash.digest();
+        }
+
+        public void reset() {
+            bufferSize = 0;
+            hash.reset();
+        }
+    }
+
     private class Layer {
         final ChunkSplitter splitter;
         Layer upperLayer;
         Layer cachedUpperLayer;
-        MessageDigest hash;
-        // hash of the first chunk, only if there are more then one chunk an upper layer is started
+        BufferedHash hash;
+        // dataHash of the first chunk, only if there are more then one chunk an upper layer is started
         byte[] firstChunkHash;
 
         public Layer(ChunkSplitter splitter) {
@@ -39,9 +71,11 @@ public class ChunkHash {
             if (hash == null)
                 hash = getMessageDigest();
 
-            hash.update(data);
-            for (byte b : data)
+            //dataHash.update(data);
+            for (byte b : data) {
+                hash.update(b);
                 splitter.update(b);
+            }
 
             if (splitter.isTriggered()) {
                 splitter.reset();
@@ -108,9 +142,9 @@ public class ChunkHash {
         return MessageDigest.getInstance("SHA-256");
     }
 
-    private MessageDigest getMessageDigest() {
+    private BufferedHash getMessageDigest() {
         try {
-            return getMessageDigestRaw();
+            return new BufferedHash(getMessageDigestRaw());
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
@@ -133,7 +167,7 @@ public class ChunkHash {
         if (currentLayer != null)
             this.currentLayer.reset();
         else
-            currentLayer = new Layer(nodeSplitter);
+            currentLayer = new Layer(dataSplitter);
     }
 
     protected ChunkSplitter newNodeSplitter() {
