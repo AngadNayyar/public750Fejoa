@@ -52,7 +52,7 @@ public class FejoaContext {
         return cryptoSettings;
     }
 
-    public StorageDir get(String path, String branch) throws IOException {
+    private StorageDir get(String path, String branch) throws IOException {
         path = StorageDir.appendDir(homeDir, path);
         StorageDir dir = secureStorageDirs.get(path + ":" + branch);
         if (dir != null && dir.getBranch().equals(branch))
@@ -67,7 +67,12 @@ public class FejoaContext {
         return new StorageDir(storageDir);
     }
 
-    public StorageDir getNew(String path, String branch, SymmetricKeyData cryptoKeyData,
+    public StorageDir getStorage(String branch, SymmetricKeyData cryptoKeyData, ICommitSignature commitSignature)
+            throws IOException, CryptoException {
+        return getNew(".chunkstore", branch, cryptoKeyData, commitSignature);
+    }
+
+    private StorageDir getNew(String path, String branch, SymmetricKeyData cryptoKeyData,
                              ICommitSignature commitSignature) throws IOException, CryptoException {
         path = StorageDir.appendDir(homeDir, path);
         StorageDir dir = secureStorageDirs.get(path + ":" + branch);

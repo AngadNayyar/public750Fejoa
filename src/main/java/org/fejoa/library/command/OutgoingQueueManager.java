@@ -14,6 +14,7 @@ import org.fejoa.library.support.Task;
 import org.fejoa.server.Portal;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,7 +23,7 @@ import java.util.Map;
 public class OutgoingQueueManager {
     final private String TASK_NAME = "Send Commands";
     final private ConnectionManager manager;
-    final private OutgoingCommandQueue queue;
+    final private List<OutgoingCommandQueue> queues = new ArrayList<>();
     private Task.IObserver<TaskUpdate, Void> observer;
     // command hash to job callback
     final private Map<String, Task.ICancelFunction> runningSendJobs = new HashMap<>();
@@ -35,31 +36,36 @@ public class OutgoingQueueManager {
     };
 
     public OutgoingQueueManager(OutgoingCommandQueue queue, ConnectionManager manager) {
-        this.queue = queue;
+        this.queues.add(queue);
         this.manager = manager;
     }
 
     public void start(Task.IObserver<TaskUpdate, Void> observer) {
         this.observer = observer;
 
-        StorageDir dir = queue.getStorageDir();
-        dir.addListener(storageListener);
+        for (OutgoingCommandQueue queue : queues) {
+            StorageDir dir = queue.getStorageDir();
+            dir.addListener(storageListener);
+        }
         sendCommands();
     }
 
     public void stop() {
-        queue.getStorageDir().removeListener(storageListener);
+        for (OutgoingCommandQueue queue : queues)
+            queue.getStorageDir().removeListener(storageListener);
     }
 
     private void sendCommands() {
-        try {
-            List<OutgoingCommandQueue.Entry> commands = queue.getCommands();
-            for (int i = 0; i < commands.size(); i++) {
-                OutgoingCommandQueue.Entry command = commands.get(i);
-                send(command, observer, commands.size(), i);
+        for (OutgoingCommandQueue queue : queues) {
+            try {
+                List<OutgoingCommandQueue.Entry> commands = queue.getCommands();
+                for (int i = 0; i < commands.size(); i++) {
+                    OutgoingCommandQueue.Entry command = commands.get(i);
+                    send(queue, command, observer, commands.size(), i);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 
@@ -69,7 +75,8 @@ public class OutgoingQueueManager {
             observer.onResult(null);
     }
 
-    private void send(final OutgoingCommandQueue.Entry entry, final Task.IObserver<TaskUpdate, Void> observer,
+    private void send(final OutgoingCommandQueue queue, final OutgoingCommandQueue.Entry entry,
+                      final Task.IObserver<TaskUpdate, Void> observer,
                       final int totalCommands, final int currentCommand) {
         if (runningSendJobs.containsKey(entry.hash()))
             return;

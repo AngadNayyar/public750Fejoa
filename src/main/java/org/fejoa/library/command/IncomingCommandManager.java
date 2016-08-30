@@ -7,6 +7,8 @@
  */
 package org.fejoa.library.command;
 
+import org.fejoa.library.UserDataConfig;
+import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.database.DatabaseDiff;
 import org.fejoa.library.support.WeakListenable;
 import org.fejoa.library.UserData;
@@ -51,25 +53,16 @@ public class IncomingCommandManager extends WeakListenable<IncomingCommandManage
     }
 
     final static private Logger LOG = Logger.getLogger(IncomingCommandManager.class.getName());
-    final private IncomingCommandQueue queue;
-    final private StorageDir.IListener storageListener = new StorageDir.IListener() {
-        @Override
-        public void onTipChanged(DatabaseDiff diff, String base, String tip) {
-            try {
-                onNewCommands();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    };
+    final private List<IncomingCommandQueue> queues = new ArrayList<>();
     final private List<Handler> handlerList = new ArrayList<>();
 
-    public IncomingCommandManager(UserData userData) {
-        this.queue = userData.getIncomingCommandQueue();
+    public IncomingCommandManager(UserDataConfig userDataConfig) throws IOException, CryptoException {
+        this.queues.add(userDataConfig.getUserData().getIncomingCommandQueue());
 
+        UserData userData = userDataConfig.getUserData();
         addHandler(new ContactRequestCommandHandler(userData));
         addHandler(new AccessCommandHandler(userData));
-        addHandler(new MigrationCommandHandler(userData));
+        addHandler(new MigrationCommandHandler(userDataConfig));
     }
 
     public void addHandler(Handler handler) {
@@ -77,15 +70,26 @@ public class IncomingCommandManager extends WeakListenable<IncomingCommandManage
     }
 
     public void start() {
-        StorageDir dir = queue.getStorageDir();
-        dir.addListener(storageListener);
+        for (final IncomingCommandQueue queue : queues) {
+            StorageDir dir = queue.getStorageDir();
+            dir.addListener(new StorageDir.IListener() {
+                @Override
+                public void onTipChanged(DatabaseDiff diff, String base, String tip) {
+                    try {
+                        onNewCommands(queue);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+        }
     }
 
-    private void onNewCommands() throws IOException {
+    private void onNewCommands(IncomingCommandQueue queue) throws IOException {
         List<CommandQueue.Entry> commands = queue.getCommands();
         boolean anyHandled = false;
         for (CommandQueue.Entry command : commands) {
-            if (handleCommand(command)) {
+            if (handleCommand(queue, command)) {
                 anyHandled = true;
                 break;
             }
@@ -94,11 +98,12 @@ public class IncomingCommandManager extends WeakListenable<IncomingCommandManage
             queue.commit();
     }
 
-    private boolean handleCommand(CommandQueue.Entry command) {
-        return handleCommand(command, handlerList, 0);
+    private boolean handleCommand(IncomingCommandQueue queue, CommandQueue.Entry command) {
+        return handleCommand(queue, command, handlerList, 0);
     }
 
-    private boolean handleCommand(CommandQueue.Entry command, List<Handler> handlers, int retryCount) {
+    private boolean handleCommand(IncomingCommandQueue queue, CommandQueue.Entry command, List<Handler> handlers,
+                                  int retryCount) {
         if (retryCount > 1)
             return false;
         boolean handled = false;
@@ -126,7 +131,7 @@ public class IncomingCommandManager extends WeakListenable<IncomingCommandManage
 
         retryCount++;
         if (retryHandlers.size() > 0)
-            handleCommand(command, retryHandlers, retryCount);
+            handleCommand(queue, command, retryHandlers, retryCount);
 
         return handled;
     }

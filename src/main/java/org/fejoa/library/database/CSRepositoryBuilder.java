@@ -22,7 +22,11 @@ public class CSRepositoryBuilder {
 
     static public Repository openOrCreate(final FejoaContext context, File dir, String branch, SymmetricKeyData keyData)
             throws IOException, CryptoException {
-        ChunkStore chunkStore = ChunkStore.create(dir, branch);
+        ChunkStore chunkStore;
+        if (ChunkStore.exists(dir, branch))
+            chunkStore = ChunkStore.open(dir, branch);
+        else
+            chunkStore = ChunkStore.create(dir, branch);
         IRepoChunkAccessors accessors = getRepoChunkAccessors(context, chunkStore, keyData);
         Repository.ICommitCallback commitCallback = getCommitCallback(context, keyData);
 
@@ -157,8 +161,7 @@ public class CSRepositoryBuilder {
             public DataInputStream getChunk(BoxPointer hash) throws IOException, CryptoException {
                 byte[] iv = getIv(hash.getIV());
                 return new DataInputStream(cryptoInterface.decryptSymmetric(new ByteArrayInputStream(
-                                transaction.getChunk(hash.getBoxHash())),
-                        keyData.key, iv, keyData.settings));
+                                transaction.getChunk(hash.getBoxHash())), keyData.key, iv, keyData.settings));
             }
 
             @Override

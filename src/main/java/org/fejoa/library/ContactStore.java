@@ -1,5 +1,5 @@
 /*
- * Copyright 2015.
+ * Copyright 2016.
  * Distributed under the terms of the GPLv3 License.
  *
  * Authors:
@@ -7,48 +7,17 @@
  */
 package org.fejoa.library;
 
-import org.fejoa.library.crypto.*;
 import org.fejoa.library.database.StorageDir;
 
 import java.io.IOException;
-import java.util.List;
 
 
-public class ContactStore extends StorageKeyStore {
+public class ContactStore extends StorageDirObject {
     private StorageDirList<ContactPublic> contactList;
-
-    static public ContactStore create(FejoaContext context, String id, KeyStore keyStore, KeyId keyId)
-            throws IOException, CryptoException {
-        StorageDir dir = context.getStorage(id);
-        ContactStore storage = new ContactStore(context, dir);
-        storage.create(keyStore, keyId);
-        return storage;
-    }
-
-    static public ContactStore open(FejoaContext context, StorageDir dir, List<KeyStore> keyStores) throws IOException,
-            CryptoException {
-        ContactStore storage = new ContactStore(context, dir);
-        storage.open(keyStores);
-        return storage;
-    }
 
     protected ContactStore(final FejoaContext context, StorageDir dir) {
         super(context, dir);
-    }
 
-    @Override
-    protected void create(KeyStore keyStore, KeyId keyId) throws IOException, CryptoException {
-        super.create(keyStore, keyId);
-        init();
-    }
-
-    @Override
-    protected void open(List<KeyStore> keyStores) throws IOException, CryptoException {
-        super.open(keyStores);
-        init();
-    }
-
-    private void init() {
         contactList = new StorageDirList<>(storageDir,
                 new StorageDirList.IEntryIO<ContactPublic>() {
                     @Override

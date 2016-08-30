@@ -7,6 +7,7 @@
  */
 package org.fejoa.library.database;
 
+import org.fejoa.library.KeyStoreOld;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.crypto.CryptoSettings;
 import org.fejoa.library.crypto.ICryptoInterface;
@@ -16,11 +17,11 @@ import java.io.IOException;
 
 
 public class SecureIOFilter implements StorageDir.IIOFilter {
-    final private KeyStore.SymmetricKeyData symmetricKeyData;
+    final private KeyStoreOld.SymmetricKeyData symmetricKeyData;
     final private ICryptoInterface crypto;
     final private CryptoSettings.Symmetric cryptoSettings;
 
-    public SecureIOFilter(ICryptoInterface crypto, KeyStore.SymmetricKeyData symmetricKeyData,
+    public SecureIOFilter(ICryptoInterface crypto, KeyStoreOld.SymmetricKeyData symmetricKeyData,
                           CryptoSettings.Symmetric cryptoSettings) {
         this.crypto = crypto;
         this.symmetricKeyData = symmetricKeyData;

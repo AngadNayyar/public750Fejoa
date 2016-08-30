@@ -93,8 +93,8 @@ public class IncomingContactRequestHandler {
         try {
             client.getUserData().getOutgoingCommandQueue().post(ContactRequestCommand.makeReplyRequest(
                     client.getContext(),
-                    client.getUserData().getIdentityStore().getMyself(),
-                    client.getUserData().getRemoteList().getDefault(), contactPublic),
+                    client.getUserData().getMyself(),
+                    client.getUserData().getGateway(), contactPublic),
                     remote.getUser(), remote.getServer());
         } catch (Exception e) {
             LOG.severe(e.getMessage());

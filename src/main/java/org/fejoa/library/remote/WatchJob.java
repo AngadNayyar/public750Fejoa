@@ -9,7 +9,7 @@ package org.fejoa.library.remote;
 
 import org.fejoa.library.Constants;
 import org.fejoa.library.FejoaContext;
-import org.fejoa.library.Storage;
+import org.fejoa.library.BranchInfo;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.server.Portal;
 import org.json.JSONArray;
@@ -43,19 +43,19 @@ public class WatchJob extends SimpleJsonRemoteJob<WatchJob.Result> {
 
     final private FejoaContext context;
     final private String serverUser;
-    final private Collection<Storage> storageList;
+    final private Collection<BranchInfo> branchInfoList;
     final private boolean peek;
 
-    public WatchJob(FejoaContext context, String serverUser, Collection<Storage> storageList) {
-        this(context, serverUser, storageList, false);
+    public WatchJob(FejoaContext context, String serverUser, Collection<BranchInfo> branchInfoList) {
+        this(context, serverUser, branchInfoList, false);
     }
 
-    public WatchJob(FejoaContext context, String serverUser, Collection<Storage> storageList, boolean peek) {
+    public WatchJob(FejoaContext context, String serverUser, Collection<BranchInfo> branchInfoList, boolean peek) {
         super(false);
 
         this.context = context;
         this.serverUser = serverUser;
-        this.storageList = storageList;
+        this.branchInfoList = branchInfoList;
         this.peek = peek;
     }
 
@@ -64,8 +64,8 @@ public class WatchJob extends SimpleJsonRemoteJob<WatchJob.Result> {
         JsonRPC.Argument serverUserArg = new JsonRPC.Argument(Constants.SERVER_USER_KEY, serverUser);
 
         List<JsonRPC.ArgumentSet> branches = new ArrayList<>();
-        for (Storage storage : storageList) {
-            StorageDir dir = context.getStorage(storage.getId());
+        for (BranchInfo branchInfo : branchInfoList) {
+            StorageDir dir = context.getStorage(branchInfo.getBranch());
             JsonRPC.ArgumentSet argumentSet = new JsonRPC.ArgumentSet(
                     new JsonRPC.Argument(BRANCH_KEY, dir.getBranch()),
                     new JsonRPC.Argument(BRANCH_TIP_KEY, dir.getTip().toHex())

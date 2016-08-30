@@ -93,8 +93,8 @@ public class ContactRequest {
 
     private void initialRequest(String user, String server) throws Exception {
         client.getUserData().getOutgoingCommandQueue().post(ContactRequestCommand.makeInitialRequest(client.getContext(),
-                client.getUserData().getIdentityStore().getMyself(),
-                client.getUserData().getRemoteList().getDefault()), user, server);
+                client.getUserData().getMyself(),
+                client.getUserData().getGateway()), user, server);
     }
 
     private void onReplyRequest(ContactRequestCommandHandler.ReturnValue returnValue) {
@@ -113,7 +113,7 @@ public class ContactRequest {
         try {
             client.getUserData().getOutgoingCommandQueue().post(ContactRequestCommand.makeFinish(
                     client.getContext(),
-                    client.getUserData().getIdentityStore().getMyself(), contactPublic),
+                    client.getUserData().getMyself(), contactPublic),
                     remote.getUser(), remote.getServer());
         } catch (Exception e) {
             onException(e);

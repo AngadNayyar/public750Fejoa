@@ -16,6 +16,7 @@ import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.remote.*;
 import org.fejoa.library.support.Task;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -25,6 +26,7 @@ public class Client {
     final private FejoaContext context;
     private ConnectionManager connectionManager;
     private UserData userData;
+    private UserDataConfig config;
     private SyncManager syncManager;
     private OutgoingQueueManager outgoingQueueManager;
     private IncomingCommandManager incomingCommandManager;
@@ -39,15 +41,16 @@ public class Client {
     public void create(String userName, String server, String password) throws IOException, CryptoException {
         context.registerRootPassword(userName, server, password);
         userData = UserData.create(context, password);
+        config = UserDataConfig.create(context, userData, "org.fejoa.client");
         Remote remoteRemote = new Remote(userName, server);
-        userData.getRemoteList().add(remoteRemote);
-        userData.getRemoteList().setDefault(remoteRemote);
+        userData.getRemoteStore().add(remoteRemote);
+        userData.getRemoteStore().setDefault(remoteRemote);
     }
 
-    public void open(String password) throws IOException, CryptoException {
-        userData = UserData.open(context, password);
+    public void open(UserDataSettings config, String password) throws IOException, CryptoException, JSONException {
+        userData = UserData.open(context, config, password);
 
-        Remote defaultRemote = userData.getRemoteList().getDefault();
+        Remote defaultRemote = userData.getRemoteStore().getDefault();
         context.registerRootPassword(defaultRemote.getUser(), defaultRemote.getServer(), password);
     }
 
@@ -63,13 +66,17 @@ public class Client {
         return userData;
     }
 
+    public UserDataConfig getUserDataConfig() {
+        return config;
+    }
+
     public ConnectionManager getConnectionManager() {
         return connectionManager;
     }
 
     public void createAccount(String userName, String password, String server,
                               Task.IObserver<Void, RemoteJob.Result> observer) {
-        connectionManager.submit(new CreateAccountJob(userName, password, userData.getId(),
+        connectionManager.submit(new CreateAccountJob(userName, password, userData.getStorageDir().getBranch(),
                 CryptoSettings.getDefault().masterPassword),
                 new ConnectionManager.ConnectionInfo(userName, server),
                 new ConnectionManager.AuthInfo(),
@@ -86,9 +93,9 @@ public class Client {
     }
 
     public void startSyncing(Task.IObserver<TaskUpdate, Void> observer) {
-        Remote defaultRemote = getUserData().getRemoteList().getDefault();
+        Remote defaultRemote = getUserData().getRemoteStore().getDefault();
         syncManager = new SyncManager(context, getConnectionManager(), defaultRemote);
-        syncManager.startWatching(getUserData().getStorageRefList().getEntries(), observer);
+        syncManager.startWatching(getUserData().getBranchList().getEntries(), observer);
     }
 
     public void stopSyncing() {
@@ -98,11 +105,12 @@ public class Client {
         syncManager = null;
     }
 
-    public void startCommandManagers(Task.IObserver<TaskUpdate, Void> outgoingCommandObserver) {
+    public void startCommandManagers(Task.IObserver<TaskUpdate, Void> outgoingCommandObserver)
+            throws IOException, CryptoException {
         outgoingQueueManager = new OutgoingQueueManager(userData.getOutgoingCommandQueue(), connectionManager);
         outgoingQueueManager.start(outgoingCommandObserver);
 
-        incomingCommandManager = new IncomingCommandManager(userData);
+        incomingCommandManager = new IncomingCommandManager(config);
         incomingCommandManager.start();
 
         contactRequestHandler.start();
@@ -123,16 +131,17 @@ public class Client {
         userData.getAccessStore().addAccessToken(accessToken);
 
         // send command to contact
-        AccessCommand accessCommand = new AccessCommand(context, userData.getIdentityStore().getMyself(), contact,
+        AccessCommand accessCommand = new AccessCommand(context, userData.getMyself(), contact,
                 accessToken);
         userData.getAccessStore().commit();
-        userData.getOutgoingCommandQueue().post(accessCommand, contact.getRemotes().getDefault(), true);
+        OutgoingCommandQueue queue =userData.getOutgoingCommandQueue();
+        queue.post(accessCommand, contact.getRemotes().getDefault(), true);
     }
 
     // Requires to be root user. TODO: implement peek for contact branches?
-    public void peekRemoteStatus(String branchId, Task.IObserver<Void, WatchJob.Result> observer) {
-        Storage branch = getUserData().getStorageRefList().get(branchId);
-        Remote remote = getUserData().getRemoteList().getDefault();
+    public void peekRemoteStatus(String branchId, Task.IObserver<Void, WatchJob.Result> observer) throws IOException {
+        BranchInfo branch = getUserData().getBranchList().get(branchId);
+        Remote remote = userData.getGateway();
         connectionManager.submit(new WatchJob(context, remote.getUser(), Collections.singletonList(branch), true),
                 new ConnectionManager.ConnectionInfo(remote.getUser(), remote.getServer()),
                 context.getRootAuthInfo(remote),

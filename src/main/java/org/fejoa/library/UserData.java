@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015.
+ * Copyright 2016.
  * Distributed under the terms of the GPLv3 License.
  *
  * Authors:
@@ -7,234 +7,231 @@
  */
 package org.fejoa.library;
 
-import org.fejoa.library.crypto.*;
+import org.fejoa.chunkstore.HashValue;
 import org.fejoa.library.command.IncomingCommandQueue;
 import org.fejoa.library.command.OutgoingCommandQueue;
+import org.fejoa.library.crypto.*;
+import org.fejoa.library.database.DefaultCommitSignature;
+import org.fejoa.library.database.ICommitSignature;
 import org.fejoa.library.database.StorageDir;
+import org.json.JSONException;
 
-import javax.crypto.SecretKey;
 import java.io.IOException;
-import java.security.KeyPair;
-import java.util.ArrayList;
-import java.util.List;
 
 
-public class UserData extends StorageKeyStore {
-    final static private String STORAGE_LIST_DIR = "storage";
-    final static private String REMOTES_LIST_DIR = "remotes";
-    final static private String IDENTITY_STORE_KEY = "identity";
-    final static private String CONTACT_STORE_KEY = "contacts";
-    final static public String ACCESS_STORE_KEY = "access";
-    final static public String IN_COMMAND_QUEUE_ID_KEY = "inCommandQueue";
-    final static private String OUT_COMMAND_QUEUE_ID_KEY = "outCommandQueue";
+public class UserData extends StorageDirObject {
+    static private String BRANCHES_PATH = "branches";
+    static private String MYSELF_PATH = "myself";
+    static private String CONTACT_PATH = "contacts";
+    static private String CONFIG_PATH = "config";
+    static private String REMOTES_PATH = "remotes";
 
-    static public UserData create(FejoaContext context, String password) throws IOException, CryptoException {
-        return create(context, CryptoHelper.generateSha1Id(Crypto.get()), password);
+    final static private String ACCESS_STORE_PATH = "accessStore";
+    final static private String IN_QUEUE_PATH = "inQueue";
+    final static private String OUT_QUEUE_PATH = "outQueue";
+
+    final static private String GATEWAY_PATH = "gateway";
+
+    final private KeyStore keyStore;
+    final private BranchList branchList;
+    final private ContactPrivate myself;
+    final private ContactStore contactStore;
+    final private ConfigStore configStore;
+    final private RemoteList remoteStore;
+
+    protected UserData(FejoaContext context, StorageDir storageDir, KeyStore keyStore)
+            throws IOException {
+        super(context, storageDir);
+
+        this.keyStore = keyStore;
+
+        branchList = new BranchList(new StorageDir(storageDir, BRANCHES_PATH));
+        branchList.add(new BranchInfo(keyStore.getStorageDir().getBranch()));
+
+        myself = new ContactPrivate(context, new StorageDir(storageDir, MYSELF_PATH));
+        contactStore = new ContactStore(context, new StorageDir(storageDir, CONTACT_PATH));
+        configStore = new ConfigStore(context, new StorageDir(storageDir, CONFIG_PATH));
+        remoteStore = new RemoteList(new StorageDir(storageDir, REMOTES_PATH));
     }
 
-    static private UserData create(FejoaContext context, String id, String password) throws IOException,
-            CryptoException {
-        context.setUserDataId(id);
-        StorageDir dir = context.getStorage(id);
-        UserData userData = new UserData(context, dir);
-        userData.create(password);
-        return userData;
-    }
-
-    static public UserData open(FejoaContext context, String password) throws IOException,
-            CryptoException {
-        String id = context.getUserDataId();
-        StorageDir dir = context.getStorage(id);
-        UserData userData = new UserData(context, dir);
-        userData.open(password);
-        return userData;
-    }
-
-    final private List<KeyStore> keyStores = new ArrayList<>();
-    final private StorageDirList<Storage> storageRefList = new StorageDirList<>(
-            new StorageDirList.AbstractEntryIO<Storage>() {
-        @Override
-        public String getId(Storage entry) {
-            return entry.getId();
+    public void commit(boolean all) throws IOException {
+        if (all) {
+            keyStore.commit();
         }
-
-        @Override
-        public Storage read(StorageDir dir) throws IOException {
-            Storage entry = new Storage();
-            entry.read(dir);
-            return entry;
-        }
-    });
-    final private StorageDir plainTextDir;
-    private RemoteList remoteList;
-    private IdentityStore identityStore;
-    private ContactStore contactStore;
-    private AccessStore accessStore;
-    private IncomingCommandQueue incomingCommandQueue;
-    private OutgoingCommandQueue outgoingCommandQueue;
-
-    private UserData(FejoaContext context, StorageDir dir) {
-        super(context, dir);
-
-        plainTextDir = new StorageDir(dir);
-        plainTextDir.setFilter(null);
-    }
-
-    private void create(String password) throws IOException, CryptoException {
-        // setup encryption
-        keyStore = KeyStore.create(context, CryptoHelper.generateSha1Id(Crypto.get()), password);
-        keyStores.add(keyStore);
-        ICryptoInterface crypto = context.getCrypto();
-        CryptoSettings cryptoSettings = context.getCryptoSettings();
-        CryptoSettings.Symmetric symmetricSettings = cryptoSettings.symmetric;
-
-        SecretKey secretKey = crypto.generateSymmetricKey(symmetricSettings);
-        byte[] iv = crypto.generateInitializationVector(symmetricSettings.ivSize);
-        keyId = keyStore.writeSymmetricKey(secretKey, iv, symmetricSettings.keyType);
-
-        super.create(keyStore, keyId);
-
-        // storage list
-        StorageDir storageListDir = new StorageDir(storageDir, STORAGE_LIST_DIR);
-        storageRefList.setTo(storageListDir);
-
-        addStorage(getId());
-        addStorage(keyStore.getId());
-
-        // remote list
-        StorageDir remotesDir = new StorageDir(storageDir, REMOTES_LIST_DIR);
-        remoteList = new RemoteList(remotesDir);
-
-        // identity
-        identityStore = IdentityStore.create(context, CryptoHelper.generateSha1Id(Crypto.get()), keyStore, keyId);
-        storageDir.writeString(IDENTITY_STORE_KEY, identityStore.getId());
-        KeyPair signatureKeyPair = context.getCrypto().generateKeyPair(context.getCryptoSettings().signature);
-        String signatureKeyId = identityStore.addSignatureKeyPair(signatureKeyPair,
-                context.getCryptoSettings().signature);
-        identityStore.setDefaultSignatureKey(signatureKeyId);
-        identityStore.getMyself().setId(signatureKeyId);
-        KeyPair publicKeyPair = context.getCrypto().generateKeyPair(context.getCryptoSettings().publicKey);
-        String publicKeyId = identityStore.addEncryptionKeyPair(publicKeyPair, context.getCryptoSettings().publicKey);
-        identityStore.setDefaultEncryptionKey(publicKeyId);
-        addStorage(identityStore.getId());
-
-        // contacts
-        contactStore = ContactStore.create(context, CryptoHelper.generateSha1Id(Crypto.get()), keyStore, keyId);
-        storageDir.writeString(CONTACT_STORE_KEY, contactStore.getId());
-        addStorage(contactStore.getId());
-
-        // access store
-        accessStore = AccessStore.create(context, CryptoHelper.generateSha1Id(Crypto.get()), keyStore, keyId);
-        // the server needs access to the access store so make the branch id public
-        StorageDir plainStorageDir = new StorageDir(storageDir);
-        plainStorageDir.setFilter(null);
-        plainStorageDir.writeString(ACCESS_STORE_KEY, accessStore.getId());
-        addStorage(accessStore.getId());
-
-        // command queues
-        String incomingCommandQueueId = CryptoHelper.generateSha1Id(Crypto.get());
-        StorageDir inCommandQueueDir = context.getStorage(incomingCommandQueueId);
-        incomingCommandQueue = new IncomingCommandQueue(inCommandQueueDir);
-        plainTextDir.writeString(IN_COMMAND_QUEUE_ID_KEY, incomingCommandQueue.getId());
-        addStorage(incomingCommandQueue.getId());
-
-        String outgoingCommandQueueId = CryptoHelper.generateSha1Id(Crypto.get());
-        StorageDir outCommandQueueDir = context.getStorage(outgoingCommandQueueId);
-        outgoingCommandQueue = new OutgoingCommandQueue(outCommandQueueDir);
-        storageDir.writeString(OUT_COMMAND_QUEUE_ID_KEY, outgoingCommandQueue.getId());
-        addStorage(outgoingCommandQueue.getId());
-    }
-
-    private void open(String password) throws IOException, CryptoException {
-        // setup encryption
-        String keyStoreId = storageDir.readString(KEY_STORES_ID_KEY);
-        StorageDir keyStoreDir = context.getStorage(keyStoreId);
-        keyStore = KeyStore.open(context, keyStoreDir, password);
-        keyStores.add(keyStore);
-
-        super.open(keyStores);
-
-        // storage list
-        StorageDir storageListDir = new StorageDir(storageDir, STORAGE_LIST_DIR);
-        storageRefList.setTo(storageListDir);
-
-        // ourselves to the list
-        addStorage(getId());
-
-        // remote list
-        StorageDir remotesDir = new StorageDir(storageDir, REMOTES_LIST_DIR);
-        remoteList.setTo(remotesDir);
-
-        // identity keys
-        String identityKeysId = storageDir.readString(IDENTITY_STORE_KEY);
-        StorageDir identityKeysDir = context.getStorage(identityKeysId);
-        identityStore = IdentityStore.open(context, identityKeysDir, keyStores);
-        addStorage(identityStore.getId());
-
-        // contacts
-        String contactStoreId = storageDir.readString(CONTACT_STORE_KEY);
-        StorageDir contactStoreDir = context.getStorage(contactStoreId);
-        contactStore = ContactStore.open(context, contactStoreDir, keyStores);
-        addStorage(contactStore.getId());
-
-        // access
-        StorageDir plainStorageDir = new StorageDir(storageDir);
-        plainStorageDir.setFilter(null);
-        String accessStoreId = plainStorageDir.readString(ACCESS_STORE_KEY);
-        StorageDir accessStoreDir = context.getStorage(accessStoreId);
-        accessStore = AccessStore.open(context, accessStoreDir, keyStores);
-        addStorage(accessStore.getId());
-
-        // command queues
-        String inCommandQueueId = plainTextDir.readString(IN_COMMAND_QUEUE_ID_KEY);
-        incomingCommandQueue = new IncomingCommandQueue(context.getStorage(inCommandQueueId));
-        addStorage(incomingCommandQueue.getId());
-        String outCommandQueueId = storageDir.readString(OUT_COMMAND_QUEUE_ID_KEY);
-        outgoingCommandQueue = new OutgoingCommandQueue(context.getStorage(outCommandQueueId));
-        addStorage(outgoingCommandQueue.getId());
-    }
-
-    public void commit() throws IOException {
         storageDir.commit();
-
-        keyStore.commit();
-        identityStore.commit();
-        accessStore.commit();
-        contactStore.commit();
-
-        incomingCommandQueue.commit();
-        outgoingCommandQueue.commit();
     }
 
-    private void addStorage(String storageId) throws IOException {
-        storageRefList.add(new Storage(storageId));
+    public FejoaContext getContext() {
+        return context;
     }
 
-    public RemoteList getRemoteList() {
-        return remoteList;
+    public ContactPrivate getMyself() {
+        return myself;
     }
 
-    public IdentityStore getIdentityStore() {
-        return identityStore;
+    public StorageDir getBranch(String branch, SigningKeyPair signingKeyPair) throws IOException, CryptoException {
+        BranchInfo branchEntry = branchList.get(branch);
+        String branchId = branchEntry.getKeyId().toHex();
+        SymmetricKeyData keyData = keyStore.getSymmetricKey(branchId);
+        ICommitSignature commitSignature = new DefaultCommitSignature(context, signingKeyPair);
+        return context.getStorage(branchId, keyData, commitSignature);
+    }
+
+    public void addBranch(BranchInfo branchEntry) throws IOException {
+        branchList.add(branchEntry);
+    }
+
+    public BranchList getBranchList() {
+        return branchList;
     }
 
     public ContactStore getContactStore() {
         return contactStore;
     }
 
-    public AccessStore getAccessStore() {
-        return accessStore;
+    public ConfigStore getConfigStore() {
+        return configStore;
     }
 
-    public StorageDirList<Storage> getStorageRefList() {
-        return storageRefList;
+    public RemoteList getRemoteStore() {
+        return remoteStore;
     }
 
-    public IncomingCommandQueue getIncomingCommandQueue() {
-        return incomingCommandQueue;
+    static public UserData create(FejoaContext context, String password)
+            throws IOException, CryptoException {
+
+        CryptoSettings.Signature signatureSettings = context.getCryptoSettings().signature;
+        SigningKeyPair signingKeyPair = SigningKeyPair.create(context.getCrypto(), signatureSettings);
+
+        KeyStore keyStore = KeyStore.create(context, signingKeyPair, password);
+
+        String branch = CryptoHelper.sha1HashHex(context.getCrypto().generateInitializationVector(32));
+        SymmetricKeyData userDataKeyData = SymmetricKeyData.create(context, context.getCryptoSettings().symmetric);
+        StorageDir userDataDir = context.getStorage(branch, userDataKeyData,
+                new DefaultCommitSignature(context, signingKeyPair));
+
+        UserData userData = new UserData(context, userDataDir, keyStore);
+        keyStore.setUserData(userData);
+        keyStore.addSymmetricKey(userDataDir.getBranch(), userDataKeyData);
+
+        userData.myself.addSignatureKey(signingKeyPair);
+        userData.myself.getSignatureKeys().setDefault(signingKeyPair.getId());
+
+        EncryptionKeyPair encryptionKeyPair = EncryptionKeyPair.create(context.getCrypto(),
+                context.getCryptoSettings().publicKey);
+        userData.myself.addEncryptionKey(encryptionKeyPair);
+        userData.myself.getEncryptionKeys().setDefault(encryptionKeyPair.getId());
+
+        // access control
+        StorageDir accessControlBranch = context.getStorage(
+                CryptoHelper.sha1HashHex(context.getCrypto().generateInitializationVector(32)), null, null);
+        AccessStore accessStore = new AccessStore(context, accessControlBranch);
+        userData.addBranch(new BranchInfo(accessStore.getStorageDir().getBranch(), "Access Store", null, null, false));
+        userData.getStorageDir().writeString(ACCESS_STORE_PATH, accessStore.getStorageDir().getBranch());
+
+        // in queue
+        StorageDir inQueueBranch = context.getStorage(
+                CryptoHelper.sha1HashHex(context.getCrypto().generateInitializationVector(32)), null, null);
+        IncomingCommandQueue incomingCommandQueue = new IncomingCommandQueue(inQueueBranch);
+        userData.addBranch(new BranchInfo(incomingCommandQueue.getStorageDir().getBranch(), "In Queue", null, null, false));
+        userData.getStorageDir().writeString(IN_QUEUE_PATH, incomingCommandQueue.getStorageDir().getBranch());
+
+        // out queue
+        StorageDir outQueueBranch = context.getStorage(
+                CryptoHelper.sha1HashHex(context.getCrypto().generateInitializationVector(32)), null, null);
+        OutgoingCommandQueue outgoingCommandQueue = new OutgoingCommandQueue(outQueueBranch);
+        userData.addBranch(new BranchInfo(outgoingCommandQueue.getStorageDir().getBranch(), "Out Queue", null, null, false));
+        userData.getStorageDir().writeString(OUT_QUEUE_PATH, outgoingCommandQueue.getStorageDir().getBranch());
+
+        return userData;
     }
 
-    public OutgoingCommandQueue getOutgoingCommandQueue() {
-        return outgoingCommandQueue;
+    static public UserData open(FejoaContext context, UserDataSettings settings, String password)
+            throws JSONException, CryptoException, IOException {
+        KeyStore keyStore = KeyStore.open(context, settings.keyStoreSettings, password);
+        String userDataBranch = keyStore.getUserDataBranch();
+        SymmetricKeyData userDataKeyData = keyStore.getSymmetricKey(userDataBranch);
+
+        StorageDir userDataDir = context.getStorage(userDataBranch, userDataKeyData, null);
+        UserData userData = new UserData(context, userDataDir, keyStore);
+
+        // set the commit signature
+        SigningKeyPair signingKeyPair = userData.myself.getSignatureKeys().getDefault();
+        ICommitSignature commitSignature = new DefaultCommitSignature(context, signingKeyPair);
+        userData.getStorageDir().setCommitSignature(commitSignature);
+        keyStore.getStorageDir().setCommitSignature(commitSignature);
+
+        return userData;
+    }
+
+    public UserDataSettings getSettings() throws IOException {
+        return new UserDataSettings(keyStore.getConfig(), getAccessStore().getBranch(),
+                getIncomingCommandQueue().getId(), getOutgoingCommandQueue().getId());
+    }
+
+    public String getId() {
+        return getBranch();
+    }
+
+    private StorageDir getStorageDir(BranchInfo branchInfo) throws IOException, CryptoException {
+        SymmetricKeyData symmetricKeyData = null;
+        HashValue keyId = branchInfo.getKeyId();
+        if (keyId != null && !keyId.isZero()) {
+            if (!keyStore.getId().equals(branchInfo.getKeyStoreId()))
+                throw new CryptoException("Unknown keystore.");
+            symmetricKeyData = keyStore.getSymmetricKey(keyId.toHex());
+        }
+        ICommitSignature commitSignature = null;
+        if (branchInfo.signBranch()) {
+            SigningKeyPair keyPair = getMyself().getSignatureKeys().getDefault();
+            commitSignature = new DefaultCommitSignature(context, keyPair);
+        }
+        return context.getStorage(branchInfo.getBranch(), symmetricKeyData, commitSignature);
+    }
+
+    public IncomingCommandQueue getIncomingCommandQueue() throws IOException {
+        String id = storageDir.readString(IN_QUEUE_PATH);
+        BranchInfo branchInfo = getBranchList().get(id);
+        try {
+            return new IncomingCommandQueue(getStorageDir(branchInfo));
+        } catch (CryptoException e) {
+            e.printStackTrace();
+            // incoming queue is not encrypted
+            throw new RuntimeException(e);
+        }
+    }
+
+    public OutgoingCommandQueue getOutgoingCommandQueue() throws IOException {
+        String id = storageDir.readString(OUT_QUEUE_PATH);
+        BranchInfo branchInfo = getBranchList().get(id);
+        try {
+            return new OutgoingCommandQueue(getStorageDir(branchInfo));
+        } catch (CryptoException e) {
+            e.printStackTrace();
+            // outgoing queue is not encrypted
+            throw new RuntimeException(e);
+        }
+    }
+
+    public AccessStore getAccessStore() throws IOException {
+        String id = storageDir.readString(ACCESS_STORE_PATH);
+        BranchInfo branchInfo = getBranchList().get(id);
+        try {
+            return new AccessStore(context, getStorageDir(branchInfo));
+        } catch (CryptoException e) {
+            e.printStackTrace();
+            // access store is not encrypted
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void setGateway(Remote remote) throws IOException {
+        storageDir.writeString(GATEWAY_PATH, remote.getId());
+    }
+
+    public Remote getGateway() throws IOException {
+        String id = storageDir.readString(GATEWAY_PATH);
+        return getRemoteStore().get(id);
     }
 }
+

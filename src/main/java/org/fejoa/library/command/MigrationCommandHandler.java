@@ -21,8 +21,12 @@ public class MigrationCommandHandler extends EnvelopeCommandHandler {
         }
     }
 
-    public MigrationCommandHandler(UserData userData) {
-        super(userData, MigrationCommand.COMMAND_NAME);
+    final private UserDataConfig config;
+
+    public MigrationCommandHandler(UserDataConfig userDataConfig) {
+        super(userDataConfig.getUserData(), MigrationCommand.COMMAND_NAME);
+
+        this.config = userDataConfig;
     }
 
     @Override
@@ -41,9 +45,11 @@ public class MigrationCommandHandler extends EnvelopeCommandHandler {
         userData.getContactStore().commit();
 
         // update outgoing commands
-        userData.getOutgoingCommandQueue().updateReceiver(oldRemote.getUser(), oldRemote.getServer(),
+        OutgoingCommandQueue queue = userData.getOutgoingCommandQueue();
+        queue.updateReceiver(oldRemote.getUser(), oldRemote.getServer(),
                 newRemote.getUser(), newRemote.getServer());
-        userData.getOutgoingCommandQueue().commit();
+        queue.commit();
+
 
         return new ReturnValue(IncomingCommandManager.ReturnValue.HANDLED, MigrationCommand.COMMAND_NAME, senderId);
     }

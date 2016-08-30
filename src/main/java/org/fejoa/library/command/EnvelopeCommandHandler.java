@@ -42,7 +42,7 @@ abstract class EnvelopeCommandHandler implements IncomingCommandManager.Handler 
         Envelope envelope = new Envelope();
         try {
             request = IOUtils.toByteArray(envelope.unpack(new ByteArrayInputStream(command.getData()),
-                    userData.getIdentityStore().getMyself(),
+                    userData.getMyself(),
                     userData.getContactStore().getContactFinder(), context));
         } catch (Exception e) {
             LOG.warning("Can't open envelop or not an enveloped command: " + e.getMessage());

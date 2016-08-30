@@ -12,7 +12,7 @@ import org.fejoa.library.database.IDatabaseInterface;
 import org.fejoa.library.database.JGitInterface;
 import org.fejoa.library.FejoaContext;
 import org.fejoa.library.Remote;
-import org.fejoa.library.Storage;
+import org.fejoa.library.BranchInfo;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.support.Task;
 
@@ -47,14 +47,14 @@ public class SyncManager {
             sync(id, storageIdList.size(), observer);
     }
 
-    private void watch(Collection<Storage> storageList, Task.IObserver<Void, WatchJob.Result> observer) {
-        watchFunction = connectionManager.submit(new WatchJob(context, remote.getUser(), storageList),
+    private void watch(Collection<BranchInfo> branchInfoList, Task.IObserver<Void, WatchJob.Result> observer) {
+        watchFunction = connectionManager.submit(new WatchJob(context, remote.getUser(), branchInfoList),
                 new ConnectionManager.ConnectionInfo(remote.getUser(), remote.getServer()),
                 context.getRootAuthInfo(remote.getUser(), remote.getServer()),
                 observer);
     }
 
-    public void startWatching(final Collection<Storage> storageList, final Task.IObserver<TaskUpdate, Void> observer) {
+    public void startWatching(final Collection<BranchInfo> branchInfoList, final Task.IObserver<TaskUpdate, Void> observer) {
         final Task.IObserver<Void, WatchJob.Result> watchObserver = new Task.IObserver<Void, WatchJob.Result>() {
             private TaskUpdate makeUpdate(String message) {
                 return new TaskUpdate("Watching", -1, -1, message);
@@ -69,7 +69,7 @@ public class SyncManager {
             public void onResult(WatchJob.Result result) {
                 // timeout?
                 if (result.updated == null || result.updated.size() == 0) {
-                    watch(storageList, this);
+                    watch(branchInfoList, this);
                     observer.onProgress(makeUpdate("timeout"));
                     return;
                 }
@@ -86,7 +86,7 @@ public class SyncManager {
                     public void onResult(Void result) {
                         // still watching?
                         if (watchFunction != null)
-                            watch(storageList, that);
+                            watch(branchInfoList, that);
                         else
                             observer.onResult(null);
                     }
@@ -108,7 +108,7 @@ public class SyncManager {
             }
         };
 
-        watch(storageList, watchObserver);
+        watch(branchInfoList, watchObserver);
     }
 
     public void stopWatching() {
