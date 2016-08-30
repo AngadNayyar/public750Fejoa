@@ -8,6 +8,7 @@
 package org.fejoa.tests;
 
 import junit.framework.TestCase;
+import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.support.StorageLib;
 import org.fejoa.library.*;
 import org.fejoa.library.Client;
@@ -238,7 +239,11 @@ public class ClientTest extends TestCase {
                     System.out.println(update.toString());
                     if (!status.firstSync && update.getTotalWork() > 0 && update.getProgress() == update.getTotalWork()) {
                         status.firstSync = true;
-                        startCommandManagers();
+                        try {
+                            startCommandManagers();
+                        } catch (Exception e) {
+                            onException(e);
+                        }
                         onTaskPerformed();
                     }
                 }
@@ -255,7 +260,7 @@ public class ClientTest extends TestCase {
             });
         }
 
-        private void startCommandManagers() {
+        private void startCommandManagers() throws IOException, CryptoException {
             client.startCommandManagers(new Task.IObserver<TaskUpdate, Void>() {
                 @Override
                 public void onProgress(TaskUpdate update) {
@@ -306,7 +311,11 @@ public class ClientTest extends TestCase {
                     System.out.println("Access granted: " + contactId + " access entry: "
                             + accessTokenContact.getAccessEntry());
 
-                    waitTillClient2UploadedTheAccessStore(0);
+                    try {
+                        waitTillClient2UploadedTheAccessStore(0);
+                    } catch (IOException e) {
+                        onException(e);
+                    }
                 }
             }
 
@@ -323,7 +332,7 @@ public class ClientTest extends TestCase {
             UserData clientUserData = client2.getUserData();
             ContactStore contactStore = clientUserData.getContactStore();
             ContactPublic client2Contact = contactStore.getContactList().get(
-                    client1.getUserData().getIdentityStore().getMyself().getId());
+                    client1.getUserData().getMyself().getId());
 
             // grant access to the access branch
             client2.grantAccess(clientUserData.getAccessStore().getId(), BranchAccessRight.PULL, client2Contact);
@@ -334,7 +343,7 @@ public class ClientTest extends TestCase {
             client2.getIncomingCommandManager().removeListener(listener);
         }
 
-        private void waitTillClient2UploadedTheAccessStore(final int retryCount) {
+        private void waitTillClient2UploadedTheAccessStore(final int retryCount) throws IOException {
             UserData userData = client2.getUserData();
             client2.peekRemoteStatus(userData.getAccessStore().getId(), new Task.IObserver<Void, WatchJob.Result>() {
                 @Override
@@ -363,7 +372,11 @@ public class ClientTest extends TestCase {
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                    waitTillClient2UploadedTheAccessStore(count);
+                    try {
+                        waitTillClient2UploadedTheAccessStore(count);
+                    } catch (IOException e) {
+                        onException(e);
+                    }
                 }
 
                 @Override
@@ -380,7 +393,7 @@ public class ClientTest extends TestCase {
             UserData clientUserData = client1.getUserData();
             ContactStore contactStore = clientUserData.getContactStore();
             ContactPublic client2Contact = contactStore.getContactList().get(
-                    client2.getUserData().getIdentityStore().getMyself().getId());
+                    client2.getUserData().getMyself().getId());
 
             AccessTokenContact accessTokenContact = client2Contact.getAccessTokenList().getEntries().iterator().next();
             BranchAccessRight accessRight = new BranchAccessRight(accessTokenContact.getAccessEntryJson());

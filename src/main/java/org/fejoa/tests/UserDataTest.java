@@ -8,11 +8,13 @@
 package org.fejoa.tests;
 
 import junit.framework.TestCase;
+import org.fejoa.library.UserDataSettings;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.support.StorageLib;
 import org.fejoa.library.FejoaContext;
 import org.fejoa.library.Remote;
 import org.fejoa.library.UserData;
+import org.json.JSONException;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,9 +33,11 @@ public class UserDataTest extends TestCase {
             StorageLib.recursiveDeleteFile(new File(dir));
     }
 
-    public void testUserData() throws IOException, CryptoException {
+    public void testUserData() throws IOException, CryptoException, JSONException {
         String dir = "userDataTest";
         cleanUpDirs.add(dir);
+        for (String dir1 : cleanUpDirs)
+            StorageLib.recursiveDeleteFile(new File(dir1));
 
         String password = "password";
         String user = "user";
@@ -41,25 +45,20 @@ public class UserDataTest extends TestCase {
 
         FejoaContext context = new FejoaContext(dir);
         UserData userData = UserData.create(context, password);
-        String id = userData.getId();
         Remote remoteRemote = new Remote(user, server);
-        userData.getRemoteList().add(remoteRemote);
-        userData.getRemoteList().setDefault(remoteRemote);
+        userData.getRemoteStore().add(remoteRemote);
+        userData.getRemoteStore().setDefault(remoteRemote);
 
-        String defaultSignatureKey = userData.getIdentityStore().getDefaultSignatureKey();
-        String defaultPublicKey = userData.getIdentityStore().getDefaultEncryptionKey();
-        userData.commit();
+        String defaultSignatureKey = userData.getMyself().getSignatureKeys().getDefault().getId();
+        String defaultPublicKey = userData.getMyself().getEncryptionKeys().getDefault().getId();
+        userData.commit(true);
+        UserDataSettings settings = userData.getSettings();
 
         // open it again
         context = new FejoaContext(dir);
-        userData = UserData.open(context, password);
+        userData = UserData.open(context, settings, password);
 
-        assertEquals(1, userData.getStorageRefList().getEntries().size());
-
-        assertEquals(1, userData.getRemoteList().getEntries().size());
-        assertEquals(remoteRemote.getId(), userData.getRemoteList().getDefault().getId());
-
-        assertEquals(defaultSignatureKey, userData.getIdentityStore().getDefaultSignatureKey());
-        assertEquals(defaultPublicKey, userData.getIdentityStore().getDefaultEncryptionKey());
+        assertEquals(defaultSignatureKey, userData.getMyself().getSignatureKeys().getDefault().getId());
+        assertEquals(defaultPublicKey, userData.getMyself().getEncryptionKeys().getDefault().getId());
     }
 }

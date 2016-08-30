@@ -98,10 +98,10 @@ public class ChunkHashTest extends TestCase {
                 1024 * 1024 * 16,
                 1024 * 1024 * 32,
                 1024 * 1024 * 64,
-                //1024 * 1024 * 128,
-                //1024 * 1024 * 256,
-                //1024 * 1024 * 512,
-                //1024 * 1024 * 1024,
+                1024 * 1024 * 128,
+                1024 * 1024 * 256,
+                1024 * 1024 * 512,
+                1024 * 1024 * 1024,
         };
 
         class ChunkSizeTarget {
@@ -192,7 +192,7 @@ public class ChunkHashTest extends TestCase {
                     byte[] hash = chunkHash.digest();
                     long time = System.currentTimeMillis() - startTime;
                     chunkHashTimes.add(time);
-                    System.out.println("Time cached hash: " + time + " " + new HashValue(hash));
+                    System.out.println("Time cached dataHash: " + time + " " + new HashValue(hash));
 
                     if (prevHash != null)
                         assert Arrays.equals(prevHash, hash);

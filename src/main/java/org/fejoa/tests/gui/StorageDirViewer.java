@@ -11,9 +11,8 @@ import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
-import org.fejoa.library.Client;
 import org.fejoa.library.FejoaContext;
-import org.fejoa.library.UserData2;
+import org.fejoa.library.UserData;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.support.StorageLib;
 
@@ -50,9 +49,9 @@ public class StorageDirViewer extends Application {
         String baseDir = "StorageDirViewerTest";
         StorageLib.recursiveDeleteFile(new File(baseDir));
         FejoaContext context = new FejoaContext("StorageDirViewerTest");
-        UserData2 userData2 = UserData2.create(context, ".chunkstore", "test");
-        userData2.commit();
-        storageDir = userData2.getStorageDir();
+        UserData userData = UserData.create(context, "test");
+        userData.commit();
+        storageDir = userData.getStorageDir();
 
         TreeItem<String> rootItem = new TreeItem<String> ("Branch: " + storageDir.getBranch());
         rootItem.setExpanded(true);

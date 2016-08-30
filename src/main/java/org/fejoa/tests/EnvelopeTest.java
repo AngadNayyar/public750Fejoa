@@ -41,7 +41,7 @@ public class EnvelopeTest extends TestCase {
 
         FejoaContext context = new FejoaContext(dir);
         UserData userData = UserData.create(context, "test");
-        final ContactPrivate myself = userData.getIdentityStore().getMyself();
+        final ContactPrivate myself = userData.getMyself();
         IContactFinder<IContactPublic> finder = new IContactFinder<IContactPublic>() {
             @Override
             public IContactPublic get(String contactId) {

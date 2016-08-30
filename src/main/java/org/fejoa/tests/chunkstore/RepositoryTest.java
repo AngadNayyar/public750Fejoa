@@ -8,6 +8,8 @@
 package org.fejoa.tests.chunkstore;
 
 import org.fejoa.chunkstore.*;
+import org.fejoa.library.FejoaContext;
+import org.fejoa.library.SymmetricKeyData;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.support.StreamHelper;
 
@@ -76,14 +78,14 @@ public class RepositoryTest extends RepositoryTestBase {
         return ChunkStore.create(directory, name);
     }
 
-    private HashValue write(IChunkAccessor accessor, TypedBlob blob) throws IOException, CryptoException {
+    private BoxPointer write(IChunkAccessor accessor, TypedBlob blob) throws IOException, CryptoException {
         ChunkContainer chunkContainer = new ChunkContainer(accessor, nodeSplitter);
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         blob.write(new DataOutputStream(outputStream));
         chunkContainer.append(new DataChunk(outputStream.toByteArray()));
         chunkContainer.flush(false);
 
-        return chunkContainer.getBoxPointer().getBoxHash();
+        return chunkContainer.getBoxPointer();
     }
 
     private TestCommit writeToRepository(IRepoChunkAccessors.ITransaction accessors, TestDirectory root,
@@ -97,8 +99,7 @@ public class RepositoryTest extends RepositoryTestBase {
         TestCommit testCommit = new TestCommit();
         testCommit.message = commitMessage;
         testCommit.directory = root;
-        testCommit.boxPointer = new BoxPointer(commitBox.dataHash(), write(accessors.getCommitAccessor(), commitBox),
-                commitBox.rawHash());
+        testCommit.boxPointer = write(accessors.getCommitAccessor(), commitBox);
 
         return testCommit;
     }
@@ -131,8 +132,7 @@ public class RepositoryTest extends RepositoryTestBase {
             directoryBox.addFile(entry.getKey(), testFile.boxPointer);
         }
 
-        dir.boxPointer = new BoxPointer(directoryBox.hash(), write(accessors.getTreeAccessor(), directoryBox),
-                directoryBox.rawHash());
+        dir.boxPointer = write(accessors.getTreeAccessor(), directoryBox);
         return dir.boxPointer;
     }
 
