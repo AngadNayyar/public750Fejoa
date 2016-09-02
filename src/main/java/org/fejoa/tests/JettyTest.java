@@ -2,13 +2,18 @@ package org.fejoa.tests;
 
 import junit.framework.TestCase;
 import org.fejoa.chunkstore.HashValue;
+import org.fejoa.chunkstore.Repository;
+import org.fejoa.library.FejoaContext;
 import org.fejoa.library.crypto.CryptoSettings;
+import org.fejoa.library.database.ICommitSignature;
 import org.fejoa.library.database.JGitInterface;
+import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.remote.*;
 import org.fejoa.library.support.StorageLib;
 import org.fejoa.library.support.Task;
 import org.fejoa.server.JettyServer;
 
+import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -51,6 +56,7 @@ public class JettyTest extends TestCase {
 
             @Override
             public void onException(Exception exception) {
+                exception.printStackTrace();
                 fail(exception.getMessage());
             }
         };
@@ -171,6 +177,80 @@ public class JettyTest extends TestCase {
                 observer.onException(exception);
             }
         });
+    }
+
+    private void syncChunkStore(final ConnectionManager connectionManager, final Repository repository,
+                                final ICommitSignature commitSignature, final String serverUser) {
+        connectionManager.submit(new ChunkStorePushJob(repository, serverUser, repository.getBranch()),
+                connectionInfo, authInfo, new Task.IObserver<Void, ChunkStorePushJob.Result>() {
+                    @Override
+                    public void onProgress(Void aVoid) {
+                        observer.onProgress(aVoid);
+                    }
+
+                    @Override
+                    public void onResult(ChunkStorePushJob.Result result) {
+                        observer.onResult(result);
+                        if (result.pullRequired) {
+                            connectionManager.submit(new ChunkStorePullJob(repository, commitSignature, serverUser,
+                                    repository.getBranch()), connectionInfo, authInfo,
+                                    new Task.IObserver<Void, ChunkStorePullJob.Result>() {
+                                @Override
+                                public void onProgress(Void aVoid) {
+                                    observer.onProgress(aVoid);
+                                }
+
+                                @Override
+                                public void onResult(ChunkStorePullJob.Result result) {
+                                    observer.onResult(result);
+                                }
+
+                                @Override
+                                public void onException(Exception exception) {
+                                    observer.onException(exception);
+                                }
+                            });
+                        }
+                    }
+
+                    @Override
+                    public void onException(Exception exception) {
+                        observer.onException(exception);
+                    }
+                });
+    }
+
+    public void testSyncChunkStore() throws Exception {
+        String serverUser = "user1";
+        String localCSDir = TEST_DIR + "/.chunkstore";
+        String BRANCH = "testBranch";
+
+        // push
+        FejoaContext localContext = new FejoaContext(TEST_DIR);
+        StorageDir local =  localContext.getStorage(BRANCH, null, null);
+        local.writeString("testFile", "testData");
+        local.commit();
+        syncChunkStore(connectionManager, (Repository)local.getDatabase(), null, serverUser);
+
+        // do changes on the server
+        FejoaContext serverContext = new FejoaContext(SERVER_TEST_DIR);
+        StorageDir server =  serverContext.getStorage(BRANCH, null, null);
+        server.writeBytes("testFileServer", "testDataServer".getBytes());
+        server.commit();
+
+        // merge
+        local.writeBytes("testFile2", "testDataClient2".getBytes());
+        local.remove("testFile");
+        local.commit();
+
+        // sync
+        syncChunkStore(connectionManager, (Repository)local.getDatabase(), null, serverUser);
+
+        // pull into empty git
+        StorageLib.recursiveDeleteFile(new File(localCSDir));
+        localContext = new FejoaContext(TEST_DIR);
+        local =  localContext.getStorage(BRANCH, null, null);
+        syncChunkStore(connectionManager, (Repository)local.getDatabase(), null, serverUser);
     }
 
     public void testSimple() throws Exception {

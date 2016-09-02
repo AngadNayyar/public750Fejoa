@@ -21,4 +21,9 @@ abstract public class RepoAccessorsTransactionBase implements IRepoChunkAccessor
     public void finishTransaction() throws IOException {
         transaction.commit();
     }
+
+    @Override
+    public void cancel() {
+        transaction.cancel();
+    }
 }

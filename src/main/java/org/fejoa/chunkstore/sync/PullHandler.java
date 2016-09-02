@@ -20,7 +20,7 @@ import static org.fejoa.chunkstore.sync.Request.GET_CHUNKS;
 
 
 public class PullHandler {
-    static public void handleGetChunks(ChunkStore chunkStore, IRemotePipe pipe, DataInputStream inputStream)
+    static public void handleGetChunks(ChunkStore.Transaction chunkStore, IRemotePipe pipe, DataInputStream inputStream)
             throws IOException {
         int nRequestedChunks = inputStream.readInt();
         List<HashValue> requestedChunks = new ArrayList<>();

@@ -18,6 +18,8 @@ import java.io.IOException;
 import static org.fejoa.chunkstore.sync.Request.GET_REMOTE_TIP;
 
 public class LogEntryRequest {
+    public static int MAX_HEADER_SIZE = 1024 * 32;
+
     static public ChunkStoreBranchLog.Entry getRemoteTip(IRemotePipe remotePipe, String branch) throws IOException {
         DataOutputStream outputStream = new DataOutputStream(remotePipe.getOutputStream());
         Request.writeRequestHeader(outputStream, GET_REMOTE_TIP);
@@ -26,7 +28,7 @@ public class LogEntryRequest {
         DataInputStream inputStream = new DataInputStream(remotePipe.getInputStream());
         Request.receiveHeader(inputStream, GET_REMOTE_TIP);
 
-        String header = StreamHelper.readString(inputStream);
+        String header = StreamHelper.readString(inputStream, MAX_HEADER_SIZE);
         return ChunkStoreBranchLog.Entry.fromHeader(header);
     }
 }

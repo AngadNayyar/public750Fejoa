@@ -17,7 +17,7 @@ import java.io.OutputStream;
  *
  * Once a request is sent by writing data to the output stream the previous input stream is closed.
  */
-public class RemotePipe {
+public class RemotePipe implements IRemotePipe {
     private class RemoteInputStream extends InputStream {
         private InputStream rawInputStream;
 
@@ -71,10 +71,12 @@ public class RemotePipe {
         this.onDataSentCallback = onDataSentCallback;
     }
 
+    @Override
     public InputStream getInputStream() {
         return inputStream;
     }
 
+    @Override
     public OutputStream getOutputStream() {
         return outputStream;
     }

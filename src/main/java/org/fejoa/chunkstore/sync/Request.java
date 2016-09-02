@@ -18,9 +18,9 @@ public class Request {
     static final public int ERROR = -1;
     static final public int PULL_REQUEST_VERSION = 1;
     static final public int GET_REMOTE_TIP = 1;
-    static final public int GET_CHUNKS = 2;
-    static final public int PUT_CHUNKS = 3;
-    static final public int HAS_CHUNKS = 4;
+    static final public int GET_CHUNKS = 3;
+    static final public int PUT_CHUNKS = 4;
+    static final public int HAS_CHUNKS = 5;
 
     static public void writeRequestHeader(DataOutputStream outputStream, int request) throws IOException {
         outputStream.writeInt(PULL_REQUEST_VERSION);
@@ -37,7 +37,7 @@ public class Request {
     static public void receiveHeader(DataInputStream inputStream, int request) throws IOException {
         int response = receiveRequest(inputStream);
         if (response <= ERROR)
-            throw new IOException("ERROR: " + StreamHelper.readString(inputStream));
+            throw new IOException("ERROR: " + StreamHelper.readString(inputStream, 1024 * 20));
         if (response != request)
             throw new IOException("GET_REMOTE_TIP response expected but got: " + response);
     }

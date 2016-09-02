@@ -35,6 +35,10 @@ public class ChunkStore {
         public void commit() throws IOException {
             currentTransaction = null;
         }
+
+        public void cancel() {
+            // TODO implement
+        }
     }
 
     final private BPlusTree tree;

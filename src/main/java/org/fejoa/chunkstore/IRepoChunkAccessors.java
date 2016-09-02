@@ -30,6 +30,7 @@ public interface IRepoChunkAccessors {
         IChunkAccessor getFileAccessor(String filePath);
 
         void finishTransaction() throws IOException;
+        void cancel();
     }
 
     ITransaction startTransaction() throws IOException;

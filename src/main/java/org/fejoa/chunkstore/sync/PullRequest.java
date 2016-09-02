@@ -9,6 +9,7 @@ package org.fejoa.chunkstore.sync;
 
 import org.fejoa.chunkstore.*;
 import org.fejoa.library.crypto.CryptoException;
+import org.fejoa.library.database.ICommitSignature;
 import org.fejoa.library.remote.IRemotePipe;
 
 import java.io.DataInputStream;
@@ -20,12 +21,12 @@ import static org.fejoa.chunkstore.sync.Request.GET_CHUNKS;
 
 
 public class PullRequest {
-    final private ChunkStore chunkStore;
     final private Repository requestRepo;
+    final private ICommitSignature commitSignature;
 
-    public PullRequest(ChunkStore chunkStore, Repository requestRepo) {
-        this.chunkStore = chunkStore;
+    public PullRequest(Repository requestRepo, ICommitSignature commitSignature) {
         this.requestRepo = requestRepo;
+        this.commitSignature = commitSignature;
     }
 
     static public ChunkFetcher createRemotePipeFetcher(ChunkStore.Transaction transaction,
@@ -61,18 +62,22 @@ public class PullRequest {
         });
     }
 
+    /**
+     * returns the remote tip
+     */
     public BoxPointer pull(IRemotePipe remotePipe, String branch) throws IOException, CryptoException {
         String remoteTipMessage = LogEntryRequest.getRemoteTip(remotePipe, branch).getMessage();
         if (remoteTipMessage.equals(""))
             return new BoxPointer();
         BoxPointer remoteTip = requestRepo.getCommitCallback().commitPointerFromLog(remoteTipMessage);
-        IRepoChunkAccessors.ITransaction transaction = requestRepo.getChunkAccessors().startTransaction();
+        IRepoChunkAccessors.ITransaction transaction = requestRepo.getCurrentTransaction();
         GetCommitJob getCommitJob = new GetCommitJob(null, transaction, remoteTip);
         ChunkFetcher chunkFetcher = createRemotePipeFetcher(transaction.getRawAccessor(), remotePipe);
         chunkFetcher.enqueueJob(getCommitJob);
         chunkFetcher.fetch();
 
         requestRepo.merge(transaction, getCommitJob.getCommitBox());
+        requestRepo.commit("Merge after pull.", commitSignature);
         return remoteTip;
     }
 }

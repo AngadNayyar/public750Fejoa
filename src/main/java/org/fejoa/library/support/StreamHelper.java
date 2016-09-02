@@ -53,7 +53,7 @@ public class StreamHelper {
         return outputStream.toByteArray();
     }
 
-    static public String readString(DataInputStream inputStream) throws IOException {
+    static public String readString0(DataInputStream inputStream) throws IOException {
         int c = inputStream.read();
         StringBuilder builder = new StringBuilder("");
         while (c != -1 && c != 0) {
@@ -63,8 +63,22 @@ public class StreamHelper {
         return builder.toString();
     }
 
-    static public void writeString(DataOutputStream outputStream, String string) throws IOException {
+    static public void writeString0(DataOutputStream outputStream, String string) throws IOException {
         outputStream.write(string.getBytes());
         outputStream.write(0);
+    }
+
+    static public String readString(DataInputStream inputStream, int maxLength) throws IOException {
+        int length = inputStream.readInt();
+        if (length > maxLength)
+            throw new  IOException("String is too long: " + length);
+        byte buffer[] = new byte[length];
+        inputStream.readFully(buffer);
+        return new String(buffer);
+    }
+
+    static public void writeString(DataOutputStream outputStream, String string) throws IOException {
+        outputStream.writeInt(string.getBytes().length);
+        outputStream.write(string.getBytes());
     }
 }

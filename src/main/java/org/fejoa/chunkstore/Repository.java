@@ -161,10 +161,6 @@ public class Repository implements IDatabaseInterface {
         return commitCallback;
     }
 
-    public IRepoChunkAccessors getChunkAccessors() {
-        return accessors;
-    }
-
     private DirectoryBox getDirBox(String path) throws IOException {
         try {
             DirectoryBox.Entry entry = treeAccessor.get(path);
@@ -320,7 +316,10 @@ public class Repository implements IDatabaseInterface {
 
     @Override
     public HashValue commit(String message, ICommitSignature commitSignature) throws IOException, CryptoException {
-        return commitInternal(message, commitSignature).getDataHash();
+        BoxPointer headPointer = commitInternal(message, commitSignature);
+        if (headPointer == null)
+            return null;
+        return headPointer.getDataHash();
     }
 
     public BoxPointer commitInternal(String message, ICommitSignature commitSignature) throws IOException,

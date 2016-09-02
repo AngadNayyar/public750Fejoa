@@ -49,6 +49,11 @@ public class LogRepoTransaction implements IRepoChunkAccessors.ITransaction {
         childTransaction.finishTransaction();
     }
 
+    @Override
+    public void cancel() {
+        childTransaction.cancel();
+    }
+
     private IChunkAccessor createWrapper(final IChunkAccessor chunkAccessor) {
         return new IChunkAccessor() {
             @Override

@@ -7,6 +7,9 @@
  */
 package org.fejoa.server;
 
+import org.fejoa.chunkstore.ChunkStore;
+import org.fejoa.chunkstore.ChunkStoreBranchLog;
+import org.fejoa.chunkstore.Repository;
 import org.fejoa.library.database.JGitInterface;
 import org.fejoa.library.BranchAccessRight;
 
@@ -44,6 +47,24 @@ public class AccessControl {
 
     public boolean isRootUser() {
         return session.hasRootRole(user);
+    }
+
+    public ChunkStore getChunkStore(String branch, int rights) throws IOException {
+        if (!hasAccess(branch, rights))
+            return null;
+        File dir = new File(session.getBaseDir() + "/" + ".chunkstore");
+        if (ChunkStore.exists(dir, branch))
+            return ChunkStore.open(dir, branch);
+        else {
+            dir.mkdirs();
+            return ChunkStore.create(dir, branch);
+        }
+    }
+
+    public ChunkStoreBranchLog getChunkStoreBranchLog(String branch, int rights) throws IOException {
+        if (!hasAccess(branch, rights))
+            return null;
+        return new ChunkStoreBranchLog(new File(session.getBaseDir() + "/" +".chunkstore/branches", branch));
     }
 
     public JGitInterface getDatabase(String branch, int rights) throws IOException {

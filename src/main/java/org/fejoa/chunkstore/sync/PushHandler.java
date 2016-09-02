@@ -23,17 +23,16 @@ import static org.fejoa.chunkstore.sync.Request.PUT_CHUNKS;
 
 
 public class PushHandler {
-    public static void handlePutChunks(ChunkStore chunkStore, RequestHandler.IBranchLogGetter logGetter,
+    public static void handlePutChunks(ChunkStore.Transaction transaction, RequestHandler.IBranchLogGetter logGetter,
                                        IRemotePipe pipe, DataInputStream inputStream) throws IOException {
-        String branch = StreamHelper.readString(inputStream);
+        String branch = StreamHelper.readString(inputStream, 64);
         ChunkStoreBranchLog branchLog = logGetter.get(branch);
         if (branchLog == null) {
             RequestHandler.makeError(new DataOutputStream(pipe.getOutputStream()), "No access to branch: " + branch);
             return;
         }
-        ChunkStore.Transaction transaction = chunkStore.openTransaction();
         final int rev = inputStream.readInt();
-        final String logMessage = StreamHelper.readString(inputStream);
+        final String logMessage = StreamHelper.readString(inputStream, LogEntryRequest.MAX_HEADER_SIZE);
         final int nChunks = inputStream.readInt();
         final List<HashValue> added = new ArrayList<>();
         for (int i = 0; i < nChunks; i++) {

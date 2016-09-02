@@ -76,7 +76,7 @@ public class PullPushTest extends RepositoryTestBase {
         };
     }
 
-    private IRemotePipe connect(final IHandler handler) {
+    private IRemotePipe connect(final RequestHandler handler) {
         return new IRemotePipe() {
             ByteArrayOutputStream outputStream;
 
@@ -118,10 +118,11 @@ public class PullPushTest extends RepositoryTestBase {
         Repository requestRepo = new Repository(directory, branch, getRepoChunkAccessors(requestChunkStore),
                 simpleCommitCallback);
         ChunkStore remoteChunkStore = createChunkStore(directory, "remoteStore");
-        final Repository remoteRepo = new Repository(directory, branch, getRepoChunkAccessors(remoteChunkStore),
-                simpleCommitCallback);
+        IRepoChunkAccessors remoteAccessor = getRepoChunkAccessors(remoteChunkStore);
+        final Repository remoteRepo = new Repository(directory, branch, remoteAccessor, simpleCommitCallback);
 
-        final RequestHandler handler = new RequestHandler(remoteChunkStore, new RequestHandler.IBranchLogGetter() {
+        final RequestHandler handler = new RequestHandler(remoteAccessor.startTransaction().getRawAccessor(),
+                new RequestHandler.IBranchLogGetter() {
             @Override
             public ChunkStoreBranchLog get(String branch) throws IOException {
                 return remoteRepo.getBranchLog();
@@ -129,7 +130,7 @@ public class PullPushTest extends RepositoryTestBase {
         });
         final IRemotePipe senderPipe = connect(handler);
 
-        PullRequest pullRequest = new PullRequest(requestChunkStore, requestRepo);
+        PullRequest pullRequest = new PullRequest(requestRepo, null);
         BoxPointer pulledTip = pullRequest.pull(senderPipe, branch);
 
         assertTrue(pulledTip.getBoxHash().isZero());
@@ -167,14 +168,15 @@ public class PullPushTest extends RepositoryTestBase {
         Repository localRepo = new Repository(directory, branch, getRepoChunkAccessors(localChunkStore),
                 simpleCommitCallback);
         final ChunkStore remoteChunkStore = createChunkStore(remoteDirectory, "remoteStore");
+        final IRepoChunkAccessors remoteAccessor = getRepoChunkAccessors(remoteChunkStore);
 
-        final RequestHandler handler = new RequestHandler(remoteChunkStore, new RequestHandler.IBranchLogGetter() {
+        final RequestHandler handler = new RequestHandler(remoteAccessor.startTransaction().getRawAccessor(),
+                new RequestHandler.IBranchLogGetter() {
             @Override
             public ChunkStoreBranchLog get(String branch) throws IOException {
                 Repository remoteRepo = null;
                 try {
-                    remoteRepo = new Repository(remoteDirectory, branch, getRepoChunkAccessors(remoteChunkStore),
-                            simpleCommitCallback);
+                    remoteRepo = new Repository(remoteDirectory, branch, remoteAccessor, simpleCommitCallback);
                 } catch (CryptoException e) {
                     e.printStackTrace();
                 }
@@ -188,7 +190,7 @@ public class PullPushTest extends RepositoryTestBase {
         add(localRepo, localContent, new DatabaseStingEntry("testFile", "Hello World!"));
         localRepo.commit(null);
 
-        IRepoChunkAccessors.ITransaction localTransaction = localRepo.getChunkAccessors().startTransaction();
+        IRepoChunkAccessors.ITransaction localTransaction = localRepo.getCurrentTransaction();
         PushRequest pushRequest = new PushRequest(localRepo);
         pushRequest.push(senderPipe, localTransaction, branch);
 

@@ -19,6 +19,8 @@ import java.util.*;
 
 
 abstract class DirectoryEntry {
+    static public int MAX_NAME_LENGTH = 1024 * 5;
+
     private String name;
     private BoxPointer dataPointer;
     private BoxPointer attrsDir = new BoxPointer();
@@ -127,7 +129,7 @@ abstract class DirectoryEntry {
     }
 
     public void read(DataInputStream inputStream) throws IOException {
-        name = StreamHelper.readString(inputStream);
+        name = StreamHelper.readString(inputStream, MAX_NAME_LENGTH);
         readShortAttrs(inputStream);
         if (dataPointer == null)
             dataPointer = new BoxPointer();

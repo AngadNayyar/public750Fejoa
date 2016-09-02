@@ -20,21 +20,25 @@ import static org.fejoa.chunkstore.sync.Request.*;
 import static org.fejoa.library.support.StreamHelper.readString;
 
 
-public class RequestHandler implements IHandler {
+public class RequestHandler {
+    public enum Result {
+        OK,
+        ERROR
+    }
+
     public interface IBranchLogGetter {
         ChunkStoreBranchLog get(String branch) throws IOException;
     }
 
-    final private ChunkStore chunkStore;
+    final private ChunkStore.Transaction chunkStore;
     final private IBranchLogGetter logGetter;
 
-    public RequestHandler(ChunkStore chunkStore, IBranchLogGetter logGetter) {
+    public RequestHandler(ChunkStore.Transaction chunkStore, IBranchLogGetter logGetter) {
         this.chunkStore = chunkStore;
         this.logGetter = logGetter;
     }
 
-    @Override
-    public void handle(IRemotePipe pipe) {
+    public Result handle(IRemotePipe pipe) {
         try {
             DataInputStream inputStream = new DataInputStream(pipe.getInputStream());
             int request = Request.receiveRequest(inputStream);
@@ -56,20 +60,22 @@ public class RequestHandler implements IHandler {
             }
         } catch (IOException e) {
             try {
-                makeError(new DataOutputStream(pipe.getOutputStream()), "Internal error.");
+                makeError(new DataOutputStream(pipe.getOutputStream()),  "Internal error.");
             } catch (IOException e1) {
                 e1.printStackTrace();
             }
+            return Result.ERROR;
         }
+        return Result.OK;
     }
 
     static public void makeError(DataOutputStream outputStream, String message) throws IOException {
-        Request.writeRequestHeader(outputStream, GET_REMOTE_TIP);
+        Request.writeRequestHeader(outputStream, ERROR);
         StreamHelper.writeString(outputStream, message);
     }
 
-    public void handleGetRemoteTip(IRemotePipe pipe, DataInputStream inputStream) throws IOException {
-        String branch = readString(inputStream);
+    private void handleGetRemoteTip(IRemotePipe pipe, DataInputStream inputStream) throws IOException {
+        String branch = readString(inputStream, 64);
 
         DataOutputStream outputStream = new DataOutputStream(pipe.getOutputStream());
 
@@ -78,12 +84,12 @@ public class RequestHandler implements IHandler {
             makeError(outputStream, "No access to branch: " + branch);
             return;
         }
-        Request.writeRequestHeader(outputStream, GET_REMOTE_TIP);
         String header;
         if (localBranchLog.getLatest() == null)
             header = "";
         else
             header = localBranchLog.getLatest().getHeader();
+        Request.writeRequestHeader(outputStream, GET_REMOTE_TIP);
         StreamHelper.writeString(outputStream, header);
     }
 }
