@@ -15,7 +15,7 @@ import java.util.Arrays;
 
 public class BCCryptoInterfaceTest extends TestCase {
 
-    public void testCryto() throws Exception {
+    public void testCrypto() throws Exception {
         CryptoSettings settings = CryptoSettings.getDefault();
 
         BCCryptoInterface cryptoInterface = new BCCryptoInterface();
@@ -79,4 +79,20 @@ public class BCCryptoInterfaceTest extends TestCase {
         assertTrue(Arrays.equals(kdfKey1.getEncoded(), kdfKey2.getEncoded()));
     }
 
+    public void testConvergentEncryption() throws Exception {
+        CryptoSettings settings = CryptoSettings.getDefault();
+
+        BCCryptoInterface cryptoInterface = new BCCryptoInterface();
+
+        // encrypt symmetric
+        String clearTextSym = "hello crypto symmetric";
+        byte iv[] = cryptoInterface.generateInitializationVector(settings.symmetric.ivSize);
+        SecretKey secretKey = cryptoInterface.generateSymmetricKey(settings.symmetric);
+        byte encryptedSymmetric[] = cryptoInterface.encryptSymmetric(clearTextSym.getBytes(), secretKey, iv,
+                settings.symmetric);
+        byte encryptedSymmetric2[] = cryptoInterface.encryptSymmetric(clearTextSym.getBytes(), secretKey, iv,
+                settings.symmetric);
+
+        assertTrue(Arrays.equals(encryptedSymmetric, encryptedSymmetric2));
+    }
 }
