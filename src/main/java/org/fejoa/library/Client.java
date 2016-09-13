@@ -44,7 +44,8 @@ public class Client {
         config = UserDataConfig.create(context, userData, "org.fejoa.client");
         Remote remoteRemote = new Remote(userName, server);
         userData.getRemoteStore().add(remoteRemote);
-        userData.getRemoteStore().setDefault(remoteRemote);
+        //userData.getRemoteStore().setDefault(remoteRemote);
+        userData.setGateway(remoteRemote);
     }
 
     public void open(UserDataSettings config, String password) throws IOException, CryptoException, JSONException {
@@ -75,26 +76,24 @@ public class Client {
     }
 
     public void createAccount(String userName, String password, String server,
-                              Task.IObserver<Void, RemoteJob.Result> observer) {
-        connectionManager.submit(new CreateAccountJob(userName, password, userData.getStorageDir().getBranch(),
-                CryptoSettings.getDefault().masterPassword),
+                              Task.IObserver<Void, RemoteJob.Result> observer) throws IOException {
+        connectionManager.submit(new CreateAccountJob(userName, password, userData.getSettings()),
                 new ConnectionManager.ConnectionInfo(userName, server),
                 new ConnectionManager.AuthInfo(),
                 observer);
     }
 
-    public void createAccount(String userName, String password, String userDataId, String server,
-                              Task.IObserver<Void, RemoteJob.Result> observer) {
-        connectionManager.submit(new CreateAccountJob(userName, password, userDataId,
-                        CryptoSettings.getDefault().masterPassword),
+    public void createAccount(String userName, String password, UserData userData, String server,
+                              Task.IObserver<Void, RemoteJob.Result> observer) throws IOException {
+        connectionManager.submit(new CreateAccountJob(userName, password, userData.getSettings()),
                 new ConnectionManager.ConnectionInfo(userName, server),
                 new ConnectionManager.AuthInfo(),
                 observer);
     }
 
-    public void startSyncing(Task.IObserver<TaskUpdate, Void> observer) {
-        Remote defaultRemote = getUserData().getRemoteStore().getDefault();
-        syncManager = new SyncManager(context, getConnectionManager(), defaultRemote);
+    public void startSyncing(Task.IObserver<TaskUpdate, Void> observer) throws IOException {
+        Remote defaultRemote = getUserData().getGateway();
+        syncManager = new SyncManager(context, userData, getConnectionManager(), defaultRemote);
         syncManager.startWatching(getUserData().getBranchList().getEntries(), observer);
     }
 

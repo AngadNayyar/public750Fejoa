@@ -13,15 +13,11 @@ public class CryptoSettings {
         public String keyType;
     }
 
-    /**
-     * KDF + symmetric master key settings
-     */
-    static public class Password extends KeyTypeSettings {
+    static public class Password {
         // kdf
         public String kdfAlgorithm;
         public int kdfIterations = -1;
-        // symmetric key encryption iv
-        public int ivSize = -1;
+        public int passwordSize = -1;
     }
 
     static public class Symmetric extends KeyTypeSettings{
@@ -64,9 +60,7 @@ public class CryptoSettings {
 
         cryptoSettings.masterPassword.kdfAlgorithm = "PBKDF2WithHmacSHA1";
         cryptoSettings.masterPassword.kdfIterations = 20000;
-        cryptoSettings.masterPassword.keyType = "AES";
-        cryptoSettings.masterPassword.keySize = 256;
-        cryptoSettings.masterPassword.ivSize = 16;
+        cryptoSettings.masterPassword.passwordSize = 256;
 
         return cryptoSettings;
     }

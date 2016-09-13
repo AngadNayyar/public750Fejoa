@@ -8,7 +8,11 @@
 package org.fejoa.library.remote;
 
 import org.bouncycastle.util.encoders.Base64;
+import org.fejoa.library.Constants;
 import org.fejoa.library.crypto.CryptoException;
+import org.fejoa.library.crypto.CryptoSettings;
+import org.fejoa.library.crypto.JsonCryptoSettings;
+import org.fejoa.server.AccountSettings;
 import org.fejoa.server.Portal;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -37,8 +41,8 @@ public class RootLoginJob extends SimpleJsonRemoteJob {
         @Override
         public String getJsonHeader(JsonRPC jsonRPC) throws IOException {
             return jsonRPC.call(METHOD, new JsonRPC.Argument(REQUEST_KEY, LOGIN_REQUEST),
-                    new JsonRPC.Argument(CreateAccountJob.USER_NAME_KEY, userName),
-                    new JsonRPC.Argument(CreateAccountJob.PASSWORD_KEY, serverPassword));
+                    new JsonRPC.Argument(Constants.USER_KEY, userName),
+                    new JsonRPC.Argument(Constants.PASSWORD, serverPassword));
         }
 
         @Override
@@ -60,18 +64,18 @@ public class RootLoginJob extends SimpleJsonRemoteJob {
     @Override
     public String getJsonHeader(JsonRPC jsonRPC) throws IOException {
         return jsonRPC.call(METHOD, new JsonRPC.Argument(REQUEST_KEY, PARAMETER_REQUEST),
-                new JsonRPC.Argument(CreateAccountJob.USER_NAME_KEY, userName));
+                new JsonRPC.Argument(Constants.USER_KEY, userName));
     }
 
     @Override
     protected Result handleJson(JSONObject returnValue, InputStream binaryData) {
         try {
-            byte[] salt = Base64.decode(returnValue.getString(CreateAccountJob.SALT_BASE64_KEY));
-            String algorithm = returnValue.getString(CreateAccountJob.KDF_ALGORITHM_KEY);
-            int keySize = returnValue.getInt(CreateAccountJob.KEY_SIZE_KEY);
-            int iterations = returnValue.getInt(CreateAccountJob.KDF_ITERATIONS_KEY);
+            byte[] salt = Base64.decode(returnValue.getString(AccountSettings.LOGIN_KDF_SALT_KEY));
+            CryptoSettings.Password kdfSettings = JsonCryptoSettings.passwordFromJson(
+                    returnValue.getJSONObject(AccountSettings.LOGIN_KDF_SETTINGS_KEY));
 
-            String serverPassword = CreateAccountJob.makeServerPassword(password, salt, algorithm, keySize, iterations);
+            String serverPassword = CreateAccountJob.makeServerPassword(password, salt, kdfSettings.kdfAlgorithm,
+                    kdfSettings.passwordSize, kdfSettings.kdfIterations);
             setFollowUpJob(new SendPasswordJob(userName, serverPassword));
             return new Result(Portal.Errors.FOLLOW_UP_JOB, "parameters received");
         } catch (JSONException e) {

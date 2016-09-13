@@ -16,6 +16,9 @@ public class Constants {
     static final public String KEY_TYPE_KEY = "keyType";
     static final public String KEY_ID_KEY = "keyId";
     static final public String ALGORITHM_KEY = "algorithm";
+    static final public String ITERATIONS_KEY = "iterations";
+    static final public String PASSWORD = "password";
+    static final public String PASSWORD_SIZE_KEY = "passwordSize";
     static final public String IV_SIZE_KEY = "ivSize";
     static final public String IV_KEY = "iv";
     static final public String SIGNATURE_KEY = "signature";

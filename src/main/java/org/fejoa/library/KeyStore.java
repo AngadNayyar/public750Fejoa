@@ -21,10 +21,8 @@ import java.io.IOException;
 public class KeyStore extends StorageDirObject {
     final static String MASTER_KEY_KEY = "masterKey";
     final static String MASTER_KEY_IV_KEY = "masterKeyIV";
-    final static String MASTER_KEY_PASSWORD_ALGORITHM_KEY = "masterPasswordAlgo";
     final static String MASTER_KEY_PASSWORD_SALT_KEY = "masterPasswordSalt";
-    final static String MASTER_KEY_PASSWORD_SIZE_KEY = "masterPasswordSize";
-    final static String MASTER_KEY_PASSWORD_ITERATIONS_KEY = "masterPasswordIterations";
+    final static String MASTER_KEY_PASSWORD_SETTINGS_KEY = "kdfSettings";
 
     final static String USER_DATA_BRANCH_KEY = "userDataBranch";
 
@@ -72,14 +70,12 @@ public class KeyStore extends StorageDirObject {
     }
 
     static public class KDFCrypto {
-        final public String kdfAlgorithm;
-        final public byte[] salt;
-        final public int masterPasswordSize;
-        final public int kdfIterations;
+        final public byte[] kdfSalt;
+        final public CryptoSettings.Password kdfSettings;
+
         final public byte[] encryptedMasterKey;
         final public byte[] masterKeyIV;
-        final public String symmetricAlgorithm;
-        final public String symmetricKeyType;
+        final public CryptoSettings.Symmetric symmetricSettings;
 
         static public KDFCrypto create(FejoaContext context, SecretKey secretKey,
                                         CryptoSettings.Password kdfSettings, String password) throws CryptoException {
@@ -87,69 +83,58 @@ public class KeyStore extends StorageDirObject {
             ICryptoInterface crypto = context.getCrypto();
             byte[] salt = crypto.generateSalt();
             SecretKey passwordKey = crypto.deriveKey(password, salt, kdfSettings.kdfAlgorithm,
-                    kdfSettings.kdfIterations, kdfSettings.keySize);
+                    kdfSettings.kdfIterations, kdfSettings.passwordSize);
             // encrypt master key
             CryptoSettings.Symmetric symmetric = context.getCryptoSettings().symmetric;
-            byte[] masterKeyIV = crypto.generateInitializationVector(kdfSettings.ivSize);
+            byte[] masterKeyIV = crypto.generateInitializationVector(symmetric.ivSize);
             byte[] encryptedMasterKey = crypto.encryptSymmetric(secretKey.getEncoded(), passwordKey, masterKeyIV,
                     symmetric);
 
-            return new KDFCrypto(kdfSettings.kdfAlgorithm, salt, kdfSettings.keySize, kdfSettings.kdfIterations,
-                    encryptedMasterKey, masterKeyIV, symmetric.algorithm, symmetric.keyType);
+            return new KDFCrypto(salt, kdfSettings, encryptedMasterKey, masterKeyIV, symmetric);
         }
 
         static public SecretKey open(FejoaContext context, KDFCrypto config, String password) throws CryptoException {
             // kdf key
             ICryptoInterface crypto = context.getCrypto();
-            SecretKey secretKey = crypto.deriveKey(password, config.salt, config.kdfAlgorithm, config.kdfIterations,
-                    config.masterPasswordSize);
+            SecretKey secretKey = crypto.deriveKey(password, config.kdfSalt, config.kdfSettings.kdfAlgorithm,
+                    config.kdfSettings.kdfIterations, config.kdfSettings.passwordSize);
             // decrypt master key
-            CryptoSettings.Symmetric settings = CryptoSettings.symmetricSettings(config.symmetricKeyType,
-                    config.symmetricAlgorithm);
+            CryptoSettings.Symmetric settings = CryptoSettings.symmetricSettings(config.symmetricSettings.keyType,
+                    config.symmetricSettings.algorithm);
             byte masterKeyBytes[] = crypto.decryptSymmetric(config.encryptedMasterKey, secretKey, config.masterKeyIV,
                     settings);
             return CryptoHelper.symmetricKeyFromRaw(masterKeyBytes, settings);
         }
 
-        public KDFCrypto(String kdfAlgorithm, byte[] salt, int masterPasswordSize, int kdfIterations,
-                      byte[] encryptedMasterKey, byte[] masterKeyIV, String symmetricAlgorithm,
-                      String symmetricKeyType) {
-            this.kdfAlgorithm = kdfAlgorithm;
-            this.salt = salt;
-            this.masterPasswordSize = masterPasswordSize;
-            this.kdfIterations = kdfIterations;
+        public KDFCrypto(byte[] kdfSalt, CryptoSettings.Password kdfSettings,
+                         byte[] encryptedMasterKey, byte[] masterKeyIV, CryptoSettings.Symmetric symmetricSettings) {
+            this.kdfSalt = kdfSalt;
+            this.kdfSettings = kdfSettings;
             this.encryptedMasterKey = encryptedMasterKey;
             this.masterKeyIV = masterKeyIV;
-            this.symmetricAlgorithm = symmetricAlgorithm;
-            this.symmetricKeyType = symmetricKeyType;
+            this.symmetricSettings = symmetricSettings;
         }
 
         public KDFCrypto(JSONObject jsonObject) throws JSONException {
             // kdf params
-            kdfAlgorithm = jsonObject.getString(MASTER_KEY_PASSWORD_ALGORITHM_KEY);
-            salt = Base64.decodeBase64(jsonObject.getString(MASTER_KEY_PASSWORD_SALT_KEY));
-            masterPasswordSize = jsonObject.getInt(MASTER_KEY_PASSWORD_SIZE_KEY);
-            kdfIterations = jsonObject.getInt(MASTER_KEY_PASSWORD_ITERATIONS_KEY);
+            kdfSalt = Base64.decodeBase64(jsonObject.getString(MASTER_KEY_PASSWORD_SALT_KEY));
+            kdfSettings = JsonCryptoSettings.passwordFromJson(jsonObject.getJSONObject(MASTER_KEY_PASSWORD_SETTINGS_KEY));
             // master key encryption
             encryptedMasterKey = Base64.decodeBase64(jsonObject.getString(MASTER_KEY_KEY));
             masterKeyIV = Base64.decodeBase64(jsonObject.getString(MASTER_KEY_IV_KEY));
-            symmetricAlgorithm = jsonObject.getString(Constants.ALGORITHM_KEY);
-            symmetricKeyType = jsonObject.getString(Constants.KEY_TYPE_KEY);
+            symmetricSettings = JsonCryptoSettings.symFromJson(jsonObject.getJSONObject(SYM_SETTINGS_KEY));
         }
 
         public JSONObject toJson() {
             JSONObject object = new JSONObject();
-            // kdf params
             try {
-                object.put(MASTER_KEY_PASSWORD_ALGORITHM_KEY, kdfAlgorithm);
-                object.put(MASTER_KEY_PASSWORD_SALT_KEY, Base64.encodeBase64String(salt));
-                object.put(MASTER_KEY_PASSWORD_SIZE_KEY, masterPasswordSize);
-                object.put(MASTER_KEY_PASSWORD_ITERATIONS_KEY, kdfIterations);
+                // kdf params
+                object.put(MASTER_KEY_PASSWORD_SALT_KEY, Base64.encodeBase64String(kdfSalt));
+                object.put(MASTER_KEY_PASSWORD_SETTINGS_KEY, JsonCryptoSettings.toJson(kdfSettings));
                 // master key encryption
                 object.put(MASTER_KEY_KEY, Base64.encodeBase64String(encryptedMasterKey));
                 object.put(MASTER_KEY_IV_KEY, Base64.encodeBase64String(masterKeyIV));
-                object.put(Constants.ALGORITHM_KEY, symmetricAlgorithm);
-                object.put(Constants.KEY_TYPE_KEY, symmetricKeyType);
+                object.put(SYM_SETTINGS_KEY, JsonCryptoSettings.toJson(symmetricSettings));
             } catch (JSONException e) {
                 e.printStackTrace();
                 throw new RuntimeException("Unexpected json error.");

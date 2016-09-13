@@ -111,6 +111,7 @@ public class UserData extends StorageDirObject {
                 new DefaultCommitSignature(context, signingKeyPair));
 
         UserData userData = new UserData(context, userDataDir, keyStore);
+        userData.addBranch(new BranchInfo(userData.getBranch(), "User Data (this)", null, null, false));
         keyStore.setUserData(userData);
         keyStore.addSymmetricKey(userDataDir.getBranch(), userDataKeyData);
 
@@ -173,7 +174,7 @@ public class UserData extends StorageDirObject {
         return getBranch();
     }
 
-    private StorageDir getStorageDir(BranchInfo branchInfo) throws IOException, CryptoException {
+    public StorageDir getStorageDir(BranchInfo branchInfo) throws IOException, CryptoException {
         SymmetricKeyData symmetricKeyData = null;
         HashValue keyId = branchInfo.getKeyId();
         if (keyId != null && !keyId.isZero()) {

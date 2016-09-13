@@ -42,12 +42,13 @@ public class CreateAccountHandler extends JsonRequestHandler {
      * @return error string or null
      */
     private String createAccount(Session session, JSONObject params) throws JSONException {
-        if (!params.has(CreateAccountJob.PASSWORD_KEY) || !params.has(CreateAccountJob.SALT_BASE64_KEY)
-                || !params.has(CreateAccountJob.KDF_ALGORITHM_KEY) || !params.has(CreateAccountJob.KEY_SIZE_KEY)
-                || !params.has(CreateAccountJob.KDF_ITERATIONS_KEY) || !params.has(CreateAccountJob.USER_NAME_KEY))
+        if (!params.has(CreateAccountJob.ACCOUNT_SETTINGS_KEY))
             return "arguments missing";
 
-        String userName = params.getString(CreateAccountJob.USER_NAME_KEY);
+        AccountSettings accountSettings = new AccountSettings(params.getJSONObject(
+                CreateAccountJob.ACCOUNT_SETTINGS_KEY));
+
+        String userName = accountSettings.userName;
         if (userName.contains(".") || userName.contains("/"))
             return "invalid user name";
 
@@ -57,7 +58,7 @@ public class CreateAccountHandler extends JsonRequestHandler {
         if (!dir.mkdirs())
             return "can't create user dir";
         try {
-            session.getAccountSettings(userName).update(params, null);
+            session.writeAccountSettings(userName, accountSettings);
         } catch (IOException e) {
             e.printStackTrace();
             StorageLib.recursiveDeleteFile(dir);

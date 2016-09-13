@@ -7,6 +7,7 @@
  */
 package org.fejoa.library.remote;
 
+import org.fejoa.chunkstore.HashValue;
 import org.fejoa.library.Constants;
 import org.fejoa.library.FejoaContext;
 import org.fejoa.library.BranchInfo;
@@ -65,10 +66,10 @@ public class WatchJob extends SimpleJsonRemoteJob<WatchJob.Result> {
 
         List<JsonRPC.ArgumentSet> branches = new ArrayList<>();
         for (BranchInfo branchInfo : branchInfoList) {
-            StorageDir dir = context.getStorage(branchInfo.getBranch());
+            HashValue tip = context.getStorageLogTip(branchInfo.getBranch());
             JsonRPC.ArgumentSet argumentSet = new JsonRPC.ArgumentSet(
-                    new JsonRPC.Argument(BRANCH_KEY, dir.getBranch()),
-                    new JsonRPC.Argument(BRANCH_TIP_KEY, dir.getTip().toHex())
+                    new JsonRPC.Argument(BRANCH_KEY, branchInfo.getBranch()),
+                    new JsonRPC.Argument(BRANCH_TIP_KEY, tip.toHex())
             );
             branches.add(argumentSet);
         }

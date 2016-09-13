@@ -52,7 +52,7 @@ public class AccessControl {
     public ChunkStore getChunkStore(String branch, int rights) throws IOException {
         if (!hasAccess(branch, rights))
             return null;
-        File dir = new File(session.getBaseDir() + "/" + ".chunkstore");
+        File dir = getChunkStoreDir();
         if (ChunkStore.exists(dir, branch))
             return ChunkStore.open(dir, branch);
         else {
@@ -64,7 +64,11 @@ public class AccessControl {
     public ChunkStoreBranchLog getChunkStoreBranchLog(String branch, int rights) throws IOException {
         if (!hasAccess(branch, rights))
             return null;
-        return new ChunkStoreBranchLog(new File(session.getBaseDir() + "/" +".chunkstore/branches", branch));
+        return new ChunkStoreBranchLog(new File(getChunkStoreDir(), "branches/" + branch));
+    }
+
+    private File getChunkStoreDir() {
+        return new File(session.getServerUserDir(user), ".chunkstore");
     }
 
     public JGitInterface getDatabase(String branch, int rights) throws IOException {

@@ -26,7 +26,7 @@ public class TreeIterator implements Iterator<DiffIterator.Change<DirectoryBox.E
 
     public TreeIterator(IChunkAccessor ourAccessor, CommitBox ours, IChunkAccessor theirAccessor,
                         CommitBox theirs) throws IOException, CryptoException {
-        this(ourAccessor, DirectoryBox.read(ourAccessor, ours.getTree()),
+        this(ourAccessor, ours == null ? null : DirectoryBox.read(ourAccessor, ours.getTree()),
                 theirAccessor, DirectoryBox.read(theirAccessor, theirs.getTree()));
     }
 

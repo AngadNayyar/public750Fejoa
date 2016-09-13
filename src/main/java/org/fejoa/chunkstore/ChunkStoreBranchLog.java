@@ -7,6 +7,8 @@
  */
 package org.fejoa.chunkstore;
 
+import org.fejoa.library.crypto.CryptoHelper;
+
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,11 +20,13 @@ import java.util.List;
 public class ChunkStoreBranchLog {
     static public class Entry {
         int rev;
+        HashValue entryId;
         String message = "";
         final List<HashValue> changes = new ArrayList<>();
 
-        public Entry(int rev, String message) {
+        public Entry(HashValue entryId, int rev, String message) {
             this.rev = rev;
+            this.entryId = entryId;
             this.message = message;
         }
 
@@ -38,22 +42,28 @@ public class ChunkStoreBranchLog {
             return message;
         }
 
+        public HashValue getEntryId() {
+            return entryId;
+        }
+
         static public Entry fromHeader(String header) {
             Entry entry = new Entry();
             if (header.equals(""))
                 return entry;
-            int splitIndex = header.indexOf(" ");
-            if (splitIndex < 0) {
+            int splitIndex1 = header.indexOf(" ");
+            if (splitIndex1 < 0) {
                 entry.rev = Integer.parseInt(header);
             } else {
-                entry.rev = Integer.parseInt(header.substring(0, splitIndex));
-                entry.message = header.substring(splitIndex + 1);
+                entry.rev = Integer.parseInt(header.substring(0, splitIndex1));
+                int splitIndex2 = header.indexOf(" ", splitIndex1 + 1);
+                entry.entryId = HashValue.fromHex(header.substring(splitIndex1 + 1, splitIndex2));
+                entry.message = header.substring(splitIndex2 + 1);
             }
             return entry;
         }
 
         public String getHeader() {
-            return "" + rev + " " + message;
+            return "" + rev + " " + entryId.toHex() + " " + message;
         }
 
         static private Entry read(BufferedReader reader) throws IOException {
@@ -126,8 +136,12 @@ public class ChunkStoreBranchLog {
         return entries.get(entries.size() - 1);
     }
 
-    public void add(String message, List<HashValue> changes) throws IOException {
-        Entry entry = new Entry(nextRevId(), message);
+    public void add(BoxPointer commitBoxPointer, String message, List<HashValue> changes) throws IOException {
+        add(new HashValue(CryptoHelper.sha256Hash(commitBoxPointer.getBoxHash().getBytes())), message, changes);
+    }
+
+    public void add(HashValue entryId, String message, List<HashValue> changes) throws IOException {
+        Entry entry = new Entry(entryId, nextRevId(), message);
         entry.changes.addAll(changes);
         write(entry);
         entries.add(entry);

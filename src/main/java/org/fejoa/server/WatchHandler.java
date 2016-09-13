@@ -8,7 +8,10 @@
 package org.fejoa.server;
 
 
+import org.fejoa.chunkstore.ChunkStoreBranchLog;
+import org.fejoa.chunkstore.Config;
 import org.fejoa.chunkstore.HashValue;
+import org.fejoa.library.BranchAccessRight;
 import org.fejoa.library.database.JGitInterface;
 import org.fejoa.library.Constants;
 import org.fejoa.library.remote.JsonRPC;
@@ -97,22 +100,29 @@ public class WatchHandler extends JsonRequestHandler {
         while (status.isEmpty()) {
             for (Map.Entry<String, String> entry : branches.entrySet()) {
                 String branch = entry.getKey();
-                HashValue tip = HashValue.fromHex(entry.getValue());
-                JGitInterface gitInterface;
+                String remoteMessageHashString = entry.getValue();
+                HashValue remoteMessageHash = Config.newDataHash();
+                if (!remoteMessageHashString.equals(""))
+                    remoteMessageHash = HashValue.fromHex(remoteMessageHashString);
+                ChunkStoreBranchLog branchLog;
+                //JGitInterface gitInterface;
                 try {
-                    gitInterface = accessControl.getReadDatabase(branch);
+                    //gitInterface = accessControl.getReadDatabase(branch);
+                    branchLog = accessControl.getChunkStoreBranchLog(branch, BranchAccessRight.PULL);
                 } catch (IOException e) {
                     continue;
                 }
-                if (gitInterface == null) {
+                if (branchLog == null) {
                     status.put(branch, Status.ACCESS_DENIED);
                     continue;
                 }
-                try {
-                    if (!tip.equals(gitInterface.getTip()))
-                        status.put(branch, Status.UPDATE);
-                } catch (IOException e) {
-                }
+                //if (!tip.equals(gitInterface.getTip()))
+                ChunkStoreBranchLog.Entry latest = branchLog.getLatest();
+                HashValue localMessageHash = Config.newDataHash();
+                if (latest != null)
+                    localMessageHash = latest.getEntryId();
+                if (!remoteMessageHash.equals(localMessageHash))
+                    status.put(branch, Status.UPDATE);
             }
             if (System.currentTimeMillis() - time > TIME_OUT)
                 break;

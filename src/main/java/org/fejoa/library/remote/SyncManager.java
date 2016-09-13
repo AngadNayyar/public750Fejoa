@@ -8,6 +8,9 @@
 package org.fejoa.library.remote;
 
 import org.fejoa.chunkstore.HashValue;
+import org.fejoa.chunkstore.Repository;
+import org.fejoa.library.UserData;
+import org.fejoa.library.database.ICommitSignature;
 import org.fejoa.library.database.IDatabaseInterface;
 import org.fejoa.library.database.JGitInterface;
 import org.fejoa.library.FejoaContext;
@@ -22,13 +25,17 @@ import java.util.*;
 
 public class SyncManager {
     final private FejoaContext context;
+    final private UserData userData;
     final private ConnectionManager connectionManager;
+
     final private Remote remote;
     private Task.ICancelFunction watchFunction;
+    private Collection<BranchInfo> watchedBranches;
     final private Map<String, Task.ICancelFunction> ongoingSyncJobs = new HashMap<>();
 
-    public SyncManager(FejoaContext context, ConnectionManager connectionManager, Remote remote) {
+    public SyncManager(FejoaContext context, UserData userData, ConnectionManager connectionManager, Remote remote) {
         this.context = context;
+        this.userData = userData;
         this.connectionManager = connectionManager;
         this.remote = remote;
     }
@@ -43,11 +50,16 @@ public class SyncManager {
                 ongoingSyncJobs.put(id, null);
         }
 
-        for (String id : storageIdList)
-            sync(id, storageIdList.size(), observer);
+        for (String id : storageIdList) {
+            for (BranchInfo branchInfo : watchedBranches) {
+                if (branchInfo.getBranch().equals(id))
+                    sync(branchInfo, storageIdList.size(), observer);
+            }
+        }
     }
 
     private void watch(Collection<BranchInfo> branchInfoList, Task.IObserver<Void, WatchJob.Result> observer) {
+        watchedBranches = branchInfoList;
         watchFunction = connectionManager.submit(new WatchJob(context, remote.getUser(), branchInfoList),
                 new ConnectionManager.ConnectionInfo(remote.getUser(), remote.getServer()),
                 context.getRootAuthInfo(remote.getUser(), remote.getServer()),
@@ -185,18 +197,74 @@ public class SyncManager {
                 });
     }
 
-    private void sync(final String id, final int nJobs, final Task.IObserver<TaskUpdate, Void> observer) {
+    private Task.ICancelFunction csSync(final Repository repository, final ICommitSignature commitSignature,
+                                        final StorageDir dir, final int nJobs,
+                                        final Task.IObserver<TaskUpdate, Void> observer,
+                                        final ConnectionManager.ConnectionInfo connectionInfo,
+                                        final ConnectionManager.AuthInfo authInfo) {
+        final String id = dir.getBranch();
+        return connectionManager.submit(new ChunkStorePullJob(repository, commitSignature, remote.getUser(),
+                        dir.getBranch()),
+                connectionInfo, authInfo,
+                new Task.IObserver<Void, ChunkStorePullJob.Result>() {
+                    @Override
+                    public void onProgress(Void aVoid) {
+                        //observer.onProgress(aVoid);
+                    }
+
+                    @Override
+                    public void onResult(ChunkStorePullJob.Result result) {
+                        try {
+                            HashValue tip = dir.getTip();
+                            if (!result.pulledRev.getDataHash().isZero())
+                                dir.onTipUpdated(result.oldTip, tip);
+                            if (repository.getHeadCommit().getBoxPointer().equals(result.pulledRev)) {
+                                jobFinished(id, observer, nJobs, "sync after pull: " + id);
+                                return;
+                            }
+                        } catch (IOException e) {
+                            observer.onException(e);
+                        }
+
+                        // push
+                        connectionManager.submit(new ChunkStorePushJob(repository, remote.getUser(),
+                                        repository.getBranch()), connectionInfo, authInfo,
+                                new Task.IObserver<Void, ChunkStorePushJob.Result>() {
+                                    @Override
+                                    public void onProgress(Void aVoid) {
+                                        //observer.onProgress(aVoid);
+                                    }
+
+                                    @Override
+                                    public void onResult(ChunkStorePushJob.Result result) {
+                                        jobFinished(id, observer, nJobs, "sync after push: " + id);
+                                    }
+
+                                    @Override
+                                    public void onException(Exception exception) {
+                                        observer.onException(exception);
+                                        jobFinished(id, observer, nJobs, "exception");
+                                    }
+                                });
+                    }
+
+                    @Override
+                    public void onException(Exception exception) {
+                        observer.onException(exception);
+                        jobFinished(id, observer, nJobs, "exception");
+                    }
+                });
+    }
+
+    private void sync(final BranchInfo branchInfo, final int nJobs, final Task.IObserver<TaskUpdate, Void> observer) {
+        final String branch = branchInfo.getBranch();
         final StorageDir dir;
         try {
-            dir = context.getStorage(id);
-            if (dir.getDatabase().getTip().isZero()) {
-                ongoingSyncJobs.remove(id);
-                return;
-            }
-        } catch (IOException e) {
+            dir = userData.getStorageDir(branchInfo);
+        } catch (Exception e) {
             e.printStackTrace();
             observer.onException(e);
-            ongoingSyncJobs.remove(id);
+            ongoingSyncJobs.remove(branch);
             return;
         }
 
@@ -207,12 +275,15 @@ public class SyncManager {
         Task.ICancelFunction job;
         if (database instanceof JGitInterface)
             job = gitSync((JGitInterface)database, dir, nJobs, observer, connectionInfo, authInfo);
+        else if (database instanceof Repository)
+            // TODO commit signature?
+            job = csSync((Repository)database, null, dir, nJobs, observer, connectionInfo, authInfo);
         else
             throw new RuntimeException("Unsupported database.");
 
         // only add the job if it is still in the list, e.g. when the request is sync the job is already gone
-        if (ongoingSyncJobs.containsKey(id))
-            ongoingSyncJobs.put(id, job);
+        if (ongoingSyncJobs.containsKey(branch))
+            ongoingSyncJobs.put(branch, job);
     }
 
     private void jobFinished(String id, Task.IObserver<TaskUpdate, Void> observer, int totalNumberOfJobs,

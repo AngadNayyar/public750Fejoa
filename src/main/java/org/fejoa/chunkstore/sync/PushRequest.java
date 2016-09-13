@@ -115,9 +115,9 @@ public class PushRequest {
         assert headCommit != null;
 
         CommonAncestorsFinder.Chains chainsToPush;
-        ChunkStoreBranchLog.Entry logTip = LogEntryRequest.getRemoteTip(remotePipe, branch);
-        if (logTip.getRev() > 0) { // remote has this branch
-            BoxPointer remoteTip = repository.getCommitCallback().commitPointerFromLog(logTip.getMessage());
+        ChunkStoreBranchLog.Entry remoteLogTip = LogEntryRequest.getRemoteTip(remotePipe, branch);
+        if (remoteLogTip.getRev() > 0) { // remote has this branch
+            BoxPointer remoteTip = repository.getCommitCallback().commitPointerFromLog(remoteLogTip.getMessage());
             if (!rawTransaction.contains(remoteTip.getBoxHash()))
                 return Result.PULL_REQUIRED;
 
@@ -153,9 +153,12 @@ public class PushRequest {
         DataOutputStream outStream = new DataOutputStream(remotePipe.getOutputStream());
         Request.writeRequestHeader(outStream, Request.PUT_CHUNKS);
         StreamHelper.writeString(outStream, branch);
-        outStream.writeInt(logTip.getRev());
-        String logMessage = repository.getCommitCallback().commitPointerToLog(headCommit.getBoxPointer());
-        StreamHelper.writeString(outStream, logMessage);
+        // expected remote rev
+        outStream.writeInt(remoteLogTip.getRev());
+        // our message
+        ChunkStoreBranchLog.Entry localLogTip = repository.getBranchLog().getLatest();
+        StreamHelper.writeString(outStream, localLogTip.getEntryId().toHex());
+        StreamHelper.writeString(outStream, localLogTip.getMessage());
         outStream.writeInt(chunks.size());
         for (HashValue chunk : chunks) {
             outStream.write(chunk.getBytes());

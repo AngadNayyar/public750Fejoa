@@ -4,6 +4,7 @@ import junit.framework.TestCase;
 import org.fejoa.chunkstore.HashValue;
 import org.fejoa.chunkstore.Repository;
 import org.fejoa.library.FejoaContext;
+import org.fejoa.library.UserData;
 import org.fejoa.library.crypto.CryptoSettings;
 import org.fejoa.library.database.ICommitSignature;
 import org.fejoa.library.database.JGitInterface;
@@ -256,8 +257,9 @@ public class JettyTest extends TestCase {
     public void testSimple() throws Exception {
         connectionManager.submit(new JsonPingJob(), connectionInfo, authInfo, observer);
 
-        connectionManager.submit(new CreateAccountJob("userName", "password", "noUserDataBranch",
-                CryptoSettings.getDefault().masterPassword), connectionInfo, authInfo, observer);
+        UserData userData = UserData.create(new FejoaContext(TEST_DIR), "password");
+        connectionManager.submit(new CreateAccountJob("userName", "password", userData.getSettings()),
+                connectionInfo, authInfo, observer);
         Thread.sleep(1000);
 
         connectionManager.submit(new RootLoginJob("userName", "password"), connectionInfo, authInfo, observer);

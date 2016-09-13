@@ -7,8 +7,10 @@
  */
 package org.fejoa.library.remote;
 
-import org.eclipse.jgit.util.Base64;
+import org.fejoa.library.UserDataSettings;
 import org.fejoa.library.crypto.*;
+import org.fejoa.server.AccountSettings;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import javax.crypto.SecretKey;
@@ -19,26 +21,22 @@ import java.io.InputStream;
 public class CreateAccountJob extends SimpleJsonRemoteJob<RemoteJob.Result> {
     static final public String METHOD = "createAccount";
 
-    static final public String USER_NAME_KEY = "userName";
-    static final public String PASSWORD_KEY = "password";
-    static final public String USER_DATA_BRANCH_KEY = "userDataBranch";
-    static final public String SALT_BASE64_KEY = "saltBase64";
-    static final public String KDF_ALGORITHM_KEY = "kdfAlgorithm";
-    static final public String KEY_SIZE_KEY = "keySize";
-    static final public String KDF_ITERATIONS_KEY = "kdfIterations";
+    static final public String ACCOUNT_SETTINGS_KEY = "accountSettings";
 
     final private String userName;
     final private String password;
-    final private String userDataBranch;
-    final private CryptoSettings.Password settings;
+    final private CryptoSettings.Password loginSettings;
 
-    public CreateAccountJob(String userName, String password, String userDataBranch, CryptoSettings.Password settings) {
+    final private UserDataSettings userDataSettings;
+
+    public CreateAccountJob(String userName, String password, UserDataSettings userDataSettings) {
         super(false);
 
         this.userName = userName;
         this.password = password;
-        this.userDataBranch = userDataBranch;
-        this.settings = settings;
+        this.loginSettings = CryptoSettings.getDefault().masterPassword;
+
+        this.userDataSettings = userDataSettings;
     }
 
     static public String makeServerPassword(String password, byte[] salt, String kdfAlgorithm, int keySize,
@@ -49,27 +47,22 @@ public class CreateAccountJob extends SimpleJsonRemoteJob<RemoteJob.Result> {
     }
 
     @Override
-    public String getJsonHeader(JsonRPC jsonRPC) throws IOException {
+    public String getJsonHeader(JsonRPC jsonRPC) throws IOException, JSONException {
         ICryptoInterface crypto = Crypto.get();
         byte[] salt = crypto.generateSalt();
-        String saltBase64 = Base64.encodeBytes(salt);
         String derivedPassword;
 
         try {
-            derivedPassword = makeServerPassword(password, salt, settings.kdfAlgorithm, settings.keySize,
-                    settings.kdfIterations);
+            derivedPassword = makeServerPassword(password, salt, loginSettings.kdfAlgorithm, loginSettings.passwordSize,
+                    loginSettings.kdfIterations);
         } catch (CryptoException e) {
             e.printStackTrace();
             throw new IOException(e.getMessage());
         }
 
-        return jsonRPC.call(METHOD, new JsonRPC.Argument(USER_NAME_KEY, userName),
-                new JsonRPC.Argument(PASSWORD_KEY, derivedPassword),
-                new JsonRPC.Argument(USER_DATA_BRANCH_KEY, userDataBranch),
-                new JsonRPC.Argument(SALT_BASE64_KEY, saltBase64),
-                new JsonRPC.Argument(KDF_ALGORITHM_KEY, settings.kdfAlgorithm),
-                new JsonRPC.Argument(KEY_SIZE_KEY, settings.keySize),
-                new JsonRPC.Argument(KDF_ITERATIONS_KEY, settings.kdfIterations));
+        AccountSettings accountSettings = new AccountSettings(userName, derivedPassword, salt, loginSettings,
+                userDataSettings);
+        return jsonRPC.call(METHOD, new JsonRPC.Argument(ACCOUNT_SETTINGS_KEY, accountSettings.toJson()));
     }
 
     @Override

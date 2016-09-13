@@ -272,7 +272,8 @@ public class Repository implements IDatabaseInterface {
 
                 transaction.finishTransaction();
                 transaction = new LogRepoTransaction(accessors.startTransaction());
-                log.add(commitCallback.commitPointerToLog(headCommit.getBoxPointer()), transaction.getObjectsWritten());
+                log.add(headCommit.getBoxPointer(), commitCallback.commitPointerToLog(headCommit.getBoxPointer()),
+                        transaction.getObjectsWritten());
                 treeAccessor = new TreeAccessor(DirectoryBox.read(transaction.getTreeAccessor(), otherBranch.getTree()),
                         transaction);
                 return;
@@ -294,7 +295,8 @@ public class Repository implements IDatabaseInterface {
 
                 transaction.finishTransaction();
                 transaction = new LogRepoTransaction(accessors.startTransaction());
-                log.add(commitCallback.commitPointerToLog(headCommit.getBoxPointer()), transaction.getObjectsWritten());
+                log.add(headCommit.getBoxPointer(), commitCallback.commitPointerToLog(headCommit.getBoxPointer()),
+                        transaction.getObjectsWritten());
                 treeAccessor = new TreeAccessor(DirectoryBox.read(transaction.getTreeAccessor(), otherBranch.getTree()),
                         transaction);
                 return;
@@ -316,10 +318,10 @@ public class Repository implements IDatabaseInterface {
 
     @Override
     public HashValue commit(String message, ICommitSignature commitSignature) throws IOException, CryptoException {
-        BoxPointer headPointer = commitInternal(message, commitSignature);
-        if (headPointer == null)
+        commitInternal(message, commitSignature);
+        if (headCommit == null)
             return null;
-        return headPointer.getDataHash();
+        return headCommit.dataHash();
     }
 
     public BoxPointer commitInternal(String message, ICommitSignature commitSignature) throws IOException,
@@ -341,7 +343,7 @@ public class Repository implements IDatabaseInterface {
             headCommit = commitBox;
 
             transaction.finishTransaction();
-            log.add(commitCallback.commitPointerToLog(commitPointer), transaction.getObjectsWritten());
+            log.add(commitPointer, commitCallback.commitPointerToLog(commitPointer), transaction.getObjectsWritten());
 
             transaction = new LogRepoTransaction(accessors.startTransaction());
             this.treeAccessor.setTransaction(transaction);

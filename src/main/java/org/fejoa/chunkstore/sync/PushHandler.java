@@ -32,6 +32,8 @@ public class PushHandler {
             return;
         }
         final int rev = inputStream.readInt();
+        final HashValue entryId = HashValue.fromHex(StreamHelper.readString(inputStream,
+                LogEntryRequest.MAX_HEADER_SIZE));
         final String logMessage = StreamHelper.readString(inputStream, LogEntryRequest.MAX_HEADER_SIZE);
         final int nChunks = inputStream.readInt();
         final List<HashValue> added = new ArrayList<>();
@@ -57,7 +59,7 @@ public class PushHandler {
                 RequestHandler.makeError(outputStream, "Rev log changed.");
                 return;
             }
-            branchLog.add(logMessage, added);
+            branchLog.add(entryId, logMessage, added);
         } finally {
             branchLog.unlock();
         }

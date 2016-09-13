@@ -8,6 +8,7 @@
 package org.fejoa.library.remote;
 
 import org.fejoa.chunkstore.BoxPointer;
+import org.fejoa.chunkstore.HashValue;
 import org.fejoa.chunkstore.Repository;
 import org.fejoa.chunkstore.sync.PullRequest;
 import org.fejoa.library.database.ICommitSignature;
@@ -17,11 +18,13 @@ import org.fejoa.server.Portal;
 public class ChunkStorePullJob extends JsonRemoteJob<ChunkStorePullJob.Result> {
     public static class Result extends RemoteJob.Result {
         final public BoxPointer pulledRev;
+        final public HashValue oldTip;
 
-        public Result(int status, String message, BoxPointer pulledRev) {
+        public Result(int status, String message, BoxPointer pulledRev, HashValue oldTip) {
             super(status, message);
 
             this.pulledRev = pulledRev;
+            this.oldTip = oldTip;
         }
     }
 
@@ -44,6 +47,8 @@ public class ChunkStorePullJob extends JsonRemoteJob<ChunkStorePullJob.Result> {
     public ChunkStorePullJob.Result run(IRemoteRequest remoteRequest) throws Exception {
         super.run(remoteRequest);
 
+        HashValue oldTip = repository.getTip();
+
         JsonRPC.Argument serverUserArg = new JsonRPC.Argument(org.fejoa.library.Constants.SERVER_USER_KEY, serverUser);
         JsonRPC.Argument branchArg = new JsonRPC.Argument(org.fejoa.library.Constants.BRANCH_KEY, branch);
 
@@ -53,7 +58,7 @@ public class ChunkStorePullJob extends JsonRemoteJob<ChunkStorePullJob.Result> {
         RemotePipe pipe = new RemotePipe(header, remoteRequest, null);
         BoxPointer remoteTip = pullRequest.pull(pipe, branch);
 
-        return new Result(Portal.Errors.DONE, "ok", remoteTip);
+        return new Result(Portal.Errors.DONE, "ok", remoteTip, oldTip);
     }
 }
 

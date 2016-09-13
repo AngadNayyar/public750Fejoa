@@ -104,7 +104,6 @@ class SyncConfig extends StorageDirList<SyncConfig.SyncConfigEntry> {
 }
 
 
-
 public class UserDataConfig extends StorageDirObject {
     final private UserData userData;
     final static private String SYNC_PATH = "sync";

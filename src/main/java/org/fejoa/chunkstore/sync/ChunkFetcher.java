@@ -136,7 +136,7 @@ class GetCommitJob extends GetChunkContainerJob {
         doneCount++;
 
         commitBox = CommitBox.read(chunkContainer);
-        System.out.println(commitBox);
+
         ChunkStore.Transaction rawTransaction = transaction.getRawAccessor();
         for (BoxPointer parent : commitBox.getParents()) {
             if (rawTransaction.contains(parent.getBoxHash()))
@@ -165,7 +165,6 @@ class GetDirJob extends GetChunkContainerJob {
             return;
         doneCount++;
         DirectoryBox directoryBox = DirectoryBox.read(chunkContainer);
-        System.out.println(directoryBox);
 
         ChunkStore.Transaction rawTransaction = transaction.getRawAccessor();
         for (DirectoryBox.Entry entry : directoryBox.getEntries()) {

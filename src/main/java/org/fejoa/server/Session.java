@@ -15,6 +15,7 @@ import org.fejoa.library.command.IncomingCommandQueue;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.remote.CreateAccountJob;
 import org.fejoa.library.support.StreamHelper;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import javax.servlet.http.HttpSession;
@@ -27,6 +28,7 @@ import java.util.HashMap;
 
 public class Session {
     final static String ROLES_KEY = "roles";
+    static final public String ACCOUNT_INFO_FILE = "account.settings";
 
     final private String baseDir;
     final private HttpSession session;
@@ -95,8 +97,16 @@ public class Session {
         return rights;
     }
 
-    public AccountSettings getAccountSettings(String serverUser) {
-        return new AccountSettings(getServerUserDir(serverUser));
+    private File getAccountSettingsFile(String serverUser) {
+        return new File(getServerUserDir(serverUser), ACCOUNT_INFO_FILE);
+    }
+
+    public AccountSettings getAccountSettings(String serverUser) throws FileNotFoundException, JSONException {
+        return AccountSettings.read(getAccountSettingsFile(serverUser));
+    }
+
+    public void writeAccountSettings(String serverUser, AccountSettings accountSettings) throws IOException {
+        accountSettings.write(getAccountSettingsFile(serverUser));
     }
 
     public FejoaContext getContext(String serverUser) {
@@ -104,13 +114,13 @@ public class Session {
     }
 
     public UserDataSettings getUserDataSettings(String serverUser) throws Exception {
-        return new UserDataSettings(getAccountSettings(serverUser).getSettings());
+        return getAccountSettings(serverUser).userDataSettings;
     }
 
     public IncomingCommandQueue getIncomingCommandQueue(String serverUser) throws Exception {
         FejoaContext context = getContext(serverUser);
         UserDataSettings userDataSettings = getUserDataSettings(serverUser);
-        StorageDir incomingQueueDir = context.getStorage(userDataSettings.inQueue);
+        StorageDir incomingQueueDir = context.getPlainStorage(userDataSettings.inQueue);
         return new IncomingCommandQueue(incomingQueueDir);
     }
 

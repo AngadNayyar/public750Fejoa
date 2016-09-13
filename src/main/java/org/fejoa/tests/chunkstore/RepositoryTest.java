@@ -204,7 +204,8 @@ public class RepositoryTest extends RepositoryTestBase {
 
         ChunkStoreBranchLog branchLog = new ChunkStoreBranchLog(new File(name, "branch.log"));
         TestCommit testCommit = writeToRepository(transaction, root, "Commit Message");
-        branchLog.add(testCommit.boxPointer.getBoxHash().toHex(), Collections.<HashValue>emptyList());
+        branchLog.add(testCommit.boxPointer, testCommit.boxPointer.getBoxHash().toHex(),
+                Collections.<HashValue>emptyList());
         transaction.finishTransaction();
 
         branchLog = new ChunkStoreBranchLog(new File(name, "branch.log"));
@@ -235,6 +236,8 @@ public class RepositoryTest extends RepositoryTestBase {
         add(repository, content, new DatabaseStingEntry("dir1/sub1/file5", "file5"));
 
         repository.commit(null);
+        HashValue tip = repository.getTip();
+        assertEquals(tip, repository.getHeadCommit().dataHash());
 
         containsContent(repository, content);
     }

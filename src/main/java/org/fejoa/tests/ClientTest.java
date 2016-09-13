@@ -47,6 +47,7 @@ public class ClientTest extends TestCase {
             try {
                 nextTask.perform(this);
             } catch (Exception e) {
+                System.out.println(e);
                 finishAndFail(e.getMessage());
             }
         }
@@ -203,7 +204,6 @@ public class ClientTest extends TestCase {
         }
     }
 
-
     class CreateAndSyncAccountTask extends TestTask {
         final private Client client;
         final private ClientStatus status;
@@ -255,6 +255,7 @@ public class ClientTest extends TestCase {
 
                 @Override
                 public void onException(Exception exception) {
+                    exception.printStackTrace();
                     finishAndFail(exception.getMessage());
                 }
             });
@@ -441,7 +442,7 @@ public class ClientTest extends TestCase {
 
         @Override
         protected void perform(TestTask previousTask) throws Exception {
-            client1New.createAccount(USER_NAME_1_NEW, PASSWORD, client1.getUserData().getId(), SERVER_URL_1_NEW,
+            client1New.createAccount(USER_NAME_1_NEW, PASSWORD, client1.getUserData(), SERVER_URL_1_NEW,
                     new SimpleObserver(new Runnable() {
                 @Override
                 public void run() {

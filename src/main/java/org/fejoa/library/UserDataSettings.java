@@ -10,6 +10,10 @@ package org.fejoa.library;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.Scanner;
+
 
 public class UserDataSettings {
     final public KeyStore.Settings keyStoreSettings;
@@ -17,7 +21,7 @@ public class UserDataSettings {
     final public String inQueue;
     final public String outQueue;
 
-    final static private String KEY_STORE_CONFIG_KEY = "accessStore";
+    final static private String KEY_STORE_CONFIG_KEY = "keyStoreConfig";
     final static private String ACCESS_STORE_KEY = "accessStore";
     final static private String IN_QUEUE_KEY = "inQueue";
     final static private String OUT_QUEUE_KEY = "outQueue";

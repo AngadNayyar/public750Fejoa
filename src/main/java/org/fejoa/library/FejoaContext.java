@@ -67,14 +67,29 @@ public class FejoaContext {
         return new StorageDir(storageDir);
     }
 
+    public StorageDir getPlainStorage(String branch) throws IOException, CryptoException {
+        return getStorage(branch, null, null);
+    }
+
     public StorageDir getStorage(String branch, SymmetricKeyData cryptoKeyData, ICommitSignature commitSignature)
             throws IOException, CryptoException {
-        return getNew(".chunkstore", branch, cryptoKeyData, commitSignature);
+        return getNew(getChunkStoreDir(), branch, cryptoKeyData, commitSignature);
+    }
+
+    public HashValue getStorageLogTip(String branch) throws IOException {
+        String logDir = StorageDir.appendDir(getChunkStoreDir(), "branches");
+        ChunkStoreBranchLog log = new ChunkStoreBranchLog(new File(logDir, branch));
+        if (log.getLatest() == null)
+            return new HashValue(new byte[0]);
+        return log.getLatest().getEntryId();
+    }
+
+    private String getChunkStoreDir() {
+        return StorageDir.appendDir(homeDir, ".chunkstore");
     }
 
     private StorageDir getNew(String path, String branch, SymmetricKeyData cryptoKeyData,
                              ICommitSignature commitSignature) throws IOException, CryptoException {
-        path = StorageDir.appendDir(homeDir, path);
         StorageDir dir = secureStorageDirs.get(path + ":" + branch);
         if (dir != null && dir.getBranch().equals(branch))
             return new StorageDir(dir);

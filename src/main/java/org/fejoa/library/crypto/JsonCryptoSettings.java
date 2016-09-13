@@ -76,4 +76,20 @@ public class JsonCryptoSettings {
         settings.ivSize = object.getInt(Constants.IV_SIZE_KEY);
         return settings;
     }
+
+    static public JSONObject toJson(CryptoSettings.Password settings) throws JSONException {
+        JSONObject object = new JSONObject();
+        object.put(Constants.ALGORITHM_KEY, settings.kdfAlgorithm);
+        object.put(Constants.ITERATIONS_KEY, settings.kdfIterations);
+        object.put(Constants.PASSWORD_SIZE_KEY, settings.passwordSize);
+        return object;
+    }
+
+    static public CryptoSettings.Password passwordFromJson(JSONObject object) throws JSONException {
+        CryptoSettings.Password settings = new CryptoSettings.Password();
+        settings.kdfAlgorithm = object.getString(Constants.ALGORITHM_KEY);
+        settings.kdfIterations = object.getInt(Constants.ITERATIONS_KEY);
+        settings.passwordSize = object.getInt(Constants.PASSWORD_SIZE_KEY);
+        return settings;
+    }
 }
