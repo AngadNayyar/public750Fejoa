@@ -94,7 +94,9 @@ public class TreeAccessor {
             throw new IOException("Entry not found");
         assert fileEntry.isFile();
 
-        FileBox fileBox = FileBox.read(transaction.getFileAccessor(path), fileEntry.getDataPointer());
+        FileBox fileBox = (FileBox)fileEntry.getObject();
+        if (fileBox == null)
+            fileBox = FileBox.read(transaction.getFileAccessor(path), fileEntry.getDataPointer());
         ChunkContainerInputStream inputStream = new ChunkContainerInputStream(fileBox.getDataContainer());
         return StreamHelper.readAll(inputStream);
     }

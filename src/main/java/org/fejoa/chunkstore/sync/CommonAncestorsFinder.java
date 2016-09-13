@@ -56,7 +56,7 @@ public class CommonAncestorsFinder {
         final public List<SingleCommitChain> chains = new ArrayList<>();
 
         protected void loadCommits(IChunkAccessor accessor, int numberOfCommits) throws IOException, CryptoException {
-            for (SingleCommitChain chain : chains)
+            for (SingleCommitChain chain : new ArrayList<>(chains))
                 CommonAncestorsFinder.loadCommits(accessor, chain, numberOfCommits, this);
         }
 

@@ -20,11 +20,6 @@ import java.util.List;
 
 
 public class PushRequest {
-    public enum Result {
-        OK,
-        PULL_REQUIRED
-    }
-
     final private Repository repository;
 
     public PushRequest(Repository repository) {
@@ -106,7 +101,7 @@ public class PushRequest {
         }
     }
 
-    public Result push(IRemotePipe remotePipe, IRepoChunkAccessors.ITransaction transaction, String branch)
+    public int push(IRemotePipe remotePipe, IRepoChunkAccessors.ITransaction transaction, String branch)
             throws IOException, CryptoException {
         IChunkAccessor commitAccessor = transaction.getCommitAccessor();
         ChunkStore.Transaction rawTransaction = transaction.getRawAccessor();
@@ -119,7 +114,7 @@ public class PushRequest {
         if (remoteLogTip.getRev() > 0) { // remote has this branch
             BoxPointer remoteTip = repository.getCommitCallback().commitPointerFromLog(remoteLogTip.getMessage());
             if (!rawTransaction.contains(remoteTip.getBoxHash()))
-                return Result.PULL_REQUIRED;
+                return Request.PULL_REQUIRED;
 
 
             CommitBox remoteCommit = CommitBox.read(commitAccessor, remoteTip);
@@ -136,7 +131,7 @@ public class PushRequest {
                 }
             }
             if (!remoteCommitIsCommonAncestor)
-                return Result.PULL_REQUIRED;
+                return Request.PULL_REQUIRED;
         } else {
             chainsToPush = CommonAncestorsFinder.collectAllChains(commitAccessor, headCommit);
             // also push the first commit so add artificial null parents
@@ -157,7 +152,6 @@ public class PushRequest {
         outStream.writeInt(remoteLogTip.getRev());
         // our message
         ChunkStoreBranchLog.Entry localLogTip = repository.getBranchLog().getLatest();
-        StreamHelper.writeString(outStream, localLogTip.getEntryId().toHex());
         StreamHelper.writeString(outStream, localLogTip.getMessage());
         outStream.writeInt(chunks.size());
         for (HashValue chunk : chunks) {
@@ -169,8 +163,7 @@ public class PushRequest {
 
         // read response
         DataInputStream inputStream = new DataInputStream(remotePipe.getInputStream());
-        Request.receiveHeader(inputStream, Request.PUT_CHUNKS);
-
-        return Result.OK;
+        int status = Request.receiveHeader(inputStream, Request.PUT_CHUNKS);
+        return status;
     }
 }

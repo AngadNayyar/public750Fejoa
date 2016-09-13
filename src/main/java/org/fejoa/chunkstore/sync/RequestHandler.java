@@ -56,11 +56,11 @@ public class RequestHandler {
                     HasChunksHandler.handleHasChunks(chunkStore, pipe, inputStream);
                     break;
                 default:
-                    makeError(new DataOutputStream(pipe.getOutputStream()), "Unknown request: " + request);
+                    makeError(new DataOutputStream(pipe.getOutputStream()), -1, "Unknown request: " + request);
             }
         } catch (IOException e) {
             try {
-                makeError(new DataOutputStream(pipe.getOutputStream()),  "Internal error.");
+                makeError(new DataOutputStream(pipe.getOutputStream()),  -1, "Internal error.");
             } catch (IOException e1) {
                 e1.printStackTrace();
             }
@@ -69,8 +69,8 @@ public class RequestHandler {
         return Result.OK;
     }
 
-    static public void makeError(DataOutputStream outputStream, String message) throws IOException {
-        Request.writeRequestHeader(outputStream, ERROR);
+    static public void makeError(DataOutputStream outputStream, int request, String message) throws IOException {
+        Request.writeResponseHeader(outputStream, request, ERROR);
         StreamHelper.writeString(outputStream, message);
     }
 
@@ -81,7 +81,7 @@ public class RequestHandler {
 
         ChunkStoreBranchLog localBranchLog = logGetter.get(branch);
         if (localBranchLog == null) {
-            makeError(outputStream, "No access to branch: " + branch);
+            makeError(outputStream, GET_REMOTE_TIP, "No access to branch: " + branch);
             return;
         }
         String header;
@@ -89,7 +89,7 @@ public class RequestHandler {
             header = "";
         else
             header = localBranchLog.getLatest().getHeader();
-        Request.writeRequestHeader(outputStream, GET_REMOTE_TIP);
+        Request.writeResponseHeader(outputStream, GET_REMOTE_TIP, OK);
         StreamHelper.writeString(outputStream, header);
     }
 }

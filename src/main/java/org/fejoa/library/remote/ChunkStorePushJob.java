@@ -9,6 +9,7 @@ package org.fejoa.library.remote;
 
 import org.fejoa.chunkstore.Repository;
 import org.fejoa.chunkstore.sync.PushRequest;
+import org.fejoa.chunkstore.sync.Request;
 import org.fejoa.server.Portal;
 
 
@@ -55,8 +56,8 @@ public class ChunkStorePushJob extends JsonRemoteJob<ChunkStorePushJob.Result> {
         String header = jsonRPC.call(ChunkStorePushJob.METHOD, serverUserArg, branchArg);
 
         RemotePipe pipe = new RemotePipe(header, remoteRequest, null);
-        PushRequest.Result result = pushRequest.push(pipe, repository.getCurrentTransaction(), branch);
+        int result = pushRequest.push(pipe, repository.getCurrentTransaction(), branch);
 
-        return new Result(Portal.Errors.DONE, "ok", result == PushRequest.Result.PULL_REQUIRED);
+        return new Result(Portal.Errors.DONE, "ok", result == Request.PULL_REQUIRED);
     }
 }

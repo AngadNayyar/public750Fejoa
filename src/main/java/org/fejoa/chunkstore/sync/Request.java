@@ -15,30 +15,45 @@ import java.io.IOException;
 
 
 public class Request {
-    static final public int ERROR = -1;
-    static final public int PULL_REQUEST_VERSION = 1;
+    static final public int PROTOCOL_VERSION = 1;
+
+    // requests
     static final public int GET_REMOTE_TIP = 1;
     static final public int GET_CHUNKS = 3;
     static final public int PUT_CHUNKS = 4;
     static final public int HAS_CHUNKS = 5;
 
+    // errors
+    static final public int ERROR = -1;
+    static final public int OK = 0;
+    static final public int PULL_REQUIRED = 1;
+
     static public void writeRequestHeader(DataOutputStream outputStream, int request) throws IOException {
-        outputStream.writeInt(PULL_REQUEST_VERSION);
+        outputStream.writeInt(PROTOCOL_VERSION);
         outputStream.writeInt(request);
+    }
+
+    static public void writeResponseHeader(DataOutputStream outputStream, int request, int status) throws IOException {
+        writeRequestHeader(outputStream, request);
+        outputStream.writeInt(status);
     }
 
     static public int receiveRequest(DataInputStream inputStream) throws IOException {
         int version = inputStream.readInt();
-        if (version != PULL_REQUEST_VERSION)
-            throw new IOException("Version " + PULL_REQUEST_VERSION + " expected but got:" + version);
+        if (version != PROTOCOL_VERSION)
+            throw new IOException("Version " + PROTOCOL_VERSION + " expected but got:" + version);
         return inputStream.readInt();
     }
 
-    static public void receiveHeader(DataInputStream inputStream, int request) throws IOException {
-        int response = receiveRequest(inputStream);
-        if (response <= ERROR)
-            throw new IOException("ERROR: " + StreamHelper.readString(inputStream, 1024 * 20));
-        if (response != request)
-            throw new IOException("GET_REMOTE_TIP response expected but got: " + response);
+    static public int receiveHeader(DataInputStream inputStream, int expectedRequest) throws IOException {
+        int request = receiveRequest(inputStream);
+        if (expectedRequest != request)
+            throw new IOException("Unexpected request: " + request + " but " + expectedRequest + " expected");
+        int status = inputStream.readInt();
+        if (status <= ERROR) {
+            throw new IOException("ERROR (request " + expectedRequest + "): "
+                    + StreamHelper.readString(inputStream, 1024 * 20));
+        }
+        return status;
     }
 }

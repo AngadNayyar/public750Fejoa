@@ -216,8 +216,9 @@ public class SyncManager {
                     public void onResult(ChunkStorePullJob.Result result) {
                         try {
                             HashValue tip = dir.getTip();
-                            if (!result.pulledRev.getDataHash().isZero())
+                            if (!result.pulledRev.getDataHash().isZero() && !result.oldTip.equals(tip))
                                 dir.onTipUpdated(result.oldTip, tip);
+
                             if (repository.getHeadCommit().getBoxPointer().equals(result.pulledRev)) {
                                 jobFinished(id, observer, nJobs, "sync after pull: " + id);
                                 return;

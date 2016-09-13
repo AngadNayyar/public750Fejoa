@@ -254,7 +254,7 @@ public class Repository implements IDatabaseInterface {
         chunkFetcher.fetch();
     }
 
-    public void merge(IRepoChunkAccessors.ITransaction otherTransaction, CommitBox otherBranch)
+    public boolean merge(IRepoChunkAccessors.ITransaction otherTransaction, CommitBox otherBranch)
             throws IOException, CryptoException {
         // TODO: check if the transaction is valid, i.e. contains object compatible with otherBranch?
         // TODO: verify commits
@@ -272,14 +272,13 @@ public class Repository implements IDatabaseInterface {
 
                 transaction.finishTransaction();
                 transaction = new LogRepoTransaction(accessors.startTransaction());
-                log.add(headCommit.getBoxPointer(), commitCallback.commitPointerToLog(headCommit.getBoxPointer()),
-                        transaction.getObjectsWritten());
+                log.add(commitCallback.commitPointerToLog(headCommit.getBoxPointer()), transaction.getObjectsWritten());
                 treeAccessor = new TreeAccessor(DirectoryBox.read(transaction.getTreeAccessor(), otherBranch.getTree()),
                         transaction);
-                return;
+                return false;
             }
             if (headCommit.dataHash().equals(otherBranch.dataHash()))
-                return;
+                return false;
 
             CommonAncestorsFinder.Chains chains = CommonAncestorsFinder.find(transaction.getCommitAccessor(),
                     headCommit, otherTransaction.getCommitAccessor(), otherBranch);
@@ -289,22 +288,22 @@ public class Repository implements IDatabaseInterface {
             if (shortestChain == null)
                 throw new IOException("Branches don't have common ancestor.");
             if (shortestChain.getOldest().dataHash().equals(headCommit.dataHash())) {
-                // not local commits just use the remote head
+                // no local commits: just use the remote head
                 otherTransaction.finishTransaction();
                 headCommit = otherBranch;
 
                 transaction.finishTransaction();
                 transaction = new LogRepoTransaction(accessors.startTransaction());
-                log.add(headCommit.getBoxPointer(), commitCallback.commitPointerToLog(headCommit.getBoxPointer()),
-                        transaction.getObjectsWritten());
+                log.add(commitCallback.commitPointerToLog(headCommit.getBoxPointer()), transaction.getObjectsWritten());
                 treeAccessor = new TreeAccessor(DirectoryBox.read(transaction.getTreeAccessor(), otherBranch.getTree()),
                         transaction);
-                return;
+                return false;
             }
 
             // merge branches
             treeAccessor = ThreeWayMerge.merge(transaction, transaction, headCommit, otherTransaction,
                     otherBranch, shortestChain.getOldest(), ThreeWayMerge.ourSolver());
+            return true;
         }
     }
 
@@ -326,7 +325,13 @@ public class Repository implements IDatabaseInterface {
 
     public BoxPointer commitInternal(String message, ICommitSignature commitSignature) throws IOException,
             CryptoException {
-        if (!needCommit())
+        return commitInternal(message, commitSignature, Collections.<BoxPointer>emptyList());
+    }
+
+    public BoxPointer commitInternal(String message, ICommitSignature commitSignature,
+                                     Collection<BoxPointer> mergeParents) throws IOException,
+            CryptoException {
+        if (mergeParents.size() == 0 && !needCommit())
             return null;
 
         synchronized (Repository.this) {
@@ -335,6 +340,8 @@ public class Repository implements IDatabaseInterface {
             commitBox.setTree(rootTree);
             if (headCommit != null)
                 commitBox.addParent(headCommit.getBoxPointer());
+            for (BoxPointer mergeParent : mergeParents)
+                commitBox.addParent(mergeParent);
             if (commitSignature != null)
                 message = commitSignature.signMessage(message, rootTree.getDataHash(), getParents());
             commitBox.setCommitMessage(message.getBytes());
@@ -343,7 +350,7 @@ public class Repository implements IDatabaseInterface {
             headCommit = commitBox;
 
             transaction.finishTransaction();
-            log.add(commitPointer, commitCallback.commitPointerToLog(commitPointer), transaction.getObjectsWritten());
+            log.add(commitCallback.commitPointerToLog(commitPointer), transaction.getObjectsWritten());
 
             transaction = new LogRepoTransaction(accessors.startTransaction());
             this.treeAccessor.setTransaction(transaction);

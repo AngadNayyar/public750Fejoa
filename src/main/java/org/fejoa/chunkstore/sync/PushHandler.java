@@ -18,8 +18,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.fejoa.chunkstore.sync.Request.GET_CHUNKS;
-import static org.fejoa.chunkstore.sync.Request.PUT_CHUNKS;
+import static org.fejoa.chunkstore.sync.Request.*;
 
 
 public class PushHandler {
@@ -28,12 +27,11 @@ public class PushHandler {
         String branch = StreamHelper.readString(inputStream, 64);
         ChunkStoreBranchLog branchLog = logGetter.get(branch);
         if (branchLog == null) {
-            RequestHandler.makeError(new DataOutputStream(pipe.getOutputStream()), "No access to branch: " + branch);
+            RequestHandler.makeError(new DataOutputStream(pipe.getOutputStream()), PUT_CHUNKS,
+                    "No access to branch: " + branch);
             return;
         }
         final int rev = inputStream.readInt();
-        final HashValue entryId = HashValue.fromHex(StreamHelper.readString(inputStream,
-                LogEntryRequest.MAX_HEADER_SIZE));
         final String logMessage = StreamHelper.readString(inputStream, LogEntryRequest.MAX_HEADER_SIZE);
         final int nChunks = inputStream.readInt();
         final List<HashValue> added = new ArrayList<>();
@@ -56,14 +54,14 @@ public class PushHandler {
             branchLog.lock();
             ChunkStoreBranchLog.Entry latest = branchLog.getLatest();
             if (latest != null && latest.getRev() != rev) {
-                RequestHandler.makeError(outputStream, "Rev log changed.");
+                Request.writeResponseHeader(outputStream, PUT_CHUNKS, PULL_REQUIRED);
                 return;
             }
-            branchLog.add(entryId, logMessage, added);
+            branchLog.add(logMessage, added);
         } finally {
             branchLog.unlock();
         }
 
-        Request.writeRequestHeader(outputStream, PUT_CHUNKS);
+        Request.writeResponseHeader(outputStream, PUT_CHUNKS, OK);
     }
 }

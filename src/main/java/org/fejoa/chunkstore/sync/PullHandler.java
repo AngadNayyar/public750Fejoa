@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.fejoa.chunkstore.sync.Request.GET_CHUNKS;
+import static org.fejoa.chunkstore.sync.Request.OK;
 
 
 public class PullHandler {
@@ -31,7 +32,7 @@ public class PullHandler {
         }
 
         DataOutputStream outputStream = new DataOutputStream(pipe.getOutputStream());
-        Request.writeRequestHeader(outputStream, GET_CHUNKS);
+        Request.writeResponseHeader(outputStream, GET_CHUNKS, OK);
 
         outputStream.writeInt(requestedChunks.size());
         //TODO: check if we have all chunks before start sending them

@@ -204,8 +204,7 @@ public class RepositoryTest extends RepositoryTestBase {
 
         ChunkStoreBranchLog branchLog = new ChunkStoreBranchLog(new File(name, "branch.log"));
         TestCommit testCommit = writeToRepository(transaction, root, "Commit Message");
-        branchLog.add(testCommit.boxPointer, testCommit.boxPointer.getBoxHash().toHex(),
-                Collections.<HashValue>emptyList());
+        branchLog.add(testCommit.boxPointer.getBoxHash().toHex(), Collections.<HashValue>emptyList());
         transaction.finishTransaction();
 
         branchLog = new ChunkStoreBranchLog(new File(name, "branch.log"));

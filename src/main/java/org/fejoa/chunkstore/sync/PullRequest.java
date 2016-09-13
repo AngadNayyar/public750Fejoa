@@ -15,6 +15,7 @@ import org.fejoa.library.remote.IRemotePipe;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
 import static org.fejoa.chunkstore.sync.Request.GET_CHUNKS;
@@ -76,8 +77,13 @@ public class PullRequest {
         chunkFetcher.enqueueJob(getCommitJob);
         chunkFetcher.fetch();
 
-        requestRepo.merge(transaction, getCommitJob.getCommitBox());
-        requestRepo.commit("Merge after pull.", commitSignature);
+        boolean merged = requestRepo.merge(transaction, getCommitJob.getCommitBox());
+        if (merged) {
+            requestRepo.commitInternal("Merge after pull.", commitSignature,
+                    Collections.singleton(getCommitJob.getCommitBox().getBoxPointer()));
+        } else {
+            requestRepo.commitInternal("Merge after pull.", commitSignature);
+        }
         return remoteTip;
     }
 }

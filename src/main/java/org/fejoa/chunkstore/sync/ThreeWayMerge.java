@@ -37,8 +37,9 @@ public class ThreeWayMerge {
             throws IOException, CryptoException {
         IChunkAccessor ourAccessor = ourTransaction.getTreeAccessor();
         IChunkAccessor theirAccessor = ourTransaction.getTreeAccessor();
-        TreeIterator treeIterator = new TreeIterator(ourAccessor, DirectoryBox.read(ourAccessor, ours.getTree()),
-                theirAccessor, DirectoryBox.read(theirAccessor, theirs.getTree()));
+        DirectoryBox ourRoot = DirectoryBox.read(ourAccessor, ours.getTree());
+        DirectoryBox theirRoot = DirectoryBox.read(theirAccessor, theirs.getTree());
+        TreeIterator treeIterator = new TreeIterator(ourAccessor, ourRoot, theirAccessor, theirRoot);
 
         DirectoryBox parentRoot = DirectoryBox.read(ourAccessor, parent.getTree());
         TreeAccessor parentTreeAccessor = new TreeAccessor(parentRoot, ourTransaction);
@@ -46,7 +47,6 @@ public class ThreeWayMerge {
         TreeAccessor theirTreeAccessor = new TreeAccessor(DirectoryBox.read(theirAccessor, theirs.getTree()),
                 theirTransaction);
 
-        DirectoryBox ourRoot = DirectoryBox.read(outTransaction.getTreeAccessor(), ours.getTree());
         TreeAccessor outTree = new TreeAccessor(ourRoot, outTransaction);
 
         while (treeIterator.hasNext()) {

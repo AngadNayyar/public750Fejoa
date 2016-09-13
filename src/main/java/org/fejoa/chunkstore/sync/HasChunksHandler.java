@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.fejoa.chunkstore.sync.Request.HAS_CHUNKS;
+import static org.fejoa.chunkstore.sync.Request.OK;
 
 
 public class HasChunksHandler {
@@ -35,7 +36,7 @@ public class HasChunksHandler {
         }
 
         DataOutputStream outputStream = new DataOutputStream(pipe.getOutputStream());
-        Request.writeRequestHeader(outputStream, HAS_CHUNKS);
+        Request.writeResponseHeader(outputStream, HAS_CHUNKS, OK);
         outputStream.writeInt(haveChunks.size());
         for (HashValue hashValue : haveChunks)
             outputStream.write(hashValue.getBytes());

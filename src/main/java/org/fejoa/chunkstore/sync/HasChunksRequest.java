@@ -32,6 +32,7 @@ public class HasChunksRequest {
         // reply
         DataInputStream inputStream = new DataInputStream(remotePipe.getInputStream());
         Request.receiveHeader(inputStream, HAS_CHUNKS);
+
         int nChunks = inputStream.readInt();
         final List<HashValue> hasChunks = new ArrayList<>();
         for (int i = 0; i < nChunks; i++) {
