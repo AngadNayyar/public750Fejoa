@@ -8,6 +8,7 @@
 package org.fejoa.chunkstore;
 
 import org.fejoa.library.crypto.CryptoHelper;
+import org.fejoa.library.support.FileLock;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -43,11 +44,13 @@ public class ChunkStore {
 
     final private BPlusTree tree;
     final private PackFile packFile;
+    final private FileLock fileLock;
     private Transaction currentTransaction;
 
     protected ChunkStore(File dir, String name) throws FileNotFoundException {
         this.tree = new BPlusTree(new RandomAccessFile(new File(dir, name + ".idx"), "rw"));
         this.packFile = new PackFile(new RandomAccessFile(new File(dir, name + ".pack"), "rw"));
+        this.fileLock = new FileLock(new File(dir, ".lock"));
     }
 
     static public ChunkStore create(File dir, String name) throws IOException {
@@ -73,14 +76,24 @@ public class ChunkStore {
     }
 
     public byte[] getChunk(byte[] hash) throws IOException {
-        Long position = tree.get(hash);
-        if (position == null)
-            return null;
-        return packFile.get(position.intValue(), hash);
+        try {
+            lock();
+            Long position = tree.get(hash);
+            if (position == null)
+                return null;
+            return packFile.get(position.intValue(), hash);
+        } finally {
+            unlock();
+        }
     }
 
     public boolean hasChunk(HashValue hashValue) throws IOException {
-        return tree.get(hashValue.getBytes()) != null;
+        try {
+            lock();
+            return tree.get(hashValue.getBytes()) != null;
+        } finally {
+            unlock();
+        }
     }
 
     public Transaction openTransaction() throws IOException {
@@ -93,14 +106,27 @@ public class ChunkStore {
     }
 
     private PutResult<HashValue> put(byte[] data) throws IOException {
-        HashValue hash = new HashValue(CryptoHelper.sha256Hash(data));
-        // TODO make it more efficient by only using one lookup
-        if (tree.get(hash.getBytes()) != null)
-            return new PutResult<>(hash, true);
-        long position = packFile.put(hash, data);
-        boolean wasInDatabase = !tree.put(hash, position);
-        PutResult<HashValue> putResult = new PutResult<>(hash, wasInDatabase);
-        return putResult;
+        try {
+            lock();
+            HashValue hash = new HashValue(CryptoHelper.sha256Hash(data));
+            // TODO make it more efficient by only using one lookup
+            if (tree.get(hash.getBytes()) != null)
+                return new PutResult<>(hash, true);
+            long position = packFile.put(hash, data);
+            boolean wasInDatabase = !tree.put(hash, position);
+            PutResult<HashValue> putResult = new PutResult<>(hash, wasInDatabase);
+            return putResult;
+        } finally {
+            unlock();
+        }
+    }
+
+    private void lock() {
+        fileLock.lock();
+    }
+
+    private void unlock() {
+        fileLock.unlock();
     }
 
     static private int hashSize() {

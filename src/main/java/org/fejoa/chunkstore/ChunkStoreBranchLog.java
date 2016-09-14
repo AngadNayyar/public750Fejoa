@@ -8,6 +8,7 @@
 package org.fejoa.chunkstore;
 
 import org.fejoa.library.crypto.CryptoHelper;
+import org.fejoa.library.support.FileLock;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -70,7 +71,11 @@ public class ChunkStoreBranchLog {
             Entry entry = fromHeader(header);
             int nChanges = Integer.parseInt(reader.readLine());
             for (int i = 0; i < nChanges; i++) {
-                entry.changes.add(HashValue.fromHex(reader.readLine()));
+                String line = reader.readLine();
+                if (line == null)
+                    throw new IOException("Missing change in log file");
+                else
+                    entry.changes.add(HashValue.fromHex(line));
             }
             return entry;
         }
@@ -85,20 +90,22 @@ public class ChunkStoreBranchLog {
 
     private int latestRev = 1;
     final private File logfile;
+    final private FileLock fileLock;
     final private List<Entry> entries = new ArrayList<>();
 
     public ChunkStoreBranchLog(File logfile) throws IOException {
         this.logfile = logfile;
+        this.fileLock = new FileLock(new File(logfile.getParentFile(), logfile.getName() + ".lock"));
 
         read();
     }
 
-    public void lock() {
-        // TODO: implement
+    private void lock() {
+        fileLock.lock();
     }
 
-    public void unlock() {
-        // TODO: implement
+    private void unlock() {
+        fileLock.unlock();
     }
 
     public List<Entry> getEntries() {
@@ -106,19 +113,25 @@ public class ChunkStoreBranchLog {
     }
 
     private void read() throws IOException {
-        BufferedReader reader;
         try {
-            FileInputStream fileInputStream = new FileInputStream(logfile);
-            reader = new BufferedReader(new InputStreamReader(fileInputStream));
-        } catch (FileNotFoundException e) {
-            return;
-        }
-        Entry entry;
-        while ((entry = Entry.read(reader)) != null)
-            entries.add(entry);
+            lock();
 
-        if (entries.size() > 0)
-            latestRev = entries.get(0).rev + 1;
+            BufferedReader reader;
+            try {
+                FileInputStream fileInputStream = new FileInputStream(logfile);
+                reader = new BufferedReader(new InputStreamReader(fileInputStream));
+            } catch (FileNotFoundException e) {
+                return;
+            }
+            Entry entry;
+            while ((entry = Entry.read(reader)) != null)
+                entries.add(entry);
+
+            if (entries.size() > 0)
+                latestRev = entries.get(0).rev + 1;
+        } finally {
+            unlock();
+        }
     }
 
     private int nextRevId() {
@@ -134,10 +147,15 @@ public class ChunkStoreBranchLog {
     }
 
     public void add(String message, List<HashValue> changes) throws IOException {
-        Entry entry = new Entry(nextRevId(), message);
-        entry.changes.addAll(changes);
-        write(entry);
-        entries.add(entry);
+        try {
+            lock();
+            Entry entry = new Entry(nextRevId(), message);
+            entry.changes.addAll(changes);
+            write(entry);
+            entries.add(entry);
+        } finally {
+            unlock();
+        }
     }
 
     private void write(Entry entry) throws IOException {
