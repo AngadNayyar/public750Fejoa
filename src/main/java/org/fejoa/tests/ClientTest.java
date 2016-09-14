@@ -47,7 +47,7 @@ public class ClientTest extends TestCase {
             try {
                 nextTask.perform(this);
             } catch (Exception e) {
-                System.out.println(e);
+                e.printStackTrace();
                 finishAndFail(e.getMessage());
             }
         }
@@ -336,7 +336,9 @@ public class ClientTest extends TestCase {
                     client1.getUserData().getMyself().getId());
 
             // grant access to the access branch
-            client2.grantAccess(clientUserData.getAccessStore().getId(), BranchAccessRight.PULL, client2Contact);
+            String branch = clientUserData.getAccessStore().getId();
+            System.out.println("Client2 grant access for:" + branch);
+            client2.grantAccess(branch, BranchAccessRight.PULL, client2Contact);
         }
 
         @Override

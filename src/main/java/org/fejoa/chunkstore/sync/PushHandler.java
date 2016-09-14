@@ -50,17 +50,12 @@ public class PushHandler {
         transaction.commit();
         DataOutputStream outputStream = new DataOutputStream(pipe.getOutputStream());
 
-        try {
-            branchLog.lock();
-            ChunkStoreBranchLog.Entry latest = branchLog.getLatest();
-            if (latest != null && latest.getRev() != rev) {
-                Request.writeResponseHeader(outputStream, PUT_CHUNKS, PULL_REQUIRED);
-                return;
-            }
-            branchLog.add(logMessage, added);
-        } finally {
-            branchLog.unlock();
+        ChunkStoreBranchLog.Entry latest = branchLog.getLatest();
+        if (latest != null && latest.getRev() != rev) {
+            Request.writeResponseHeader(outputStream, PUT_CHUNKS, PULL_REQUIRED);
+            return;
         }
+        branchLog.add(logMessage, added);
 
         Request.writeResponseHeader(outputStream, PUT_CHUNKS, OK);
     }

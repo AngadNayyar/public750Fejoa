@@ -31,7 +31,7 @@ public class ContactRequestCommand {
     static final public String FINISH_STATE = "finish";
 
 
-    static String makeInfoCommand(FejoaContext context, ContactPrivate myself, Remote myServer,
+    static String makeInfoCommand(ContactPrivate myself, Remote myServer,
                               boolean reply) throws JSONException, CryptoException {
         SigningKeyPair signingKeyPair = myself.getSignatureKeys().getDefault();
         byte[] pubSignKey = signingKeyPair.getKeyPair().getPublic().getEncoded();
@@ -74,15 +74,15 @@ public class ContactRequestCommand {
         return object.toString();
     }
 
-    static public ICommand makeInitialRequest(FejoaContext context, ContactPrivate myself, Remote myServer)
+    static public ICommand makeInitialRequest(ContactPrivate myself, Remote myServer)
             throws IOException, JSONException, CryptoException {
-        return new ZipCommand(makeInfoCommand(context, myself, myServer, false));
+        return new ZipCommand(makeInfoCommand(myself, myServer, false));
     }
 
     static public ICommand makeReplyRequest(FejoaContext context, ContactPrivate myself, Remote myServer,
                                             ContactPublic receiver)
             throws IOException, JSONException, CryptoException {
-        return new EncryptedZipCommand(context, makeInfoCommand(context, myself, myServer, true), receiver);
+        return new EncryptedZipCommand(context, makeInfoCommand(myself, myServer, true), receiver);
     }
 
     static public ICommand makeFinish(FejoaContext context, ContactPrivate myself,

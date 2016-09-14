@@ -92,7 +92,7 @@ public class ContactRequest {
     }
 
     private void initialRequest(String user, String server) throws Exception {
-        client.getUserData().getOutgoingCommandQueue().post(ContactRequestCommand.makeInitialRequest(client.getContext(),
+        client.getUserData().getOutgoingCommandQueue().post(ContactRequestCommand.makeInitialRequest(
                 client.getUserData().getMyself(),
                 client.getUserData().getGateway()), user, server);
     }

@@ -79,6 +79,7 @@ public class PullRequest {
 
         boolean merged = requestRepo.merge(transaction, getCommitJob.getCommitBox());
         if (merged) {
+
             requestRepo.commitInternal("Merge after pull.", commitSignature,
                     Collections.singleton(getCommitJob.getCommitBox().getBoxPointer()));
         } else {

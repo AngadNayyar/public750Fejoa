@@ -60,7 +60,10 @@ public class ContactPublic extends Contact<PublicKeyItem, PublicKeyItem> {
 
     @Override
     public PublicKey getVerificationKey(KeyId keyId) {
-        return signatureKeys.get(keyId.toString()).getKey();
+        PublicKeyItem keyItem = signatureKeys.get(keyId.toString());
+        if (keyItem ==  null)
+            return null;
+        return keyItem.getKey();
     }
 
     public RemoteList getRemotes() {

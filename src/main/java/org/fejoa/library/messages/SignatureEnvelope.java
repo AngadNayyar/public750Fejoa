@@ -45,7 +45,7 @@ public class SignatureEnvelope {
         object.put(Envelope.PACK_TYPE_KEY, SIGNATURE_TYPE);
         if (isRawData)
             object.put(Envelope.CONTAINS_DATA_KEY, 1);
-        object.put(KEY_ID_KEY, signingKeyPair.toString());
+        object.put(KEY_ID_KEY, signingKeyPair.getKeyId().toString());
         object.put(SENDER_ID_KEY, contactPrivate.getId());
         object.put(SIGNATURE_KEY, signature);
         object.put(SETTINGS_KEY, JsonCryptoSettings.toJson(signingKeyPair.getSignatureSettings()));

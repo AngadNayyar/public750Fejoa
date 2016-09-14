@@ -225,6 +225,7 @@ public class SyncManager {
                             }
                         } catch (IOException e) {
                             observer.onException(e);
+                            jobFinished(id, observer, nJobs, "exception");
                         }
 
                         // push

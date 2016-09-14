@@ -58,6 +58,8 @@ abstract class Contact<SignKey, EncKey> implements IContactPublic {
             throws CryptoException {
         ICryptoInterface crypto = context.getCrypto();
         PublicKey publicKey = getVerificationKey(keyId);
+        if (publicKey == null)
+            return false;
         return crypto.verifySignature(data, signature, publicKey, signatureSettings);
     }
 

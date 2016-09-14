@@ -116,6 +116,7 @@ public class UserData extends StorageDirObject {
         keyStore.addSymmetricKey(userDataDir.getBranch(), userDataKeyData);
 
         userData.myself.addSignatureKey(signingKeyPair);
+        userData.myself.setId(signingKeyPair.getKeyId().getKeyId());
         userData.myself.getSignatureKeys().setDefault(signingKeyPair.getId());
 
         EncryptionKeyPair encryptionKeyPair = EncryptionKeyPair.create(context.getCrypto(),
