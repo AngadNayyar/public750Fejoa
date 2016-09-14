@@ -97,7 +97,7 @@ public class CommonAncestorsFinder {
                 SingleCommitChain clone = commitChain.clone();
                 CommitBox nextCommit = CommitBox.read(accessor, parent);
                 clone.commits.add(nextCommit);
-                result.chains.add(commitChain.clone());
+                result.chains.add(clone);
                 // follow this chain for a bit so that we stay on the same depth level
                 loadCommits(accessor, clone, numberOfCommits - i - 1, result);
             }
