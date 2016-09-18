@@ -211,7 +211,7 @@ public class SyncManager {
     static public Task.ICancelFunction pull(ConnectionManager connectionManager, final StorageDir storageDir,
                                             ConnectionManager.ConnectionInfo connectionInfo,
                                             ConnectionManager.AuthInfo authInfo,
-                                            final Task.IObserver<Void, String> observer) {
+                                            final Task.IObserver<Void, ChunkStorePullJob.Result> observer) {
         if (!(storageDir.getDatabase() instanceof Repository))
             throw new RuntimeException("Unsupported database");
 
@@ -231,10 +231,7 @@ public class SyncManager {
                     if (!result.pulledRev.getDataHash().isZero() && !result.oldTip.equals(tip))
                         storageDir.onTipUpdated(result.oldTip, tip);
 
-                    if (repository.getHeadCommit().getBoxPointer().equals(result.pulledRev)) {
-                        observer.onResult("Branch pulled: " + storageDir.getBranch());
-                        return;
-                    }
+                    observer.onResult(result);
                 } catch (IOException e) {
                     observer.onException(e);
                 }

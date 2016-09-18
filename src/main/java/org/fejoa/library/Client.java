@@ -150,7 +150,7 @@ public class Client {
     }
 
     public void pullContactBranch(String user, String server, ContactBranch contactBranch,
-                                  final Task.IObserver<Void, String> observer)
+                                  final Task.IObserver<Void, ChunkStorePullJob.Result> observer)
             throws IOException, CryptoException {
         if ((contactBranch.getAccessToken().getAccessRights().getEntries().get(0).getRights()
                 & BranchAccessRight.PULL) == 0)
