@@ -59,7 +59,7 @@ public class ThreeWayMerge {
                 }
             } else if (change.type == DiffIterator.Type.REMOVED) {
                 DirectoryBox.Entry parentEntry = parentTreeAccessor.get(change.path);
-                if (parentEntry == null) {
+                if (parentEntry != null) {
                     // remove from ours
                     outTree.remove(change.path);
                 }
