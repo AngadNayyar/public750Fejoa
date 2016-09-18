@@ -69,10 +69,11 @@ public class IncomingCommandManager extends WeakListenable<IncomingCommandManage
         handlerList.add(handler);
     }
 
+    private List<StorageDir.IListener> hardRefList = new ArrayList<>();
     public void start() {
         for (final IncomingCommandQueue queue : queues) {
             StorageDir dir = queue.getStorageDir();
-            dir.addListener(new StorageDir.IListener() {
+            StorageDir.IListener listener = new StorageDir.IListener() {
                 @Override
                 public void onTipChanged(DatabaseDiff diff, String base, String tip) {
                     try {
@@ -81,7 +82,9 @@ public class IncomingCommandManager extends WeakListenable<IncomingCommandManage
                         e.printStackTrace();
                     }
                 }
-            });
+            };
+            hardRefList.add(listener);
+            dir.addListener(listener);
         }
     }
 

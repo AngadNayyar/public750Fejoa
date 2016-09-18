@@ -343,7 +343,7 @@ public class ClientTest extends TestCase {
 
         @Override
         protected void cleanUp() {
-            client2.getIncomingCommandManager().removeListener(listener);
+            client1.getIncomingCommandManager().removeListener(listener);
         }
 
         private void waitTillClient2UploadedTheAccessStore(final int retryCount) throws IOException {
