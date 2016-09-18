@@ -200,6 +200,8 @@ public class PullPushTest extends RepositoryTestBase {
 
         // add more
         add(localRepo, localContent, new DatabaseStingEntry("testFile2", "Hello World 2"));
+        add(localRepo, localContent, new DatabaseStingEntry("sub/testFile3", "Hello World 3"));
+        add(localRepo, localContent, new DatabaseStingEntry("sub/sub2/testFile4", "Hello World 4"));
         localRepo.commit(null);
         // push changes
         pushRequest.push(senderPipe, localTransaction, branch);

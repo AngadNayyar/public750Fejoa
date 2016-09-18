@@ -9,6 +9,7 @@ package org.fejoa.chunkstore.sync;
 
 import org.fejoa.chunkstore.*;
 import org.fejoa.library.crypto.CryptoException;
+import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.remote.IRemotePipe;
 import org.fejoa.library.support.StreamHelper;
 
@@ -52,10 +53,7 @@ public class PushRequest {
         IChunkAccessor dirAccessor = transaction.getTreeAccessor();
 
         // add the child commit
-        list.add(child.getBoxPointer().getBoxHash());
-        // TODO: be more efficient and calculate the container diff
-        ChunkContainer commitContainer = ChunkContainer.read(commitAccessor, child.getBoxPointer());
-        getChunkContainerNodeChildChunks(commitContainer, commitAccessor, list);
+        collectChunkContainer(child.getBoxPointer(), commitAccessor, list);
 
         // diff of the commit trees
         DirectoryBox parentDir = null;
@@ -64,26 +62,55 @@ public class PushRequest {
         DirectoryBox nextDir = DirectoryBox.read(dirAccessor, child.getTree());
 
         // add root dir
-        list.add(child.getTree().getBoxHash());
-        // TODO: be more efficient and calculate the container diff
-        ChunkContainer rootDirContainer = ChunkContainer.read(commitAccessor, child.getTree());
-        getChunkContainerNodeChildChunks(rootDirContainer, dirAccessor, list);
+        collectChunkContainer(child.getTree(), dirAccessor, list);
 
         DirBoxDiffIterator diffIterator = new DirBoxDiffIterator("", parentDir, nextDir);
         while (diffIterator.hasNext()) {
             DirBoxDiffIterator.Change<DirectoryBox.Entry> change = diffIterator.next();
+            // we are only interesting in modified and added changes
             if (change.type == DiffIterator.Type.REMOVED)
                 continue;
-            // we are only interesting in modified and added changes
-            IChunkAccessor changeAccessor = dirAccessor;
-            if (change.theirs.isFile())
-                changeAccessor =  transaction.getFileAccessor(change.path);
 
-            BoxPointer theirsBoxPointer = change.theirs.getDataPointer();
-            list.add(theirsBoxPointer.getBoxHash());
-            // TODO: be more efficient and calculate the container diff
-            ChunkContainer chunkContainer = ChunkContainer.read(changeAccessor, theirsBoxPointer);
-            getChunkContainerNodeChildChunks(chunkContainer, changeAccessor, list);
+            if (change.theirs.isFile())
+                collectFile(transaction, change.theirs.getDataPointer(), change.path, list);
+            else
+                collectWholeDir(change.path, change.theirs.getDataPointer(), transaction, dirAccessor, list);
+        }
+    }
+
+    private void add(final List<HashValue> list, HashValue pointer) {
+        if (!list.contains(pointer))
+            list.add(pointer);
+    }
+
+    private void collectFile(IRepoChunkAccessors.ITransaction transaction, BoxPointer pointer, String path,
+                             final List<HashValue> list) throws IOException, CryptoException {
+        IChunkAccessor changeAccessor = transaction.getFileAccessor(path);
+
+        BoxPointer theirsBoxPointer = pointer;
+        collectChunkContainer(theirsBoxPointer, changeAccessor, list);
+    }
+
+    private void collectChunkContainer(BoxPointer pointer, IChunkAccessor dirAccessor, final List<HashValue> list) throws IOException, CryptoException {
+        add(list, pointer.getBoxHash());
+        // TODO: be more efficient and calculate the container diff
+        ChunkContainer chunkContainer = ChunkContainer.read(dirAccessor, pointer);
+        getChunkContainerNodeChildChunks(chunkContainer, dirAccessor, list);
+    }
+
+    private void collectWholeDir(String path, BoxPointer dirPointer, IRepoChunkAccessors.ITransaction transaction,
+                                 IChunkAccessor dirAccessor, final List<HashValue> list)
+            throws IOException, CryptoException {
+        collectChunkContainer(dirPointer, dirAccessor, list);
+
+        DirectoryBox dir = DirectoryBox.read(dirAccessor, dirPointer);
+        for (DirectoryBox.Entry entry : dir.getEntries()) {
+            String childPath = StorageDir.appendDir(path, entry.getName());
+            if (entry.isFile())
+                collectFile(transaction, entry.getDataPointer(), childPath, list);
+            else {
+                collectWholeDir(childPath, entry.getDataPointer(), transaction, dirAccessor, list);
+            }
         }
     }
 
