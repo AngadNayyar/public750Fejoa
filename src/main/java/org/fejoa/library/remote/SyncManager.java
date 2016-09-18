@@ -197,15 +197,64 @@ public class SyncManager {
                 });
     }
 
-    private Task.ICancelFunction csSync(final Repository repository, final ICommitSignature commitSignature,
-                                        final StorageDir dir, final int nJobs,
-                                        final Task.IObserver<TaskUpdate, Void> observer,
-                                        final ConnectionManager.ConnectionInfo connectionInfo,
-                                        final ConnectionManager.AuthInfo authInfo) {
-        final String id = dir.getBranch();
-        return connectionManager.submit(new ChunkStorePullJob(repository, commitSignature, remote.getUser(),
-                        dir.getBranch()),
-                connectionInfo, authInfo,
+    static public Task.ICancelFunction sync(ConnectionManager connectionManager, StorageDir storageDir,
+                                            ConnectionManager.ConnectionInfo connectionInfo,
+                                            ConnectionManager.AuthInfo authInfo,
+                                            final Task.IObserver<TaskUpdate, String> observer) {
+        if (storageDir.getDatabase() instanceof Repository) {
+            return csSync(connectionManager, storageDir, connectionInfo, authInfo, observer);
+        } else {
+            throw new RuntimeException("Unsupported database");
+        }
+    }
+
+    static public Task.ICancelFunction pull(ConnectionManager connectionManager, final StorageDir storageDir,
+                                            ConnectionManager.ConnectionInfo connectionInfo,
+                                            ConnectionManager.AuthInfo authInfo,
+                                            final Task.IObserver<Void, String> observer) {
+        if (!(storageDir.getDatabase() instanceof Repository))
+            throw new RuntimeException("Unsupported database");
+
+        final Repository repository = (Repository)storageDir.getDatabase();
+        return connectionManager.submit(new ChunkStorePullJob(repository, storageDir.getCommitSignature(),
+                        connectionInfo.user, storageDir.getBranch()), connectionInfo, authInfo,
+                new Task.IObserver<Void, ChunkStorePullJob.Result>() {
+            @Override
+            public void onProgress(Void aVoid) {
+                observer.onProgress(aVoid);
+            }
+
+            @Override
+            public void onResult(ChunkStorePullJob.Result result) {
+                try {
+                    HashValue tip = storageDir.getTip();
+                    if (!result.pulledRev.getDataHash().isZero() && !result.oldTip.equals(tip))
+                        storageDir.onTipUpdated(result.oldTip, tip);
+
+                    if (repository.getHeadCommit().getBoxPointer().equals(result.pulledRev)) {
+                        observer.onResult("Branch pulled: " + storageDir.getBranch());
+                        return;
+                    }
+                } catch (IOException e) {
+                    observer.onException(e);
+                }
+            }
+
+            @Override
+            public void onException(Exception exception) {
+                observer.onException(exception);
+            }
+        });
+    }
+
+    static private Task.ICancelFunction csSync(final ConnectionManager connectionManager, final StorageDir storageDir,
+                                               final ConnectionManager.ConnectionInfo connectionInfo,
+                                               final ConnectionManager.AuthInfo authInfo,
+                                               final Task.IObserver<TaskUpdate, String> observer) {
+        final Repository repository = (Repository)storageDir.getDatabase();
+        final String id = repository.getBranch();
+        return connectionManager.submit(new ChunkStorePullJob(repository, storageDir.getCommitSignature(),
+                        connectionInfo.user, repository.getBranch()), connectionInfo, authInfo,
                 new Task.IObserver<Void, ChunkStorePullJob.Result>() {
                     @Override
                     public void onProgress(Void aVoid) {
@@ -215,21 +264,20 @@ public class SyncManager {
                     @Override
                     public void onResult(ChunkStorePullJob.Result result) {
                         try {
-                            HashValue tip = dir.getTip();
+                            HashValue tip = storageDir.getTip();
                             if (!result.pulledRev.getDataHash().isZero() && !result.oldTip.equals(tip))
-                                dir.onTipUpdated(result.oldTip, tip);
+                                storageDir.onTipUpdated(result.oldTip, tip);
 
                             if (repository.getHeadCommit().getBoxPointer().equals(result.pulledRev)) {
-                                jobFinished(id, observer, nJobs, "sync after pull: " + id);
+                                observer.onResult("sync after pull: " + id);
                                 return;
                             }
                         } catch (IOException e) {
                             observer.onException(e);
-                            jobFinished(id, observer, nJobs, "exception");
                         }
 
                         // push
-                        connectionManager.submit(new ChunkStorePushJob(repository, remote.getUser(),
+                        connectionManager.submit(new ChunkStorePushJob(repository, connectionInfo.user,
                                         repository.getBranch()), connectionInfo, authInfo,
                                 new Task.IObserver<Void, ChunkStorePushJob.Result>() {
                                     @Override
@@ -239,13 +287,12 @@ public class SyncManager {
 
                                     @Override
                                     public void onResult(ChunkStorePushJob.Result result) {
-                                        jobFinished(id, observer, nJobs, "sync after push: " + id);
+                                        observer.onResult("sync after push: " + id);
                                     }
 
                                     @Override
                                     public void onException(Exception exception) {
                                         observer.onException(exception);
-                                        jobFinished(id, observer, nJobs, "exception");
                                     }
                                 });
                     }
@@ -253,7 +300,6 @@ public class SyncManager {
                     @Override
                     public void onException(Exception exception) {
                         observer.onException(exception);
-                        jobFinished(id, observer, nJobs, "exception");
                     }
                 });
     }
@@ -273,15 +319,23 @@ public class SyncManager {
         final ConnectionManager.ConnectionInfo connectionInfo = new ConnectionManager.ConnectionInfo(remote.getUser(),
                 remote.getServer());
         final ConnectionManager.AuthInfo authInfo = context.getRootAuthInfo(remote.getUser(), remote.getServer());
-        final IDatabaseInterface database = dir.getDatabase();
-        Task.ICancelFunction job;
-        if (database instanceof JGitInterface)
-            job = gitSync((JGitInterface)database, dir, nJobs, observer, connectionInfo, authInfo);
-        else if (database instanceof Repository)
-            // TODO commit signature?
-            job = csSync((Repository)database, null, dir, nJobs, observer, connectionInfo, authInfo);
-        else
-            throw new RuntimeException("Unsupported database.");
+        Task.ICancelFunction job = sync(connectionManager, dir, connectionInfo, authInfo,
+                    new Task.IObserver<TaskUpdate, String>() {
+                @Override
+                public void onProgress(TaskUpdate taskUpdate) {
+
+                }
+
+                @Override
+                public void onResult(String message) {
+                    jobFinished(branch, observer, nJobs, message);
+                }
+
+                @Override
+                public void onException(Exception exception) {
+                    jobFinished(branch, observer, nJobs, "exception");
+                }
+            });
 
         // only add the job if it is still in the list, e.g. when the request is sync the job is already gone
         if (ongoingSyncJobs.containsKey(branch))

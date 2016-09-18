@@ -175,7 +175,7 @@ public class UserData extends StorageDirObject {
         return getBranch();
     }
 
-    public StorageDir getStorageDir(BranchInfo branchInfo) throws IOException, CryptoException {
+    public SymmetricKeyData getKeyData(BranchInfo branchInfo) throws CryptoException, IOException {
         SymmetricKeyData symmetricKeyData = null;
         HashValue keyId = branchInfo.getKeyId();
         if (keyId != null && !keyId.isZero()) {
@@ -183,6 +183,11 @@ public class UserData extends StorageDirObject {
                 throw new CryptoException("Unknown keystore.");
             symmetricKeyData = keyStore.getSymmetricKey(keyId.toHex());
         }
+        return symmetricKeyData;
+    }
+
+    public StorageDir getStorageDir(BranchInfo branchInfo) throws IOException, CryptoException {
+        SymmetricKeyData symmetricKeyData = getKeyData(branchInfo);
         ICommitSignature commitSignature = null;
         if (branchInfo.signBranch()) {
             SigningKeyPair keyPair = getMyself().getSignatureKeys().getDefault();
@@ -234,6 +239,13 @@ public class UserData extends StorageDirObject {
     public Remote getGateway() throws IOException {
         String id = storageDir.readString(GATEWAY_PATH);
         return getRemoteStore().get(id);
+    }
+
+    public ICommitSignature getCommitSignature() {
+        SigningKeyPair keyPair = getMyself().getSignatureKeys().getDefault();
+        if (keyPair == null)
+            return null;
+        return new DefaultCommitSignature(context, keyPair);
     }
 }
 

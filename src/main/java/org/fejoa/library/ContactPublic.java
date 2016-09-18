@@ -18,7 +18,7 @@ public class ContactPublic extends Contact<PublicKeyItem, PublicKeyItem> {
     final static private String ACCESS_DIR = "access";
 
     private RemoteList remotes;
-    private AccessTokenContactList access;
+    private ContactBranchList contactBranchList;
 
     /**
      * Should not be called directly but by the contact store.
@@ -55,7 +55,7 @@ public class ContactPublic extends Contact<PublicKeyItem, PublicKeyItem> {
         super.setStorageDir(dir);
 
         remotes = new RemoteList(new StorageDir(storageDir, REMOTES_DIR));
-        access = new AccessTokenContactList(context, new StorageDir(storageDir, ACCESS_DIR));
+        contactBranchList = new ContactBranchList(context, new StorageDir(storageDir, ACCESS_DIR));
     }
 
     @Override
@@ -70,7 +70,7 @@ public class ContactPublic extends Contact<PublicKeyItem, PublicKeyItem> {
         return remotes;
     }
 
-    public AccessTokenContactList getAccessTokenList() {
-        return access;
+    public ContactBranchList getContactBranchList() {
+        return contactBranchList;
     }
 }

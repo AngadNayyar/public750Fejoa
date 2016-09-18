@@ -398,16 +398,14 @@ public class ClientTest extends TestCase {
             ContactPublic client2Contact = contactStore.getContactList().get(
                     client2.getUserData().getMyself().getId());
 
-            AccessTokenContact accessTokenContact = client2Contact.getAccessTokenList().getEntries().iterator().next();
-            BranchAccessRight accessRight = new BranchAccessRight(accessTokenContact.getAccessEntryJson());
-            final BranchAccessRight.Entry entry0 = accessRight.getEntries().get(0);
+            final ContactBranch contactBranch = client2Contact.getContactBranchList().getEntries().iterator().next();
 
-            client1.pullContactBranch(USER_NAME_2, SERVER_URL_2, accessTokenContact, entry0,
+            client1.pullContactBranch(USER_NAME_2, SERVER_URL_2, contactBranch,
                     new SimpleObserver(new Runnable() {
                         @Override
                         public void run() {
                             try {
-                                assertFalse(client1.getContext().getStorage(entry0.getBranch()).getTip().equals(""));
+                                assertFalse(client1.getContext().getStorage(contactBranch.getBranch()).getTip().equals(""));
                             } catch (IOException e) {
                                 finishAndFail(e.getMessage());
                             }

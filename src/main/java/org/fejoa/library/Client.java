@@ -121,18 +121,20 @@ public class Client {
 
     public void grantAccess(String branch, int rights, ContactPublic contact) throws CryptoException, JSONException,
             IOException {
+        // create and add new access token
         BranchAccessRight accessRight = new BranchAccessRight(BranchAccessRight.CONTACT_ACCESS);
         accessRight.addBranchAccess(branch, rights);
-
         AccessToken accessToken = AccessToken.create(context);
         accessToken.setAccessEntry(accessRight.toJson().toString());
+        AccessStore accessStore = userData.getAccessStore();
+        accessStore.addAccessToken(accessToken);
 
-        userData.getAccessStore().addAccessToken(accessToken);
-
+        // todo: record in ContactPublic that we share this branch
+        BranchInfo branchInfo = userData.getBranchList().get(branch);
         // send command to contact
         AccessCommand accessCommand = new AccessCommand(context, userData.getMyself(), contact,
-                accessToken);
-        userData.getAccessStore().commit();
+                branchInfo, userData.getKeyData(branchInfo), accessToken);
+        accessStore.commit();
         OutgoingCommandQueue queue =userData.getOutgoingCommandQueue();
         queue.post(accessCommand, contact.getRemotes().getDefault(), true);
     }
@@ -147,44 +149,19 @@ public class Client {
                 observer);
     }
 
-    public void pullContactBranch(String user, String server, AccessTokenContact accessTokenContact,
-                                  BranchAccessRight.Entry entry, final Task.IObserver<Void, GitPullJob.Result> observer)
-            throws IOException {
-        if ((entry.getRights() & BranchAccessRight.PULL) == 0)
+    public void pullContactBranch(String user, String server, ContactBranch contactBranch,
+                                  final Task.IObserver<Void, String> observer)
+            throws IOException, CryptoException {
+        if ((contactBranch.getAccessToken().getAccessRights().getEntries().get(0).getRights()
+                & BranchAccessRight.PULL) == 0)
             throw new IOException("missing rights!");
 
-        final StorageDir contactBranch = getContext().getStorage(entry.getBranch());
+        final StorageDir contactBranchDir = getContext().getStorage(contactBranch.getBranch(),
+                contactBranch.getBranchKey(), userData.getCommitSignature());
 
-        getConnectionManager().submit(new GitPullJob(((JGitInterface) contactBranch.getDatabase()).getRepository(),
-                        user, entry.getBranch()),
+        SyncManager.pull(getConnectionManager(), contactBranchDir,
                 new ConnectionManager.ConnectionInfo(user, server),
-                new ConnectionManager.AuthInfo(user, accessTokenContact),
-                new Task.IObserver<Void, GitPullJob.Result>() {
-                    @Override
-                    public void onProgress(Void update) {
-                        observer.onProgress(update);
-                    }
-
-                    @Override
-                    public void onResult(GitPullJob.Result result) {
-                        try {
-                            HashValue pullRevHash = HashValue.fromHex(result.pulledRev);
-                            contactBranch.commit();
-                            JGitInterface gitInterface = (JGitInterface)contactBranch.getDatabase();
-                            HashValue base = gitInterface.getTip();
-                            gitInterface.merge(pullRevHash);
-                            contactBranch.onTipUpdated(base, pullRevHash);
-                        } catch (IOException exception) {
-                            observer.onException(exception);
-                        }
-                        observer.onResult(result);
-                    }
-
-                    @Override
-                    public void onException(Exception exception) {
-                        observer.onException(exception);
-                    }
-                });
+                new ConnectionManager.AuthInfo(user, contactBranch.getAccessToken()), observer);
     }
 
     public void migrate(String newUserName, String newServer) {

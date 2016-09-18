@@ -35,11 +35,18 @@ public class AccessCommandHandler extends EnvelopeCommandHandler {
         if (!command.getString(Constants.COMMAND_NAME_KEY).equals(AccessCommand.COMMAND_NAME))
             return null;
         String senderId = command.getString(Constants.SENDER_ID_KEY);
+
+        String branch = command.getString(Constants.BRANCH_KEY);
+        SymmetricKeyData keyData = null;
+        if (command.has(AccessCommand.BRANCH_KEY_KEY)) {
+            keyData = new SymmetricKeyData();
+            keyData.fromJson(command.getJSONObject(AccessCommand.BRANCH_KEY_KEY));
+        }
         String accessToken = command.getString(AccessCommand.TOKEN_KEY);
 
         AccessTokenContact accessTokenContact = new AccessTokenContact(context, accessToken);
         ContactPublic sender = contactStore.getContactList().get(senderId);
-        sender.getAccessTokenList().add(accessTokenContact);
+        sender.getContactBranchList().add(new ContactBranch(branch, keyData, accessTokenContact));
 
         contactStore.commit();
 

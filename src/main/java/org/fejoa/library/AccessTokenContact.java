@@ -71,6 +71,10 @@ public class AccessTokenContact {
         return new JSONObject(accessEntry);
     }
 
+    public BranchAccessRight getAccessRights() {
+        return accessRights;
+    }
+
     public byte[] getAccessEntrySignature() {
         return accessEntrySignature;
     }

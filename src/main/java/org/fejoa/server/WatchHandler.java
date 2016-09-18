@@ -95,7 +95,7 @@ public class WatchHandler extends JsonRequestHandler {
 
         AccessControl accessControl = new AccessControl(session, user);
         //TODO: use a file monitor instead of polling
-        final long TIME_OUT = 60 * 1000;
+        final long TIME_OUT = 6 * 1000;
         long time = System.currentTimeMillis();
         while (status.isEmpty()) {
             for (Map.Entry<String, String> entry : branches.entrySet()) {

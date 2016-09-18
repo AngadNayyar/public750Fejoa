@@ -164,6 +164,10 @@ public class StorageDir {
         public void remove(String path) {
             toDelete.add(path);
         }
+
+        public ICommitSignature getCommitSignature() {
+            return commitSignature;
+        }
     }
 
     public StorageDir(StorageDir storageDir) {
@@ -190,6 +194,10 @@ public class StorageDir {
 
     public void setCommitSignature(ICommitSignature commitSignature) {
         this.cache.setCommitSignature(commitSignature);
+    }
+
+    public ICommitSignature getCommitSignature() {
+        return this.cache.getCommitSignature();
     }
 
     public void setFilter(IIOFilter filter) {

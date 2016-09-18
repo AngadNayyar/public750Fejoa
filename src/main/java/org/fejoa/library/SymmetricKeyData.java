@@ -7,12 +7,12 @@
  */
 package org.fejoa.library;
 
+import org.apache.commons.codec.binary.Base64;
 import org.fejoa.chunkstore.HashValue;
-import org.fejoa.library.crypto.CryptoException;
-import org.fejoa.library.crypto.CryptoHelper;
-import org.fejoa.library.crypto.CryptoSettings;
-import org.fejoa.library.crypto.CryptoSettingsIO;
+import org.fejoa.library.crypto.*;
 import org.fejoa.library.database.StorageDir;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import javax.crypto.SecretKey;
 import java.io.IOException;
@@ -20,7 +20,8 @@ import java.io.IOException;
 
 public class SymmetricKeyData implements IStorageDirBundle {
     final private String PATH_SYMMETRIC_KEY = "key";
-    final private String PATH_SYMMETRIC_IV = "iV";
+    final private String PATH_SYMMETRIC_IV = "iv";
+    final private String SETTINGS_KEY = "settings";
 
     public SecretKey key;
     public byte iv[];
@@ -41,12 +42,21 @@ public class SymmetricKeyData implements IStorageDirBundle {
         read(dir);
     }
 
-    static public SymmetricKeyData create(FejoaContext context, CryptoSettings.Symmetric settings) throws CryptoException {
+    private SymmetricKeyData(JSONObject jsonObject) throws IOException, JSONException {
+        fromJson(jsonObject);
+    }
+
+    static public SymmetricKeyData create(FejoaContext context, CryptoSettings.Symmetric settings)
+            throws CryptoException {
         return new SymmetricKeyData(context, settings);
     }
 
-    static public SymmetricKeyData open(StorageDir dir) throws CryptoException, IOException {
+    static public SymmetricKeyData open(StorageDir dir) throws IOException {
         return new SymmetricKeyData(dir);
+    }
+
+    static public SymmetricKeyData open(JSONObject jsonObject) throws IOException, JSONException {
+        return new SymmetricKeyData(jsonObject);
     }
 
     public HashValue keyId() {
@@ -69,4 +79,19 @@ public class SymmetricKeyData implements IStorageDirBundle {
         key = CryptoHelper.symmetricKeyFromRaw(dir.readBytes(PATH_SYMMETRIC_KEY), settings);
         iv = dir.readBytes(PATH_SYMMETRIC_IV);
     }
+
+    public JSONObject toJson() throws JSONException {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put(PATH_SYMMETRIC_KEY, Base64.encodeBase64String(key.getEncoded()));
+        jsonObject.put(PATH_SYMMETRIC_IV, Base64.encodeBase64String(iv));
+        jsonObject.put(SETTINGS_KEY, JsonCryptoSettings.toJson(settings));
+        return jsonObject;
+    }
+
+    public void fromJson(JSONObject jsonObject) throws JSONException {
+        key = CryptoHelper.symmetricKeyFromRaw(Base64.decodeBase64(jsonObject.getString(PATH_SYMMETRIC_KEY)), settings);
+        iv = Base64.decodeBase64(jsonObject.getString(PATH_SYMMETRIC_IV));
+        settings = JsonCryptoSettings.symFromJson(jsonObject.getJSONObject(SETTINGS_KEY));
+    }
+
 }

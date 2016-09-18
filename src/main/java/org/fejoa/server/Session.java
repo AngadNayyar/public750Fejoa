@@ -127,7 +127,7 @@ public class Session {
     public AccessTokenServer getAccessToken(String serverUser, String tokenId) throws Exception {
         FejoaContext context = getContext(serverUser);
         UserDataSettings userDataSettings = getUserDataSettings(serverUser);
-        StorageDir tokenDir = new StorageDir(context.getStorage(userDataSettings.accessStore), tokenId);
+        StorageDir tokenDir = new StorageDir(context.getStorage(userDataSettings.accessStore, null, null), tokenId);
         try {
             return new AccessTokenServer(context, tokenDir);
         } catch (IOException e) {
