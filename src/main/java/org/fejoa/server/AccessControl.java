@@ -35,10 +35,14 @@ public class AccessControl {
             return true;
         if (session.hasRootRole(user))
             return true;
-        int roleRights = session.getRoleRights(user, branch);
+        int roleRights = getBranchAccessRights(branch);
         if ((roleRights & rights) == rights)
             return true;
         return false;
+    }
+
+    public int getBranchAccessRights(String branch) {
+        return session.getRoleRights(user, branch);
     }
 
     public boolean canStartMigration() {

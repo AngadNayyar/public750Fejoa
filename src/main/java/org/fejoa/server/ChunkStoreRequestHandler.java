@@ -8,9 +8,9 @@
 package org.fejoa.server;
 
 import org.fejoa.chunkstore.*;
+import org.fejoa.chunkstore.sync.Request;
 import org.fejoa.chunkstore.sync.RequestHandler;
 import org.fejoa.library.BranchAccessRight;
-import org.fejoa.library.remote.ChunkStorePushJob;
 import org.fejoa.library.remote.JsonRPCHandler;
 import org.json.JSONObject;
 
@@ -20,7 +20,7 @@ import java.io.InputStream;
 
 public class ChunkStoreRequestHandler extends JsonRequestHandler {
     public ChunkStoreRequestHandler() {
-        super(ChunkStorePushJob.METHOD);
+        super(Request.CS_REQUEST_METHOD);
     }
 
     @Override
@@ -30,7 +30,8 @@ public class ChunkStoreRequestHandler extends JsonRequestHandler {
         String user = params.getString("serverUser");
         final String branch = params.getString("branch");
         AccessControl accessControl = new AccessControl(session, user);
-        ChunkStore chunkStore = accessControl.getChunkStore(branch, BranchAccessRight.PUSH);
+        int branchAccessRights = accessControl.getBranchAccessRights(branch);
+        ChunkStore chunkStore = accessControl.getChunkStore(branch, branchAccessRights);
         final ChunkStoreBranchLog branchLog = accessControl.getChunkStoreBranchLog(branch, BranchAccessRight.PUSH);
 
         ChunkStore.Transaction transaction = chunkStore.openTransaction();
@@ -46,6 +47,6 @@ public class ChunkStoreRequestHandler extends JsonRequestHandler {
 
         ServerPipe pipe = new ServerPipe(jsonRPCHandler.makeResult(Portal.Errors.OK, "data pipe ok"),
                 responseHandler, data);
-        handler.handle(pipe);
+        handler.handle(pipe, branchAccessRights);
     }
 }

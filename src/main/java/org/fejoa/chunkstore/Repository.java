@@ -93,7 +93,7 @@ public class Repository implements IDatabaseInterface {
         this.branch = branch;
         this.accessors = chunkAccessors;
         this.transaction = new LogRepoTransaction(accessors.startTransaction());
-        this.log = new ChunkStoreBranchLog(new File(getBranchDir(), branch));
+        this.log = getLog(dir, branch);
         this.commitCallback = commitCallback;
 
         BoxPointer headCommitPointer = null;
@@ -122,6 +122,10 @@ public class Repository implements IDatabaseInterface {
 
     public String getBranch() {
         return branch;
+    }
+    
+    static public ChunkStoreBranchLog getLog(File baseDir, String branch) throws IOException {
+        return new ChunkStoreBranchLog(new File(getBranchDir(baseDir), branch));
     }
 
     public IRepoChunkAccessors.ITransaction getCurrentTransaction() {
@@ -153,7 +157,7 @@ public class Repository implements IDatabaseInterface {
         return fileBox.getDataContainer().hash();
     }
 
-    private File getBranchDir() {
+    static private File getBranchDir(File dir) {
         return new File(dir, "branches");
     }
 

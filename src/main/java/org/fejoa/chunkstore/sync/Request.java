@@ -17,11 +17,14 @@ import java.io.IOException;
 public class Request {
     static final public int PROTOCOL_VERSION = 1;
 
+    static final public String CS_REQUEST_METHOD = "csRequest";
+
     // requests
     static final public int GET_REMOTE_TIP = 1;
     static final public int GET_CHUNKS = 3;
     static final public int PUT_CHUNKS = 4;
     static final public int HAS_CHUNKS = 5;
+    static final public int GET_ALL_CHUNKS = 6;
 
     // errors
     static final public int ERROR = -1;

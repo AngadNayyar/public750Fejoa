@@ -37,13 +37,13 @@ public class PullRequest {
             public void fetch(ChunkStore.Transaction transaction, List<HashValue> requestedChunks) throws IOException {
                 DataOutputStream outputStream = new DataOutputStream(remotePipe.getOutputStream());
                 Request.writeRequestHeader(outputStream, GET_CHUNKS);
-                outputStream.writeInt(requestedChunks.size());
+                outputStream.writeLong(requestedChunks.size());
                 for (HashValue hashValue : requestedChunks)
                     outputStream.write(hashValue.getBytes());
 
                 DataInputStream inputStream = new DataInputStream(remotePipe.getInputStream());
                 Request.receiveHeader(inputStream, GET_CHUNKS);
-                int chunkCount = inputStream.readInt();
+                long chunkCount = inputStream.readLong();
                 if (chunkCount != requestedChunks.size()) {
                     throw new IOException("Received chunk count is: " + chunkCount + " but " + requestedChunks.size()
                             + " expected.");

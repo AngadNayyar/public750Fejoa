@@ -7,10 +7,7 @@
  */
 package org.fejoa.server;
 
-import org.fejoa.library.AccessTokenServer;
-import org.fejoa.library.FejoaContext;
-import org.fejoa.library.UserData;
-import org.fejoa.library.UserDataSettings;
+import org.fejoa.library.*;
 import org.fejoa.library.command.IncomingCommandQueue;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.remote.CreateAccountJob;
@@ -55,7 +52,7 @@ public class Session {
     }
 
     public void addRootRole(String userName) {
-        addRole(userName, "root", 0);
+        addRole(userName, "root", BranchAccessRight.ALL);
     }
 
     public boolean hasRootRole(String serverUser) {
@@ -63,7 +60,7 @@ public class Session {
     }
 
     public void addMigrationRole(String userName) {
-        addRole(userName, "migration", 0);
+        addRole(userName, "migration", BranchAccessRight.PULL_CHUNK_STORE);
     }
 
     public boolean hasMigrationRole(String serverUser) {

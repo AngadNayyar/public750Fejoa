@@ -147,12 +147,18 @@ public class ChunkStoreBranchLog {
     }
 
     public void add(String message, List<HashValue> changes) throws IOException {
+        Entry entry = new Entry(nextRevId(), message);
+        entry.changes.addAll(changes);
+        add(entry);
+    }
+
+    public void add(Entry entry) {
         try {
             lock();
-            Entry entry = new Entry(nextRevId(), message);
-            entry.changes.addAll(changes);
             write(entry);
             entries.add(entry);
+        } catch (IOException e) {
+            e.printStackTrace();
         } finally {
             unlock();
         }

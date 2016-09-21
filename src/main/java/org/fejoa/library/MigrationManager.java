@@ -35,7 +35,7 @@ public class MigrationManager {
         BranchAccessRight accessRight = new BranchAccessRight(BranchAccessRight.MIGRATION_ACCESS);
         final List<BranchInfo> branchesToCopy = new ArrayList<>();
         for (BranchInfo branchInfo : client.getUserData().getBranchList().getEntries()) {
-            accessRight.addBranchAccess(branchInfo.getBranch(), BranchAccessRight.PULL);
+            accessRight.addBranchAccess(branchInfo.getBranch(), BranchAccessRight.PULL_CHUNK_STORE);
             branchesToCopy.add(branchInfo);
         }
         if (branchesToCopy.size() == 0)

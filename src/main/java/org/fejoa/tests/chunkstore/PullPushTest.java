@@ -9,6 +9,7 @@ package org.fejoa.tests.chunkstore;
 
 import org.fejoa.chunkstore.*;
 import org.fejoa.chunkstore.sync.*;
+import org.fejoa.library.BranchAccessRight;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.remote.IRemotePipe;
 import org.fejoa.library.support.StorageLib;
@@ -94,7 +95,7 @@ public class PullPushTest extends RepositoryTestBase {
                     public OutputStream getOutputStream() {
                         return reply;
                     }
-                });
+                }, BranchAccessRight.ALL);
                 return new ByteArrayInputStream(reply.toByteArray());
             }
 
@@ -143,6 +144,8 @@ public class PullPushTest extends RepositoryTestBase {
         pulledTip = pullRequest.pull(senderPipe, branch);
         containsContent(requestRepo, remoteContent);
         assertTrue(pulledTip.getBoxHash().equals(boxPointer.getBoxHash()));
+        assertEquals(pulledTip,
+                simpleCommitCallback.commitPointerFromLog(requestRepo.getBranchLog().getLatest().getMessage()));
 
         // make another remote change
         add(remoteRepo, remoteContent, new DatabaseStingEntry("testFile2", "Hello World 2"));
@@ -151,6 +154,50 @@ public class PullPushTest extends RepositoryTestBase {
         pulledTip = pullRequest.pull(senderPipe, branch);
         containsContent(requestRepo, remoteContent);
         assertTrue(pulledTip.getBoxHash().equals(boxPointer.getBoxHash()));
+        assertEquals(pulledTip,
+                simpleCommitCallback.commitPointerFromLog(requestRepo.getBranchLog().getLatest().getMessage()));
+    }
+
+    public void testPullRepo() throws Exception {
+        String branch = "pullRepoBranch";
+        File directory = new File("PullRepoTestSource");
+        File directory2 = new File("PullRepoTestTarget");
+        cleanUpFiles.add(directory.getName());
+        cleanUpFiles.add(directory2.getName());
+        for (String dir : cleanUpFiles)
+            StorageLib.recursiveDeleteFile(new File(dir));
+        directory.mkdirs();
+        directory2.mkdirs();
+
+        // test pull full repo
+        IRepoChunkAccessors sourceAccessor = getRepoChunkAccessors(createChunkStore(directory, branch));
+        final Repository sourceRepo = new Repository(directory, branch, sourceAccessor, simpleCommitCallback);
+        IRepoChunkAccessors targetAccessor = getRepoChunkAccessors(createChunkStore(directory2, branch));
+        Repository targetRepo = new Repository(directory2, branch, targetAccessor, simpleCommitCallback);
+
+        // fill source repo
+        List<DatabaseStingEntry> sourceContent = new ArrayList<>();
+        add(sourceRepo, sourceContent, new DatabaseStingEntry("testFile", "Hello World"));
+        add(sourceRepo, sourceContent, new DatabaseStingEntry("sub/testFile", "Hello World2"));
+        add(sourceRepo, sourceContent, new DatabaseStingEntry("sub/testFile2", "Hello World3"));
+        sourceRepo.commitInternal("", null);
+
+        // pull repo to target
+        final RequestHandler handler = new RequestHandler(sourceAccessor.startTransaction().getRawAccessor(),
+                new RequestHandler.IBranchLogGetter() {
+                    @Override
+                    public ChunkStoreBranchLog get(String branch) throws IOException {
+                        return sourceRepo.getBranchLog();
+                    }
+                });
+        final IRemotePipe senderPipe = connect(handler);
+        PullRepoRequest pullRepoRequest = new PullRepoRequest(targetRepo);
+        pullRepoRequest.pull(senderPipe, branch);
+
+        // verify
+        sourceRepo.getBranchLog().getLatest().getMessage().equals(targetRepo.getBranchLog().getLatest().getMessage());
+        targetRepo = new Repository(directory2, branch, targetAccessor, simpleCommitCallback);
+        containsContent(targetRepo, sourceContent);
     }
 
     public void testPush() throws Exception {

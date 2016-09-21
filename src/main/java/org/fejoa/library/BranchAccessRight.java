@@ -22,7 +22,9 @@ public class BranchAccessRight {
     final static public int CLOSED = 0x00;
     final static public int PULL = 0x01;
     final static public int PUSH = 0x02;
+    final static public int PULL_CHUNK_STORE = 0x04;
     final static public int PULL_PUSH = PULL | PUSH;
+    final static public int ALL = PULL_PUSH | PULL_CHUNK_STORE;
 
     static public class Entry {
         final private String branch;

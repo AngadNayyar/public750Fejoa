@@ -30,8 +30,6 @@ public class ChunkStorePushJob extends JsonRemoteJob<ChunkStorePushJob.Result> {
         }
     }
 
-    static final public String METHOD = "csRequest";
-
     final private Repository repository;
     final private String serverUser;
     final private String branch;
@@ -53,7 +51,7 @@ public class ChunkStorePushJob extends JsonRemoteJob<ChunkStorePushJob.Result> {
         JsonRPC.Argument branchArg = new JsonRPC.Argument(org.fejoa.library.Constants.BRANCH_KEY, branch);
 
         PushRequest pushRequest = new PushRequest(repository);
-        String header = jsonRPC.call(ChunkStorePushJob.METHOD, serverUserArg, branchArg);
+        String header = jsonRPC.call(Request.CS_REQUEST_METHOD, serverUserArg, branchArg);
 
         RemotePipe pipe = new RemotePipe(header, remoteRequest, null);
         int result = pushRequest.push(pipe, repository.getCurrentTransaction(), branch);
