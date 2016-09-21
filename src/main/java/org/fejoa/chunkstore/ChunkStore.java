@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.Iterator;
 
 
 public class ChunkStore {
@@ -21,6 +22,14 @@ public class ChunkStore {
      * TODO: make the transaction actually do something, i.e. make a transaction atomic
      */
     public class Transaction {
+        public long size() {
+            return ChunkStore.this.size();
+        }
+
+        public Iterator<Entry> iterator() throws IOException {
+            return ChunkStore.this.iterator();
+        }
+
         public byte[] getChunk(HashValue hash) throws IOException {
             return ChunkStore.this.getChunk(hash);
         }
@@ -85,6 +94,63 @@ public class ChunkStore {
         } finally {
             unlock();
         }
+    }
+
+    public long size() {
+        try {
+            lock();
+            return tree.size();
+        } finally {
+            unlock();
+        }
+    }
+
+    static public class Entry {
+        final public HashValue key;
+        final public byte[] data;
+
+        public Entry(HashValue key, byte[] data) {
+            this.key = key;
+            this.data = data;
+        }
+    }
+
+    public Iterator<Entry> iterator() throws IOException {
+        return new Iterator<Entry>() {
+            Iterator<BPlusTree.Entry<Long>> iterator = tree.iterator();
+            {
+                lock();
+            }
+
+            @Override
+            protected void finalize() throws Throwable {
+                unlock();
+            }
+
+            @Override
+            public boolean hasNext() {
+                return iterator.hasNext();
+            }
+
+            @Override
+            public void remove() {
+
+            }
+
+            @Override
+            public Entry next() {
+                BPlusTree.Entry<Long> next = iterator.next();
+                Long position = next.data;
+                byte[] chunk;
+                try {
+                    chunk = packFile.get(position.intValue(), next.key);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    return null;
+                }
+                return new Entry(new HashValue(next.key), chunk);
+            }
+        };
     }
 
     public boolean hasChunk(HashValue hashValue) throws IOException {

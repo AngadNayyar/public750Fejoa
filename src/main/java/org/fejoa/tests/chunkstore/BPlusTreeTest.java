@@ -9,6 +9,7 @@ package org.fejoa.tests.chunkstore;
 
 import junit.framework.TestCase;
 import org.fejoa.chunkstore.BPlusTree;
+import org.fejoa.chunkstore.BaseBPlusTree;
 import org.fejoa.chunkstore.HashValue;
 import org.fejoa.library.crypto.CryptoHelper;
 import org.fejoa.library.support.StorageLib;
@@ -16,7 +17,6 @@ import org.fejoa.library.support.StorageLib;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.math.BigInteger;
 import java.util.*;
 
 
@@ -45,6 +45,8 @@ public class BPlusTreeTest extends TestCase {
         }
 
         public void validate() throws IOException {
+            assertEquals(entries.size(), tree.size());
+
             for (Map.Entry<String, Long> entry : entries.entrySet())
                 assertEquals(entry.getValue(), tree.get(entry.getKey()));
 
@@ -312,6 +314,7 @@ public class BPlusTreeTest extends TestCase {
         BPlusTree bTree = new BPlusTree(file);
         bTree.create(32, 1024);
         TestTree tree = new TestTree(bTree);
+        assertEquals(0, bTree.size());
         Random generator = new Random(1);
         List<String> added = new ArrayList<>();
         add(tree, generator, 5000, added);
@@ -324,46 +327,38 @@ public class BPlusTreeTest extends TestCase {
         tree.validate();
     }
 
-    private BigInteger hash(BigInteger number) {
-        int n = 50;
-        BigInteger p = new BigInteger("103");
-        return number.pow(n).mod(p);
+    private void validateIterator(BPlusTree tree, List<String> expected) throws IOException {
+        Iterator<BPlusTree.Entry<Long>> iter = tree.iterator();
+        int count = 0;
+        while (iter.hasNext()) {
+            count++;
+            BaseBPlusTree.Entry<Long> next = iter.next();
+            assertTrue(expected.contains(new HashValue(next.key).toHex()));
+        }
+        assertEquals(expected.size(), count);
+        assertEquals(expected.size(), tree.size());
     }
 
-    private BigInteger hash2(BigInteger n1, BigInteger n2) {
-        BigInteger p = new BigInteger("103");
-        return n1.modPow(n2, p);
-    }
+    public void testIterator() throws IOException {
+        String fileName = "testIterator.idx";
+        cleanUpFiles.add(fileName);
 
-    private BigInteger hom(BigInteger n1) {
-        BigInteger e = new BigInteger("40");
-        BigInteger p = new BigInteger("103");
+        RandomAccessFile file = new RandomAccessFile(fileName, "rw");
+        BPlusTree bTree = new BPlusTree(file);
+        bTree.create(32, 1024);
 
-        return n1.modPow(e, p);
-    }
+        assertFalse(bTree.iterator().hasNext());
 
-    public void testTemp() {
-        BigInteger salt = new BigInteger("32");
-        BigInteger c0 = new BigInteger("78");
-        BigInteger c1 = new BigInteger("58");
-        BigInteger c2 = new BigInteger("777");
-        BigInteger c3 = new BigInteger("72");
-        BigInteger c4 = new BigInteger("12");
+        TestTree tree = new TestTree(bTree);
+        Random generator = new Random(1);
+        List<String> added = new ArrayList<>();
+        add(tree, generator, 1, added);
+        validateIterator(bTree, added);
 
+        add(tree, generator, 20, added);
+        validateIterator(bTree, added);
 
-        BigInteger total = hash(c0.multiply(c3).multiply(c1).multiply(c2));
-        assertEquals(total, hash(c2.multiply(c1).multiply(c0).multiply(c3)));
-
-        total = hash2(hash2(salt, c0), c1);
-        assertEquals(total, hash2(hash2(salt, c1), c0));
-        assertEquals(total, hash2(salt, c1.multiply(c0)));
-
-        assertEquals(hom(c0).multiply(hom(c1)).multiply(hom(c2)).mod(new BigInteger("103")),
-                hom(c0.multiply(c1).multiply(c2)));
-
-        total = hom(hom(c0.multiply(c1).multiply(c2).multiply(c3).multiply(c4).multiply(salt)));
-        BigInteger accessRequest = c1.multiply(c3);
-        BigInteger rest = hom(c0.multiply(c2).multiply(c4).multiply(salt));
-        assertEquals(total, hom(hom(accessRequest)).multiply(hom(rest)).mod(new BigInteger("103")));
+        add(tree, generator, 50, added);
+        validateIterator(bTree, added);
     }
 }

@@ -11,10 +11,7 @@ import org.fejoa.library.crypto.CryptoHelper;
 
 import java.io.*;
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 
 public class BaseBPlusTree<IndexType extends Number, DataType extends Number> {
@@ -536,6 +533,7 @@ public class BaseBPlusTree<IndexType extends Number, DataType extends Number> {
     private short version = 1;
     private short hashSize;
     private short depth = 1;
+    private long numberOfEntries;
     // Tile count starts at 1. Tile 0 is an invalid tile.
     private long rootTileIndex = 0l;
     private long freeTileList = 0l;
@@ -585,6 +583,7 @@ public class BaseBPlusTree<IndexType extends Number, DataType extends Number> {
         version = file.readShort();
         hashSize = file.readShort();
         tileSize = file.readInt();
+        numberOfEntries = file.readLong();
         rootTileIndex = indexType.toLong(indexType.read(file));
         depth = file.readShort();
         freeTileList = indexType.toLong(indexType.read(file));
@@ -595,19 +594,21 @@ public class BaseBPlusTree<IndexType extends Number, DataType extends Number> {
         file.writeShort(version);
         file.writeShort(hashSize);
         file.writeInt(tileSize);
+        file.writeLong(numberOfEntries);
         indexType.write(file, indexType.fromLong(rootTileIndex));
         file.writeShort(depth);
         indexType.write(file, indexType.fromLong(freeTileList));
     }
 
     private long headerSize() {
-        // version + hash size + tileSize + root tile + depth free tile list
-        return 2 * 4 + 8 + indexType.size() + 4 + indexType.size();
+        // version + hash size + tileSize + numberOfEntries + root tile + depth free tile list
+        return 2 + 2 + 4 + 8 + indexType.size() + 4 + indexType.size();
     }
 
     public void printHeader() {
         System.out.println("Version: " + version + ", Hash size: " + hashSize + ", Tile size: " + tileSize
-                + ", Root index: " + rootTileIndex + ", Depth: " + depth + ", Free Tiles: " + freeTileList);
+                + ", numberOfEntries: " + numberOfEntries + ", Root index: " + rootTileIndex + ", Depth: " + depth
+                + ", Free Tiles: " + freeTileList);
     }
 
     private void printNode(Node node, boolean compact) {
@@ -751,6 +752,7 @@ public class BaseBPlusTree<IndexType extends Number, DataType extends Number> {
         insert(result.node, result.keyPosition, key, indexType.fromLong(dataType.toLong(address)), hash.getBytes(),
                 indexType.fromLong(0l));
 
+        numberOfEntries++;
         commit(result.node.rootNode());
         return true;
     }
@@ -810,6 +812,62 @@ public class BaseBPlusTree<IndexType extends Number, DataType extends Number> {
         return dataType.fromLong(indexType.toLong(result.node.pointers.get(result.keyPosition)));
     }
 
+    static public class Entry<DataType> {
+        final public byte[] key;
+        final public DataType data;
+
+        public Entry(byte[] key, DataType data) {
+            this.key = key;
+            this.data = data;
+        }
+    }
+
+    public Iterator<Entry<DataType>> iterator() throws IOException {
+        return new Iterator<Entry<DataType>>() {
+            private LeafNode currentLeafNode;
+            private int inLeafNodePos;
+
+            {
+                currentLeafNode = findLeftLeafNode(readRootNode());
+                if (currentLeafNode.keys.size() == 0)
+                    currentLeafNode = null;
+                inLeafNodePos = 0;
+            }
+
+            @Override
+            public boolean hasNext() {
+                if (currentLeafNode == null)
+                    return false;
+                return true;
+            }
+
+            @Override
+            public void remove() {
+
+            }
+
+            @Override
+            public Entry<DataType> next() {
+                IndexType internalData = currentLeafNode.pointers.get(inLeafNodePos);
+                byte[] key = currentLeafNode.keys.get(inLeafNodePos);
+                DataType data = dataType.fromLong(indexType.toLong(internalData));
+                inLeafNodePos++;
+                if (inLeafNodePos >= currentLeafNode.keys.size()) {
+                    FindNeighbourResult result = null;
+                    try {
+                        result = findRightNeighbour(currentLeafNode);
+                    } catch (IOException e) {
+                    }
+                    currentLeafNode = null;
+                    inLeafNodePos = 0;
+                    if (result != null)
+                        currentLeafNode = result.node;
+                }
+                return new Entry<>(key, data);
+            }
+        };
+    }
+
     private Node readNode(long index, Node parent, int inParentIndex) throws IOException {
         Tile tile = new Tile(index);
         Node node = new Node(parent, inParentIndex, tile);
@@ -849,6 +907,8 @@ public class BaseBPlusTree<IndexType extends Number, DataType extends Number> {
         int rootDistance = 1;
         Node current = node;
         Node parent = node.getParent();
+        if (parent == null)
+            return null;
         while ((clockwise && current.getPointerIndexInParent() == parent.getRightmostPointerIndex())
                 || (!clockwise && current.getPointerIndexInParent() == 0)) {
             current = parent;
@@ -1066,7 +1126,12 @@ public class BaseBPlusTree<IndexType extends Number, DataType extends Number> {
         if (!result.isExactMatch())
             return false;
 
+        numberOfEntries--;
         remove(result.node, result.keyPosition, indexType.fromLong(0l));
         return true;
+    }
+
+    public long size() {
+        return numberOfEntries;
     }
 }
