@@ -46,7 +46,7 @@ public class UserData extends StorageDirObject {
         this.keyStore = keyStore;
 
         branchList = new BranchList(new StorageDir(storageDir, BRANCHES_PATH));
-        branchList.add(new BranchInfo(keyStore.getStorageDir().getBranch()));
+        branchList.add(new BranchInfo(keyStore.getStorageDir().getBranch(), "KeyStore"));
 
         myself = new ContactPrivate(context, new StorageDir(storageDir, MYSELF_PATH));
         contactStore = new ContactStore(context, new StorageDir(storageDir, CONTACT_PATH));
@@ -67,14 +67,6 @@ public class UserData extends StorageDirObject {
 
     public ContactPrivate getMyself() {
         return myself;
-    }
-
-    public StorageDir getBranch(String branch, SigningKeyPair signingKeyPair) throws IOException, CryptoException {
-        BranchInfo branchEntry = branchList.get(branch);
-        String branchId = branchEntry.getKeyId().toHex();
-        SymmetricKeyData keyData = keyStore.getSymmetricKey(branchId);
-        ICommitSignature commitSignature = new DefaultCommitSignature(context, signingKeyPair);
-        return context.getStorage(branchId, keyData, commitSignature);
     }
 
     public void addBranch(BranchInfo branchEntry) throws IOException {
