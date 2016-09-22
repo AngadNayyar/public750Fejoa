@@ -54,12 +54,13 @@ public class PullHandler {
         Request.writeResponseHeader(outputStream, GET_ALL_CHUNKS, OK);
 
         outputStream.writeLong(chunkStore.size());
-        Iterator<ChunkStore.Entry> iterator = chunkStore.iterator();
+        ChunkStore.ChunkStoreIterator iterator = chunkStore.iterator();
         while (iterator.hasNext()) {
             ChunkStore.Entry entry = iterator.next();
             outputStream.write(entry.key.getBytes());
             outputStream.writeInt(entry.data.length);
             outputStream.write(entry.data);
         }
+        iterator.unlock();
     }
 }

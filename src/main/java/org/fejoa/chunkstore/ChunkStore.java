@@ -26,7 +26,7 @@ public class ChunkStore {
             return ChunkStore.this.size();
         }
 
-        public Iterator<Entry> iterator() throws IOException {
+        public ChunkStoreIterator iterator() throws IOException {
             return ChunkStore.this.iterator();
         }
 
@@ -115,42 +115,51 @@ public class ChunkStore {
         }
     }
 
-    public Iterator<Entry> iterator() throws IOException {
-        return new Iterator<Entry>() {
-            Iterator<BPlusTree.Entry<Long>> iterator = tree.iterator();
-            {
-                lock();
-            }
+    public class ChunkStoreIterator implements Iterator<Entry> {
+        final private Iterator<BPlusTree.Entry<Long>> iterator;
 
-            @Override
-            protected void finalize() throws Throwable {
-                unlock();
-            }
+        ChunkStoreIterator(Iterator<BPlusTree.Entry<Long>> iterator) {
+            this.iterator = iterator;
 
-            @Override
-            public boolean hasNext() {
-                return iterator.hasNext();
-            }
+            lock();
+        }
 
-            @Override
-            public void remove() {
+        public void unlock() {
+            ChunkStore.this.unlock();
+        }
 
-            }
+        @Override
+        protected void finalize() throws Throwable {
+            unlock();
+        }
 
-            @Override
-            public Entry next() {
-                BPlusTree.Entry<Long> next = iterator.next();
-                Long position = next.data;
-                byte[] chunk;
-                try {
-                    chunk = packFile.get(position.intValue(), next.key);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    return null;
-                }
-                return new Entry(new HashValue(next.key), chunk);
+        @Override
+        public boolean hasNext() {
+            return iterator.hasNext();
+        }
+
+        @Override
+        public void remove() {
+
+        }
+
+        @Override
+        public Entry next() {
+            BPlusTree.Entry<Long> next = iterator.next();
+            Long position = next.data;
+            byte[] chunk;
+            try {
+                chunk = packFile.get(position.intValue(), next.key);
+            } catch (IOException e) {
+                e.printStackTrace();
+                return null;
             }
-        };
+            return new Entry(new HashValue(next.key), chunk);
+        }
+    }
+
+    public ChunkStoreIterator iterator() throws IOException {
+        return new ChunkStoreIterator(tree.iterator());
     }
 
     public boolean hasChunk(HashValue hashValue) throws IOException {
