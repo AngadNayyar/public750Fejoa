@@ -123,7 +123,7 @@ public class Repository implements IDatabaseInterface {
     public String getBranch() {
         return branch;
     }
-    
+
     static public ChunkStoreBranchLog getLog(File baseDir, String branch) throws IOException {
         return new ChunkStoreBranchLog(new File(getBranchDir(baseDir), branch));
     }

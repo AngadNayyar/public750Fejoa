@@ -42,6 +42,8 @@ public class AccessControl {
     }
 
     public int getBranchAccessRights(String branch) {
+        if (isRootUser())
+            return BranchAccessRight.ALL;
         return session.getRoleRights(user, branch);
     }
 

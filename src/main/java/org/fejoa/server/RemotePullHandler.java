@@ -7,7 +7,7 @@
  */
 package org.fejoa.server;
 
-import org.fejoa.library.database.JGitInterface;
+import org.fejoa.chunkstore.Repository;
 import org.fejoa.library.AccessTokenContact;
 import org.fejoa.library.Constants;
 import org.fejoa.library.FejoaContext;
@@ -43,8 +43,8 @@ public class RemotePullHandler extends JsonRequestHandler {
         String sourceUser = params.getString(RemotePullJob.SOURCE_USER_KEY);
         String sourceServer = params.getString(RemotePullJob.SOURCE_SERVER_KEY);
 
-        StorageDir targetDir = context.getStorage(branch);
-        GitPullJob pullJob = new GitPullJob(((JGitInterface)targetDir.getDatabase()).getRepository(), sourceUser,
+        StorageDir targetDir = context.getStorage(branch, null, null);
+        ChunkStorePullRepoJob pullJob = new ChunkStorePullRepoJob((Repository)targetDir.getDatabase(), sourceUser,
                 branch);
 
         ConnectionManager connectionManager = new ConnectionManager();
@@ -52,14 +52,14 @@ public class RemotePullHandler extends JsonRequestHandler {
         connectionManager.setObserverScheduler(new Task.CurrentThreadScheduler());
         connectionManager.submit(pullJob, new ConnectionManager.ConnectionInfo(sourceUser, sourceServer),
                 new ConnectionManager.AuthInfo(sourceUser, accessTokenContact),
-                new Task.IObserver<Void, GitPullJob.Result>() {
+                new Task.IObserver<Void, RemoteJob.Result>() {
                     @Override
                     public void onProgress(Void aVoid) {
 
                     }
 
                     @Override
-                    public void onResult(GitPullJob.Result result) {
+                    public void onResult(RemoteJob.Result result) {
                         responseHandler.setResponseHeader(jsonRPCHandler.makeResult(result.status,
                                     result.message));
                     }
