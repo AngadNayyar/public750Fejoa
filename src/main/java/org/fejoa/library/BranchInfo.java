@@ -36,10 +36,14 @@ public class BranchInfo implements IStorageDirBundle {
         this.branch = branch;
     }
 
-    public BranchInfo(String branch, String description, HashValue encKey, KeyStore keyStore, boolean sign) {
-        this(branch);
-
+    public BranchInfo(String branch, String description) {
+        this.branch = branch;
         this.description = description;
+    }
+
+    public BranchInfo(String branch, String description, HashValue encKey, KeyStore keyStore, boolean sign) {
+        this(branch, description);
+
         this.encKey = encKey;
         if (keyStore != null)
             this.keyStoreId = keyStore.getId();
@@ -48,6 +52,10 @@ public class BranchInfo implements IStorageDirBundle {
 
     public String getBranch() {
         return branch;
+    }
+
+    public String getDescription() {
+        return description;
     }
 
     public HashValue getKeyId() {

@@ -11,6 +11,7 @@ import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
+import org.fejoa.library.BranchInfo;
 import org.fejoa.library.FejoaContext;
 import org.fejoa.library.UserData;
 import org.fejoa.library.database.StorageDir;
@@ -22,18 +23,25 @@ import java.util.List;
 
 
 public class StorageDirViewer extends Application {
-    private StorageDir storageDir;
+    class FileTreeEntry extends TreeItem<String> {
+        final public String path;
+        public FileTreeEntry(String name, String path) {
+            super(name);
 
-    private void fillTree(TreeItem<String> rootItem, String path) throws IOException {
+            this.path = path;
+        }
+    }
+
+    private void fillTree(TreeItem<String> rootItem, StorageDir storageDir, String path) throws IOException {
         List<String> dirs = storageDir.listDirectories(path);
         for (String dir : dirs) {
             TreeItem<String> dirItem = new TreeItem<String> (dir);
             rootItem.getChildren().add(dirItem);
-            fillTree(dirItem, StorageDir.appendDir(path, dir));
+            fillTree(dirItem, storageDir, StorageDir.appendDir(path, dir));
         }
         List<String> files = storageDir.listFiles(path);
         for (String file : files) {
-            TreeItem<String> item = new TreeItem<String> (file);
+            FileTreeEntry item = new FileTreeEntry(file, StorageDir.appendDir(path, file));
             rootItem.getChildren().add(item);
         }
     }
@@ -42,40 +50,47 @@ public class StorageDirViewer extends Application {
         launch(args);
     }
 
-    @Override
-    public void start(Stage stage) throws Exception {
-        stage.setTitle("Tree View Sample");
-
-        String baseDir = "StorageDirViewerTest";
-        StorageLib.recursiveDeleteFile(new File(baseDir));
-        FejoaContext context = new FejoaContext("StorageDirViewerTest");
-        UserData userData = UserData.create(context, "test");
-        userData.commit();
-        storageDir = userData.getStorageDir();
-
-        TreeItem<String> rootItem = new TreeItem<String> ("Branch: " + storageDir.getBranch());
-        rootItem.setExpanded(true);
-        fillTree(rootItem, "");
-
-        TreeView<String> treeView = new TreeView<String> (rootItem);
-        StackPane root = new StackPane();
-        root.getChildren().add(treeView);
-
-        final TextArea textArea = new TextArea();
+    private void addStorageDirToTree(final StorageDir storageDir, TreeItem<String> rootItem, String branchDescription,
+                                     TreeView<String> treeView, final TextArea textArea) throws IOException {
+        final TreeItem<String> item = new TreeItem<> (branchDescription + ": " + storageDir.getBranch());
+        item.setExpanded(false);
+        fillTree(item, storageDir, "");
+        rootItem.getChildren().add(item);
 
         treeView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<TreeItem<String>>() {
             @Override
             public void changed(ObservableValue<? extends TreeItem<String>> observable, TreeItem<String> old, TreeItem<String> newItem) {
-                if (newItem.getChildren().size() > 0)
-                    return;
-
                 try {
-                    textArea.setText(storageDir.readString(fullPath(newItem)));
+                    if (newItem instanceof FileTreeEntry && isParent(item, newItem))
+                        textArea.setText(storageDir.readString(((FileTreeEntry) newItem).path));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
         });
+    }
+
+    private boolean isParent(TreeItem parent, TreeItem child) {
+        TreeItem current = child.getParent();
+        while (current != null) {
+            if (current == parent)
+                return true;
+            current = current.getParent();
+        }
+        return false;
+    }
+
+    @Override
+    public void start(Stage stage) throws Exception {
+        stage.setTitle("Tree View Sample");
+
+        TreeItem<String> rootItem = new TreeItem<>("All Branches:");
+        rootItem.setExpanded(true);
+
+        TreeView<String> treeView = new TreeView<> (rootItem);
+        StackPane root = new StackPane();
+        root.getChildren().add(treeView);
+        final TextArea textArea = new TextArea();
 
         SplitPane mainLayout = new SplitPane();
         mainLayout.setOrientation(Orientation.HORIZONTAL);
@@ -83,22 +98,20 @@ public class StorageDirViewer extends Application {
         mainLayout.getItems().add(treeView);
         mainLayout.getItems().add(textArea);
 
+        String baseDir = "StorageDirViewerTest";
+        StorageLib.recursiveDeleteFile(new File(baseDir));
+        FejoaContext context = new FejoaContext("StorageDirViewerTest");
+        UserData userData = UserData.create(context, "test");
+        userData.commit();
+
+        for (BranchInfo branchInfo : userData.getBranchList().getEntries()) {
+            StorageDir branchStorage = userData.getStorageDir(branchInfo);
+            addStorageDirToTree(branchStorage, rootItem, branchInfo.getDescription(), treeView, textArea);
+        }
+
         stage.setScene(new Scene(mainLayout, 300, 250));
         stage.show();
 
         StorageLib.recursiveDeleteFile(new File(baseDir));
-    }
-
-    private String fullPath(TreeItem<String> leaf) {
-        String path = leaf.getValue();
-        TreeItem<String> current = leaf;
-        while (current.getParent() != null) {
-            // ignore root leaf
-            if (current.getParent().getParent() == null)
-                break;
-            current = current.getParent();
-            path = StorageDir.appendDir(current.getValue(), path);
-        }
-        return path;
     }
 }
