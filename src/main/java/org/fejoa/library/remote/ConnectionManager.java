@@ -147,15 +147,16 @@ public class ConnectionManager {
         this.observerScheduler = scheduler;
     }
 
-    public <T extends RemoteJob.Result> Task.ICancelFunction submit(final JsonRemoteJob<T> job,
+    public <Progress, T extends RemoteJob.Result> Task<Progress, T> submit(final JsonRemoteJob<T> job,
                                                                     ConnectionInfo connectionInfo,
                                                                     final AuthInfo authInfo,
-                                                                    final Task.IObserver<Void, T> observer) {
-        JobTask<T> jobTask = new JobTask<>(tokenManager, job, connectionInfo, authInfo);
-        return jobTask.setStartScheduler(startScheduler).setObserverScheduler(observerScheduler).start(observer);
+                                                                    final Task.IObserver<Progress, T> observer) {
+        JobTask<Progress, T> jobTask = new JobTask<>(tokenManager, job, connectionInfo, authInfo);
+        jobTask.setStartScheduler(startScheduler).setObserverScheduler(observerScheduler).start(observer);
+        return jobTask;
     }
 
-    static private class JobTask<T extends RemoteJob.Result> extends Task<Void, T>{
+    static private class JobTask<Progress, T extends RemoteJob.Result> extends Task<Progress, T>{
         final private TokenManager tokenManager;
         final private JsonRemoteJob<T> job;
         final private ConnectionInfo connectionInfo;
@@ -172,9 +173,9 @@ public class ConnectionManager {
             this.connectionInfo = connectionInfo;
             this.authInfo = authInfo;
 
-            setTaskFunction(new ITaskFunction<Void, T>() {
+            setTaskFunction(new ITaskFunction<Progress, T>() {
                 @Override
-                public void run(Task<Void, T> task) throws Exception {
+                public void run(Task<Progress, T> task) throws Exception {
                     JobTask.this.run(0);
                 }
 

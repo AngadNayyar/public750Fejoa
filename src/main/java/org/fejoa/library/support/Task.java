@@ -99,6 +99,10 @@ public class Task<Update, Result> {
         return taskFunction;
     }
 
+    public ICancelFunction getCancelFunction() {
+        return taskFunction;
+    }
+
     public void cancel() {
         canceled = true;
         taskFunction.cancel();

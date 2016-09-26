@@ -29,9 +29,9 @@ public class SyncManager {
     final private ConnectionManager connectionManager;
 
     final private Remote remote;
-    private Task.ICancelFunction watchFunction;
+    private Task watchFunction;
     private Collection<BranchInfo> watchedBranches;
-    final private Map<String, Task.ICancelFunction> ongoingSyncJobs = new HashMap<>();
+    final private Map<String, Task<Void, ChunkStorePullJob.Result>> ongoingSyncJobs = new HashMap<>();
 
     public SyncManager(FejoaContext context, UserData userData, ConnectionManager connectionManager, Remote remote) {
         this.context = context;
@@ -124,7 +124,7 @@ public class SyncManager {
     }
 
     public void stopWatching() {
-        for (Map.Entry<String, Task.ICancelFunction> entry : ongoingSyncJobs.entrySet()) {
+        for (Map.Entry<String, Task<Void, ChunkStorePullJob.Result>> entry : ongoingSyncJobs.entrySet()) {
             if (entry.getValue() == null)
                 continue;
             entry.getValue().cancel();
@@ -136,7 +136,7 @@ public class SyncManager {
         }
     }
 
-    private Task.ICancelFunction gitSync(final JGitInterface gitInterface, final StorageDir dir, final int nJobs,
+    private Task<Void, GitPullJob.Result> gitSync(final JGitInterface gitInterface, final StorageDir dir, final int nJobs,
                                          final Task.IObserver<TaskUpdate, Void> observer,
                                          final ConnectionManager.ConnectionInfo connectionInfo,
                                          final ConnectionManager.AuthInfo authInfo) {
@@ -197,7 +197,7 @@ public class SyncManager {
                 });
     }
 
-    static public Task.ICancelFunction sync(ConnectionManager connectionManager, StorageDir storageDir,
+    static public Task<Void, ChunkStorePullJob.Result> sync(ConnectionManager connectionManager, StorageDir storageDir,
                                             ConnectionManager.ConnectionInfo connectionInfo,
                                             ConnectionManager.AuthInfo authInfo,
                                             final Task.IObserver<TaskUpdate, String> observer) {
@@ -208,7 +208,7 @@ public class SyncManager {
         }
     }
 
-    static public Task.ICancelFunction pull(ConnectionManager connectionManager, final StorageDir storageDir,
+    static public Task<Void, ChunkStorePullJob.Result> pull(ConnectionManager connectionManager, final StorageDir storageDir,
                                             ConnectionManager.ConnectionInfo connectionInfo,
                                             ConnectionManager.AuthInfo authInfo,
                                             final Task.IObserver<Void, ChunkStorePullJob.Result> observer) {
@@ -244,7 +244,7 @@ public class SyncManager {
         });
     }
 
-    static private Task.ICancelFunction csSync(final ConnectionManager connectionManager, final StorageDir storageDir,
+    static private Task<Void, ChunkStorePullJob.Result> csSync(final ConnectionManager connectionManager, final StorageDir storageDir,
                                                final ConnectionManager.ConnectionInfo connectionInfo,
                                                final ConnectionManager.AuthInfo authInfo,
                                                final Task.IObserver<TaskUpdate, String> observer) {
@@ -316,7 +316,7 @@ public class SyncManager {
         final ConnectionManager.ConnectionInfo connectionInfo = new ConnectionManager.ConnectionInfo(remote.getUser(),
                 remote.getServer());
         final ConnectionManager.AuthInfo authInfo = context.getRootAuthInfo(remote.getUser(), remote.getServer());
-        Task.ICancelFunction job = sync(connectionManager, dir, connectionInfo, authInfo,
+        Task<Void, ChunkStorePullJob.Result> job = sync(connectionManager, dir, connectionInfo, authInfo,
                     new Task.IObserver<TaskUpdate, String>() {
                 @Override
                 public void onProgress(TaskUpdate taskUpdate) {

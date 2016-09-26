@@ -7,8 +7,8 @@
  */
 package org.fejoa.library.support;
 
-
 import java.util.concurrent.ArrayBlockingQueue;
+
 
 public class LooperThread extends Thread {
     private boolean quit = false;

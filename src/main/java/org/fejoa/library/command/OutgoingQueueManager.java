@@ -112,7 +112,7 @@ public class OutgoingQueueManager {
                         observer.onProgress(new TaskUpdate(TASK_NAME, 1, 1, "exception while sending"));
                         observer.onException(exception);
                     }
-        });
+        }).getCancelFunction();
         if (runningSendJobs.containsKey(entry.hash()))
             runningSendJobs.put(entry.hash(), job);
     }
