@@ -25,18 +25,22 @@ import java.util.*;
 public class FejoaContext {
     final static private String INFO_FILE = "info";
 
-    final private String homeDir;
+    final private File homeDir;
     private CryptoSettings cryptoSettings = CryptoSettings.getDefault();
 
     private Map<String, StorageDir> secureStorageDirs = new HashMap<>();
     private Map<String, String> rootPasswords = new HashMap<>();
 
     public FejoaContext(String homeDir) {
-        this.homeDir = homeDir;
-        new File(homeDir).mkdirs();
+        this(new File(homeDir));
     }
 
-    public String getHomeDir() {
+    public FejoaContext(File homeDir) {
+        this.homeDir = homeDir;
+        this.homeDir.mkdirs();
+    }
+
+    public File getHomeDir() {
         return homeDir;
     }
 
@@ -53,7 +57,7 @@ public class FejoaContext {
     }
 
     private StorageDir get(String path, String branch) throws IOException {
-        path = StorageDir.appendDir(homeDir, path);
+        path = new File(homeDir, path).getPath();
         StorageDir dir = secureStorageDirs.get(path + ":" + branch);
         if (dir != null && dir.getBranch().equals(branch))
             return new StorageDir(dir);
@@ -77,30 +81,29 @@ public class FejoaContext {
     }
 
     public HashValue getStorageLogTip(String branch) throws IOException {
-        String logDir = StorageDir.appendDir(getChunkStoreDir(), "branches");
+        File logDir = new File(getChunkStoreDir(), "branches");
         ChunkStoreBranchLog log = new ChunkStoreBranchLog(new File(logDir, branch));
         if (log.getLatest() == null)
             return new HashValue(new byte[0]);
         return log.getLatest().getEntryId();
     }
 
-    private String getChunkStoreDir() {
-        return StorageDir.appendDir(homeDir, ".chunkstore");
+    private File getChunkStoreDir() {
+        return new File(homeDir, ".chunkstore");
     }
 
-    private StorageDir getNew(String path, String branch, SymmetricKeyData cryptoKeyData,
+    private StorageDir getNew(File pathFile, String branch, SymmetricKeyData cryptoKeyData,
                              ICommitSignature commitSignature) throws IOException, CryptoException {
-        StorageDir dir = secureStorageDirs.get(path + ":" + branch);
+        StorageDir dir = secureStorageDirs.get(pathFile.getPath() + ":" + branch);
         if (dir != null && dir.getBranch().equals(branch))
             return new StorageDir(dir);
 
         // not found create one
-        File pathFile = new File(path);
         pathFile.mkdirs();
 
         Repository repository = CSRepositoryBuilder.openOrCreate(this, pathFile, branch, cryptoKeyData);
         StorageDir storageDir = new StorageDir(repository, "");
-        secureStorageDirs.put(path + ":" + branch, storageDir);
+        secureStorageDirs.put(pathFile.getPath() + ":" + branch, storageDir);
         storageDir = new StorageDir(storageDir);
         storageDir.setCommitSignature(commitSignature);
         return storageDir;

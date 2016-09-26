@@ -7,10 +7,7 @@
  */
 package org.fejoa.library;
 
-import org.fejoa.chunkstore.HashValue;
 import org.fejoa.library.crypto.CryptoException;
-import org.fejoa.library.crypto.CryptoSettings;
-import org.fejoa.library.database.JGitInterface;
 import org.fejoa.library.command.*;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.remote.*;
@@ -18,11 +15,13 @@ import org.fejoa.library.support.Task;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.IOException;
+import java.io.*;
 import java.util.Collections;
+import java.util.Scanner;
 
 
 public class Client {
+    final static private String USER_SETTINGS_FILE = "user.settings";
     final private FejoaContext context;
     private ConnectionManager connectionManager;
     private UserData userData;
@@ -33,30 +32,61 @@ public class Client {
 
     private IncomingContactRequestHandler contactRequestHandler = new IncomingContactRequestHandler(this, null);
 
-    public Client(String home) {
-        this.context = new FejoaContext(home);
+    private Client(File homeDir) {
+        this.context = new FejoaContext(homeDir);
         this.connectionManager = new ConnectionManager();
     }
 
-    public void create(String userName, String server, String password) throws IOException, CryptoException {
-        context.registerRootPassword(userName, server, password);
-        userData = UserData.create(context, password);
-        config = UserDataConfig.create(context, userData, "org.fejoa.client");
+    static public Client create(File homeDir, String userName, String server, String password)
+            throws IOException, CryptoException {
+        Client client = new Client(homeDir);
+        client.context.registerRootPassword(userName, server, password);
+        client.userData = UserData.create(client.context, password);
+        client.config = UserDataConfig.create(client.context, client.userData, "org.fejoa.client");
         Remote remoteRemote = new Remote(userName, server);
-        userData.getRemoteStore().add(remoteRemote);
+        client.userData.getRemoteStore().add(remoteRemote);
         //userData.getRemoteStore().setDefault(remoteRemote);
-        userData.setGateway(remoteRemote);
+        client.userData.setGateway(remoteRemote);
+
+        UserDataSettings userDataSettings = client.userData.getSettings();
+        Writer writer = new BufferedWriter(new OutputStreamWriter(
+                new FileOutputStream(client.getUserDataSettingsFile())));
+        writer.write(userDataSettings.toJson().toString());
+        writer.flush();
+        writer.close();
+
+        return client;
     }
 
-    public void open(UserDataSettings config, String password) throws IOException, CryptoException, JSONException {
-        userData = UserData.open(context, config, password);
+    static public Client open(File homeDir, String password) throws IOException, CryptoException, JSONException {
+        Client client = new Client(homeDir);
+        client.userData = UserData.open(client.context, client.readUserDataSettings(), password);
 
-        Remote defaultRemote = userData.getRemoteStore().getDefault();
-        context.registerRootPassword(defaultRemote.getUser(), defaultRemote.getServer(), password);
+        Remote gateway = client.userData.getGateway();
+        client.context.registerRootPassword(gateway.getUser(), gateway.getServer(), password);
+
+        return client;
+    }
+
+    static public boolean exist(File homeDir) {
+        return getUserDataSettingsFile(homeDir).exists();
+    }
+
+    static private File getUserDataSettingsFile(File homeDir) {
+        return new File(homeDir, USER_SETTINGS_FILE);
+    }
+
+    private File getUserDataSettingsFile() {
+        return getUserDataSettingsFile(context.getHomeDir());
+    }
+
+    private UserDataSettings readUserDataSettings() throws FileNotFoundException, JSONException {
+        String content = new Scanner(getUserDataSettingsFile()).useDelimiter("\\Z").next();
+        return new UserDataSettings(new JSONObject(content));
     }
 
     public void commit() throws IOException {
-        userData.commit();
+        userData.commit(true);
     }
 
     public FejoaContext getContext() {

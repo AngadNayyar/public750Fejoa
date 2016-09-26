@@ -88,7 +88,6 @@ public class ClientTest extends TestCase {
     private ClientStatus clientStatus2;
 
     private JettyServer serverNew;
-    private Client client1New;
     private LooperThread clientThread = new LooperThread(10);
 
     private boolean failure = false;
@@ -143,19 +142,20 @@ public class ClientTest extends TestCase {
         serverNew = new JettyServer(SERVER_TEST_DIR_3, 8082);
         serverNew.start();
 
-        client1 = new Client(TEST_DIR + "/" + USER_NAME_1);
+        clientStatus1 = new ClientStatus(USER_NAME_1, SERVER_URL_1);
+        client1 = Client.create(new File(TEST_DIR + "/" + USER_NAME_1), clientStatus1.name, clientStatus1.server,
+                PASSWORD);
+        client1.commit();
         client1.getConnectionManager().setStartScheduler(new Task.NewThreadScheduler());
         client1.getConnectionManager().setObserverScheduler(new Task.LooperThreadScheduler(clientThread));
-        clientStatus1 = new ClientStatus(USER_NAME_1, SERVER_URL_1);
 
-        client2 = new Client(TEST_DIR + "/" + USER_NAME_2);
+        clientStatus2 = new ClientStatus(USER_NAME_2, SERVER_URL_2);
+        client2 = Client.create(new File(TEST_DIR + "/" + USER_NAME_2), clientStatus2.name, clientStatus2.server,
+                PASSWORD);
+        client2.commit();
         client2.getConnectionManager().setStartScheduler(new Task.NewThreadScheduler());
         client2.getConnectionManager().setObserverScheduler(new Task.LooperThreadScheduler(clientThread));
-        clientStatus2 = new ClientStatus(USER_NAME_2, SERVER_URL_2);
 
-        client1New = new Client(TEST_DIR + "/" + USER_NAME_1_NEW);
-        client1New.getConnectionManager().setStartScheduler(new Task.NewThreadScheduler());
-        client1New.getConnectionManager().setObserverScheduler(new Task.LooperThreadScheduler(clientThread));
 
         clientThread.start();
     }
@@ -215,9 +215,6 @@ public class ClientTest extends TestCase {
 
         @Override
         protected void perform(TestTask previousTask) throws Exception {
-            client.create(status.name, status.server, PASSWORD);
-            client.commit();
-
             client.createAccount(status.name, PASSWORD, status.server, new SimpleObserver(new Runnable() {
                 @Override
                 public void run() {
@@ -442,7 +439,7 @@ public class ClientTest extends TestCase {
 
         @Override
         protected void perform(TestTask previousTask) throws Exception {
-            client1New.createAccount(USER_NAME_1_NEW, PASSWORD, client1.getUserData(), SERVER_URL_1_NEW,
+            client1.createAccount(USER_NAME_1_NEW, PASSWORD, client1.getUserData(), SERVER_URL_1_NEW,
                     new SimpleObserver(new Runnable() {
                 @Override
                 public void run() {
