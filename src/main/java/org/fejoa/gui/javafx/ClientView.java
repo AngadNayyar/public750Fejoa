@@ -33,6 +33,10 @@ public class ClientView extends HBox {
         gatewayTab.setContent(new GatewayView(client, statusManager));
         tabPane.getTabs().add(gatewayTab);
 
+        Tab userDataStorageTab = new Tab("Storage");
+        userDataStorageTab.setContent(new UserDataStorageView(client));
+        tabPane.getTabs().add(userDataStorageTab);
+
         getChildren().add(tabPane);
     }
 
