@@ -15,6 +15,7 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import org.fejoa.gui.javafx.MainWindow;
+import org.fejoa.library.database.StorageDir;
 import org.fejoa.server.JettyServer;
 import org.fejoa.tests.CookiePerPortManager;
 
@@ -24,6 +25,8 @@ import java.net.CookiePolicy;
 
 
 public class ClientGui extends Application {
+    private final static String MAIN_DIR = "guiTest";
+
     public static void main(String[] args) {
         launch(args);
     }
@@ -32,7 +35,7 @@ public class ClientGui extends Application {
     public void start(Stage stage) throws Exception {
         startServer();
 
-        File homeDir = new File("guiTest");
+        File homeDir = new File(MAIN_DIR, "client");
         stage.setScene(new Scene(new MainWindow(homeDir)));
         stage.show();
     }
@@ -50,7 +53,7 @@ public class ClientGui extends Application {
         // allow cookies per port number in order so run multiple servers on localhost
         CookieHandler.setDefault(new CookiePerPortManager(null, CookiePolicy.ACCEPT_ALL));
 
-        server = new JettyServer("guiTestServer", 8080);
+        server = new JettyServer(StorageDir.appendDir(MAIN_DIR, "server"), 8080);
         server.start();
     }
 }

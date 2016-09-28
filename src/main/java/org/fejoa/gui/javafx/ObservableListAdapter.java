@@ -45,6 +45,7 @@ public class ObservableListAdapter<T> extends ObservableListBase<T> {
                 }
             }
         };
+        listModel.addListener(listener);
     }
 
     private void notifyAdded(int start, int end) {
