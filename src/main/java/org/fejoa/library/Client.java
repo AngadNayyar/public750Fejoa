@@ -61,6 +61,8 @@ public class Client {
     static public Client open(File homeDir, String password) throws IOException, CryptoException, JSONException {
         Client client = new Client(homeDir);
         client.userData = UserData.open(client.context, client.readUserDataSettings(), password);
+        StorageDir userConfigDir = client.userData.getConfigStore().getConfigDir("org.fejoa.client");
+        client.config = UserDataConfig.open(client.context, userConfigDir, client.userData);
 
         Remote gateway = client.userData.getGateway();
         client.context.registerRootPassword(gateway.getUser(), gateway.getServer(), password);

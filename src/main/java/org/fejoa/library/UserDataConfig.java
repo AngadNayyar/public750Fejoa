@@ -124,6 +124,10 @@ public class UserDataConfig extends StorageDirObject {
         return config;
     }
 
+    static public UserDataConfig open(FejoaContext context, StorageDir storageDir, UserData userData) {
+        return new UserDataConfig(context, storageDir, userData);
+    }
+
     public UserData getUserData() {
         return userData;
     }
