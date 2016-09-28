@@ -41,13 +41,21 @@ public class KeyPairData implements IStorageDirBundle {
         dir.writeString(Constants.ID_KEY, id);
         dir.writeBytes(PATH_PRIVATE_KEY, keyPair.getPrivate().getEncoded());
         dir.writeBytes(PATH_PUBLIC_KEY, keyPair.getPublic().getEncoded());
+        writeSettings(dir);
+    }
+
+    protected void writeSettings(StorageDir dir) throws IOException {
         CryptoSettingsIO.write(settings, dir, "");
+    }
+
+    protected void readSettings(StorageDir dir) throws IOException {
+        CryptoSettingsIO.read(settings, dir, "");
     }
 
     @Override
     public void read(StorageDir dir) throws IOException {
         id = dir.readString(Constants.ID_KEY);
-        CryptoSettingsIO.read(settings, dir, "");
+        readSettings(dir);
         PrivateKey privateKey;
         PublicKey publicKey;
         try {

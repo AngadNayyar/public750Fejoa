@@ -9,6 +9,7 @@ package org.fejoa.library;
 
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.crypto.CryptoSettings;
+import org.fejoa.library.crypto.CryptoSettingsIO;
 import org.fejoa.library.crypto.ICryptoInterface;
 import org.fejoa.library.database.StorageDir;
 
@@ -34,6 +35,16 @@ public class SigningKeyPair extends KeyPairData {
         SigningKeyPair signingKeyPair = new SigningKeyPair();
         signingKeyPair.read(dir);
         return signingKeyPair;
+    }
+
+    @Override
+    protected void writeSettings(StorageDir dir) throws IOException {
+        CryptoSettingsIO.write((CryptoSettings.Signature)settings, dir, "");
+    }
+
+    @Override
+    protected void readSettings(StorageDir dir) throws IOException {
+        CryptoSettingsIO.read((CryptoSettings.Signature)settings, dir, "");
     }
 
     public CryptoSettings.Signature getSignatureSettings() {
