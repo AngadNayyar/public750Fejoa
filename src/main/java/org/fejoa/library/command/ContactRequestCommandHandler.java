@@ -41,6 +41,8 @@ public class ContactRequestCommandHandler extends EnvelopeCommandHandler {
     protected IncomingCommandManager.ReturnValue handle(JSONObject command) throws Exception {
         String state = command.getString(ContactRequestCommand.STATE);
         String id = command.getString(Constants.SENDER_ID_KEY);
+        if (id.equals(""))
+            return new ReturnValue(IncomingCommandManager.ReturnValue.HANDLED, id, "invalid contact id");
         if (state.equals(ContactRequestCommand.FINISH_STATE))
             return new ReturnValue(IncomingCommandManager.ReturnValue.HANDLED, id, state);
 
