@@ -74,4 +74,18 @@ public class StorageLib {
         }
         return true;
     }
+
+    static public boolean copyDir(File sourceDir, File destinationDir) {
+        destinationDir.mkdirs();
+        for (File sub : sourceDir.listFiles()) {
+            boolean ok;
+            if (sub.isFile())
+                ok = copyFile(sub, new File(destinationDir, sub.getName()));
+            else
+                ok = copyDir(sub, new File(destinationDir, sub.getName()));
+            if (!ok)
+                return false;
+        }
+        return true;
+    }
 }
