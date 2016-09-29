@@ -108,10 +108,14 @@ public class StorageDirList<T> {
 
     public String add(T entry) throws IOException {
         String id = entryIO.getId(entry);
-        StorageDir subDir = new StorageDir(storageDir, id);
+        StorageDir subDir = getStorageDirForId(id);
         entryIO.write(entry, subDir);
         map.put(id, entry);
         return id;
+    }
+
+    protected StorageDir getStorageDirForId(String id) {
+        return new StorageDir(storageDir, id);
     }
 
     public void update(T entry) throws IOException {

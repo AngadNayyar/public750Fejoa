@@ -32,14 +32,13 @@ public class ContactStore extends StorageDirObject {
 
                     @Override
                     public void write(ContactPublic entry, StorageDir dir) throws IOException {
-                        dir.writeString(Constants.ID_KEY, entry.getId());
-                        entry.setStorageDir(dir);
+
                     }
                 });
     }
 
     public ContactPublic addContact(String id) throws IOException {
-        ContactPublic contact = new ContactPublic(context);
+        ContactPublic contact = new ContactPublic(context, contactList.getStorageDirForId(id));
         contact.setId(id);
         // contact needs an id before added to the contact list
         contactList.add(contact);

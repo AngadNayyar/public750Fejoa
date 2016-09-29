@@ -20,15 +20,6 @@ public class ContactPublic extends Contact<PublicKeyItem, PublicKeyItem> {
     private RemoteList remotes;
     private ContactBranchList contactBranchList;
 
-    /**
-     * Should not be called directly but by the contact store.
-     *
-     * @param context the used context.
-     */
-    ContactPublic(FejoaContext context) {
-        super(context, getEntryIO(), getEntryIO(), null);
-    }
-
     protected ContactPublic(FejoaContext context, StorageDir storageDir) {
         super(context, getEntryIO(), getEntryIO(),
                 storageDir);

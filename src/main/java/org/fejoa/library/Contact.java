@@ -23,7 +23,7 @@ abstract class Contact<SignKey, EncKey> implements IContactPublic {
     final protected StorageDirList.IEntryIO<EncKey> encEntryIO;
     protected StorageDir storageDir;
 
-    protected String id = "";
+    protected String id;
 
     protected StorageDirList<SignKey> signatureKeys;
     protected StorageDirList<EncKey> encryptionKeys;
@@ -42,13 +42,17 @@ abstract class Contact<SignKey, EncKey> implements IContactPublic {
         this.storageDir = dir;
 
         try {
-            id = storageDir.readString(Constants.ID_KEY);
+            read(storageDir);
         } catch (IOException e) {
             //e.printStackTrace();
         }
 
         signatureKeys = new StorageDirList<>(new StorageDir(dir, SIGNATURE_KEYS_DIR), signEntryIO);
         encryptionKeys = new StorageDirList<>(new StorageDir(dir, ENCRYPTION_KEYS_DIR), encEntryIO);
+    }
+
+    protected void read(StorageDir storageDir) throws IOException {
+        id = storageDir.readString(Constants.ID_KEY);
     }
 
     abstract public PublicKey getVerificationKey(KeyId keyId);
@@ -65,6 +69,7 @@ abstract class Contact<SignKey, EncKey> implements IContactPublic {
 
     public void setId(String id) throws IOException {
         this.id = id;
+        storageDir.writeString(Constants.ID_KEY, id);
     }
 
     public String getId() {
