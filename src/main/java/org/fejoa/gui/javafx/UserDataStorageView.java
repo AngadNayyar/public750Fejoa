@@ -83,6 +83,7 @@ public class UserDataStorageView extends SplitPane {
     }
 
     final private List<BranchItem> branchItems = new ArrayList<>();
+    final private HistoryView historyView = new HistoryView(null);
 
     public UserDataStorageView(Client client) {
         UserData userData = client.getUserData();
@@ -98,8 +99,7 @@ public class UserDataStorageView extends SplitPane {
         setOrientation(Orientation.HORIZONTAL);
         getItems().add(treeView);
         getItems().add(textArea);
-
-
+        getItems().add(historyView);
 
         for (BranchInfo branchInfo : userData.getBranchList().getEntries()) {
             StorageDir branchStorage;
@@ -124,8 +124,11 @@ public class UserDataStorageView extends SplitPane {
             @Override
             public void changed(ObservableValue<? extends TreeItem<String>> observable, TreeItem<String> old, TreeItem<String> newItem) {
                 try {
-                    if (newItem instanceof FileTreeEntry && isParent(item, newItem))
+                    if (newItem instanceof FileTreeEntry && isParent(item, newItem)) {
                         textArea.setText(storageDir.readString(((FileTreeEntry) newItem).path));
+                        if (historyView.getStorageDir() != storageDir)
+                            historyView.setTo(storageDir);
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

@@ -17,59 +17,6 @@ import java.io.*;
 import java.util.*;
 
 
-class CommitCache {
-    final private Map<HashValue, CommitBox> commitCache = new HashMap<>();
-    // All commits in this list as well are their parent are in the cached.
-    final private LinkedList<CommitBox> tailList = new LinkedList<>();
-    final private Repository repository;
-
-    public CommitCache(Repository repository) {
-        this.repository = repository;
-    }
-
-    public CommitBox getCommit(HashValue hashValue) throws IOException, CryptoException {
-        CommitBox commitBox = commitCache.get(hashValue);
-        if (commitBox != null)
-            return commitBox;
-        return loadCommit(hashValue);
-    }
-
-    private CommitBox loadCommit(final HashValue hashValue) throws IOException, CryptoException {
-        CommitBox head = repository.getHeadCommit();
-        if (head == null)
-            return null;
-        HashValue headHash = head.dataHash();
-        if (!commitCache.containsKey(headHash)) {
-            commitCache.put(headHash, head);
-            tailList.addFirst(head);
-            if (headHash.equals(hashValue))
-                return head;
-        }
-
-        while (tailList.size() > 0) {
-            CommitBox currentCommit = tailList.removeFirst();
-            CommitBox foundCommit = null;
-            for (BoxPointer boxPointer : currentCommit.getParents()) {
-                CommitBox parent = CommitBox.read(getCommitAccessor(), boxPointer);
-                HashValue parentHash = boxPointer.getDataHash();
-                if (parentHash.equals(hashValue))
-                    foundCommit = parent;
-                if (!commitCache.containsKey(parentHash)) {
-                    tailList.add(parent);
-                    commitCache.put(parentHash, parent);
-                }
-            }
-            if (foundCommit != null)
-                return foundCommit;
-        }
-        return null;
-    }
-
-    private IChunkAccessor getCommitAccessor() {
-        return repository.getCurrentTransaction().getCommitAccessor();
-    }
-}
-
 public class Repository implements IDatabaseInterface {
     final private File dir;
     final private String branch;
@@ -132,6 +79,10 @@ public class Repository implements IDatabaseInterface {
         return transaction;
     }
 
+    public IRepoChunkAccessors getAccessors() {
+        return accessors;
+    }
+
     @Override
     public HashValue getTip() throws IOException {
         if (getHeadCommit() == null)
@@ -146,6 +97,10 @@ public class Repository implements IDatabaseInterface {
         for (BoxPointer parent : headCommit.getParents())
             parents.add(parent.getDataHash());
         return parents;
+    }
+
+    public CommitCache getCommitCache() {
+        return commitCache;
     }
 
     @Override
@@ -227,7 +182,7 @@ public class Repository implements IDatabaseInterface {
         return file;
     }
 
-    static BoxPointer put(TypedBlob blob, IChunkAccessor accessor) throws IOException, CryptoException {
+    static public BoxPointer put(TypedBlob blob, IChunkAccessor accessor) throws IOException, CryptoException {
         ChunkSplitter nodeSplitter = Repository.defaultNodeSplitter(RabinSplitter.CHUNK_8KB);
         ChunkContainer chunkContainer = new ChunkContainer(accessor, nodeSplitter);
 
