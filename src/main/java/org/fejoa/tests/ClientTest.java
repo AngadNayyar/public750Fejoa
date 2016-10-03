@@ -1,5 +1,5 @@
 /*
- * Copyright 2015.
+ * Copyright 2015 - 2016.
  * Distributed under the terms of the GPLv3 License.
  *
  * Authors:
@@ -477,7 +477,7 @@ public class ClientTest extends TestCase {
         }
     }
 
-    private void chainUpTasks(TestTask... tasks) {
+    static public void chainUpTasks(TestTask... tasks) {
         for (int i = 0; i < tasks.length - 1; i++)
             tasks[i].setNextTask(tasks[i + 1]);
     }
