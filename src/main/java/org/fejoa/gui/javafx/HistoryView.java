@@ -14,10 +14,7 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.TextFieldListCell;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
-import org.fejoa.chunkstore.BoxPointer;
-import org.fejoa.chunkstore.CommitBox;
-import org.fejoa.chunkstore.HashValue;
-import org.fejoa.chunkstore.Repository;
+import org.fejoa.chunkstore.*;
 import org.fejoa.library.BranchInfo;
 import org.fejoa.library.UserData;
 import org.fejoa.library.crypto.CryptoException;
@@ -120,10 +117,17 @@ public class HistoryView extends SplitPane {
                 CommitBox commitBox = newItem.getCommitBox();
                 Repository repository = (Repository) historyView.getStorageDir().getDatabase();
                 List<HashValue> parents = new ArrayList<>();
+                IChunkAccessor commitAccessor = repository.getCurrentTransaction().getCommitAccessor();
                 for (BoxPointer parent : commitBox.getParents()) {
-                    parents.add(parent.getDataHash());
+                    try {
+                        CommitBox parentCommit = CommitBox.read(commitAccessor, parent);
+                        parents.add(parentCommit.dataHash());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        continue;
+                    }
                 }
-                storageDirDiffView.setTo(repository, commitBox.getBoxPointer().getDataHash(), parents);
+                storageDirDiffView.setTo(repository, commitBox.dataHash(), parents);
 
                 dirView.getRoot().getChildren().clear();
                 try {
