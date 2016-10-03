@@ -62,7 +62,7 @@ public class CommitCache {
             CommitBox foundCommit = null;
             for (BoxPointer boxPointer : currentCommit.getParents()) {
                 CommitBox parent = CommitBox.read(getCommitAccessor(), boxPointer);
-                HashValue parentHash = boxPointer.getDataHash();
+                HashValue parentHash = parent.dataHash();
                 if (parentHash.equals(hashValue))
                     foundCommit = parent;
                 if (!commitCache.containsKey(parentHash)) {

@@ -57,6 +57,12 @@ public class Repository implements IDatabaseInterface {
         commitCache = new CommitCache(this);
     }
 
+    public Repository(Repository parent, CommitBox headCommit) throws IOException, CryptoException {
+        this(parent.dir, parent.branch, parent.accessors, parent.commitCallback);
+
+        setHeadCommit(headCommit);
+    }
+
     static public ChunkSplitter defaultNodeSplitter(int targetChunkSize) {
         float kFactor = (32f) / (32 * 3 + 8);
         return new RabinSplitter((int)(kFactor * targetChunkSize),
@@ -65,6 +71,12 @@ public class Repository implements IDatabaseInterface {
 
     public CommitBox getHeadCommit() {
         return headCommit;
+    }
+
+    private void setHeadCommit(CommitBox headCommit) throws IOException, CryptoException {
+        this.headCommit = headCommit;
+        DirectoryBox root = DirectoryBox.read(transaction.getTreeAccessor(), headCommit.getTree());
+        this.treeAccessor = new TreeAccessor(root, transaction);
     }
 
     public String getBranch() {

@@ -12,10 +12,7 @@ import javafx.scene.control.ListView;
 import org.fejoa.chunkstore.*;
 import org.fejoa.chunkstore.sync.DiffIterator;
 import org.fejoa.chunkstore.sync.TreeIterator;
-import org.fejoa.library.crypto.CryptoException;
-import org.fejoa.library.database.DatabaseDiff;
 
-import java.io.IOException;
 import java.util.List;
 
 
@@ -42,7 +39,7 @@ public class StorageDirDiffView extends ListView<String>{
             CommitBox endCommit = repository.getCommitCache().getCommit(parent);
 
             IChunkAccessor treeAccessor = repository.getCurrentTransaction().getTreeAccessor();
-            TreeIterator diffIterator = new TreeIterator(treeAccessor, baseCommit, treeAccessor, endCommit);
+            TreeIterator diffIterator = new TreeIterator(treeAccessor, endCommit, treeAccessor, baseCommit);
             while (diffIterator.hasNext()) {
                 DiffIterator.Change<DirectoryBox.Entry> change = diffIterator.next();
                 switch (change.type) {

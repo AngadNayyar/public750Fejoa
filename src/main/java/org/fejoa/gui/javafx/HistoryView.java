@@ -9,9 +9,8 @@ package org.fejoa.gui.javafx;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
-import javafx.scene.control.SplitPane;
+import javafx.geometry.Orientation;
+import javafx.scene.control.*;
 import javafx.scene.control.cell.TextFieldListCell;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
@@ -21,9 +20,11 @@ import org.fejoa.chunkstore.HashValue;
 import org.fejoa.chunkstore.Repository;
 import org.fejoa.library.BranchInfo;
 import org.fejoa.library.UserData;
+import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.database.DatabaseDiff;
 import org.fejoa.library.database.StorageDir;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -78,15 +79,24 @@ class BranchList extends ListView<BranchInfo> {
 public class HistoryView extends SplitPane {
     final private HistoryListView historyView = new HistoryListView(null);
     final private StorageDirDiffView storageDirDiffView = new StorageDirDiffView();
+    final private TreeView<String> dirView = new TreeView<>();
 
     public HistoryView(final UserData userData) {
         BranchList branchList = new BranchList(userData);
         getItems().add(branchList);
         getItems().add(historyView);
-        getItems().add(storageDirDiffView);
+
+        SplitPane diffDirSplitPane = new SplitPane(storageDirDiffView, dirView);
+        diffDirSplitPane.setOrientation(Orientation.VERTICAL);
+
+        getItems().add(diffDirSplitPane);
 
         setDividerPosition(0, 0.3);
         setDividerPosition(1, 0.6);
+
+        final TreeItem<String> item = new TreeItem<> ("Tree");
+        item.setExpanded(false);
+        dirView.setRoot(item);
 
         branchList.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<BranchInfo>() {
             @Override
@@ -114,7 +124,29 @@ public class HistoryView extends SplitPane {
                     parents.add(parent.getDataHash());
                 }
                 storageDirDiffView.setTo(repository, commitBox.getBoxPointer().getDataHash(), parents);
+
+                dirView.getRoot().getChildren().clear();
+                try {
+                    Repository repo = new Repository(repository, commitBox);
+                    fillTree(dirView.getRoot(), new StorageDir(repo, ""), "");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         });
+    }
+
+    private void fillTree(TreeItem<String> rootItem, StorageDir storageDir, String path) throws IOException {
+        List<String> dirs = storageDir.listDirectories(path);
+        for (String dir : dirs) {
+            TreeItem<String> dirItem = new TreeItem<String> (dir);
+            rootItem.getChildren().add(dirItem);
+            fillTree(dirItem, storageDir, StorageDir.appendDir(path, dir));
+        }
+        List<String> files = storageDir.listFiles(path);
+        for (String file : files) {
+            UserDataStorageView.FileTreeEntry item = new UserDataStorageView.FileTreeEntry(file, StorageDir.appendDir(path, file));
+            rootItem.getChildren().add(item);
+        }
     }
 }

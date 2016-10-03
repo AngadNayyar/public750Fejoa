@@ -27,7 +27,7 @@ import java.util.List;
 
 
 public class UserDataStorageView extends SplitPane {
-    class FileTreeEntry extends TreeItem<String> {
+    static class FileTreeEntry extends TreeItem<String> {
         final public String path;
         public FileTreeEntry(String name, String path) {
             super(name);
@@ -36,7 +36,7 @@ public class UserDataStorageView extends SplitPane {
         }
     }
 
-    class BranchItem {
+    static class BranchItem {
         private final StorageDir.IListener storageDirListener;
         final TreeItem<String> root;
 

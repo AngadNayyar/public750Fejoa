@@ -63,14 +63,15 @@ public class HistoryListView extends ListView<HistoryListView.HistoryEntry> {
             return;
         }
         final Repository repository = getRepository();
-        update(repository.getHeadCommit(), repository.getCommitCache());
+        final IChunkAccessor commitAccessor = repository.getCurrentTransaction().getCommitAccessor();
+        update(repository.getHeadCommit(), commitAccessor);
 
         this.listener = new StorageDir.IListener() {
             @Override
             public void onTipChanged(DatabaseDiff diff, String base, String tip) {
                 if (HistoryListView.this.storageDir != storageDirIn)
                     return;
-                update(repository.getHeadCommit(), repository.getCommitCache());
+                update(repository.getHeadCommit(), commitAccessor);
             }
         };
         storageDir.addListener(listener);
@@ -85,11 +86,11 @@ public class HistoryListView extends ListView<HistoryListView.HistoryEntry> {
         historyList.clear();
     }
 
-    private void update(CommitBox head, CommitCache commitCache) {
+    private void update(CommitBox head, IChunkAccessor commitAccessor) {
         clear();
 
         try {
-            fill(head, commitCache);
+            fill(head, commitAccessor);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -218,12 +219,12 @@ public class HistoryListView extends ListView<HistoryListView.HistoryEntry> {
         }
     }
 
-    private Chain loadLeftMostChain(CommitCache commitCache, CommitBox start, List<Chain> stopChains)
+    private Chain loadLeftMostChain(IChunkAccessor commitAccessor, CommitBox start, List<Chain> stopChains)
             throws IOException, CryptoException {
         Chain chain = new Chain(historyList.getNewChainId());
         chain.commits.add(start);
         while (chain.oldest().getParents().size() > 0) {
-            CommitBox parent = commitCache.getCommit(chain.oldest().getParents().get(0).getDataHash());
+            CommitBox parent = CommitBox.read(commitAccessor, chain.oldest().getParents().get(0));
             for (Chain stopChain : stopChains) {
                 if (stopChain.contains(parent))
                     return chain;
@@ -239,19 +240,19 @@ public class HistoryListView extends ListView<HistoryListView.HistoryEntry> {
         return historyList;
     }
 
-    private void fill(CommitBox head, CommitCache commitCache) throws IOException, CryptoException {
+    private void fill(CommitBox head, IChunkAccessor commitAccessor) throws IOException, CryptoException {
         if (head == null)
             return;
         CommitBox current = head;
         List<Chain> activeChains = new ArrayList<>();
-        Chain chain = loadLeftMostChain(commitCache, head, activeChains);
+        Chain chain = loadLeftMostChain(commitAccessor, head, activeChains);
         activeChains.add(chain);
-        fillChain(chain, commitCache, activeChains);
+        fillChain(chain, commitAccessor, activeChains);
 
         historyListToViewItems();
     }
 
-    private void fillChain(Chain chain, CommitCache commitCache, List<Chain> activeChains)
+    private void fillChain(Chain chain, IChunkAccessor commitAccessor, List<Chain> activeChains)
             throws IOException, CryptoException {
         for (CommitBox commit : chain.commits) {
             HistoryEntry historyEntry = new HistoryEntry(chain.chainId, commit);
@@ -263,8 +264,8 @@ public class HistoryListView extends ListView<HistoryListView.HistoryEntry> {
             if (commit.getParents().size() > 1) {
                 List<Chain> parentChains = new ArrayList<>();
                 for (int i = 1; i < commit.getParents().size(); i++) {
-                    CommitBox parent = commitCache.getCommit(commit.getParents().get(i).getDataHash());
-                    Chain parentChain = loadLeftMostChain(commitCache, parent, activeChains);
+                    CommitBox parent = CommitBox.read(commitAccessor, commit.getParents().get(i));
+                    Chain parentChain = loadLeftMostChain(commitAccessor, parent, activeChains);
                     parentChains.add(parentChain);
                 }
                 Collections.sort(parentChains, new Comparator<Chain>() {
@@ -276,7 +277,7 @@ public class HistoryListView extends ListView<HistoryListView.HistoryEntry> {
                 for (Chain parentChain : parentChains)
                     activeChains.add(parentChain);
                 for (Chain parentChain : parentChains)
-                    fillChain(parentChain, commitCache, activeChains);
+                    fillChain(parentChain, commitAccessor, activeChains);
             }
         }
         activeChains.remove(chain);
