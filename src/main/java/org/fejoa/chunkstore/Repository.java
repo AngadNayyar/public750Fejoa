@@ -309,6 +309,8 @@ public class Repository implements IDatabaseInterface {
 
         synchronized (Repository.this) {
             BoxPointer rootTree = treeAccessor.build();
+            if (mergeParents.size() == 0 && headCommit != null && headCommit.getTree().equals(rootTree))
+                return null;
             CommitBox commitBox = CommitBox.create();
             commitBox.setTree(rootTree);
             if (headCommit != null)
