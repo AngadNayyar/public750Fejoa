@@ -238,6 +238,8 @@ public class Repository implements IDatabaseInterface {
             }
             if (headCommit.dataHash().equals(otherBranch.dataHash()))
                 return false;
+            if (commitCache.isParent(headCommit.dataHash(), otherBranch.dataHash()))
+                return false;
 
             CommonAncestorsFinder.Chains chains = CommonAncestorsFinder.find(transaction.getCommitAccessor(),
                     headCommit, otherTransaction.getCommitAccessor(), otherBranch);

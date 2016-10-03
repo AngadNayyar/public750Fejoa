@@ -32,6 +32,19 @@ public class CommitCache {
         return loadCommit(hashValue);
     }
 
+    public boolean isParent(HashValue commit, HashValue isParentCommit) throws IOException, CryptoException {
+        CommitBox commitBox = getCommit(commit);
+        for (BoxPointer parent : commitBox.getParents()) {
+            CommitBox parentCommit = CommitBox.read(getCommitAccessor(), parent);
+            HashValue parentHash = parentCommit.dataHash();
+            if (parentHash.equals(isParentCommit))
+                return true;
+            if (isParent(parentHash, isParentCommit))
+                return true;
+        }
+        return false;
+    }
+
     private CommitBox loadCommit(final HashValue hashValue) throws IOException, CryptoException {
         CommitBox head = repository.getHeadCommit();
         if (head == null)
