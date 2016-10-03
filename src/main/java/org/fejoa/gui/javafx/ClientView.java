@@ -111,6 +111,10 @@ public class ClientView extends HBox {
         userDataStorageTab.setContent(new UserDataStorageView(client));
         tabPane.getTabs().add(userDataStorageTab);
 
+        Tab historyTab = new Tab("History");
+        historyTab.setContent(new HistoryView(client.getUserData()));
+        tabPane.getTabs().add(historyTab);
+
         Tab contactsTab = new Tab("Contacts");
         contactsTab.setContent(new ContactsView(client, statusManager));
         tabPane.getTabs().add(contactsTab);

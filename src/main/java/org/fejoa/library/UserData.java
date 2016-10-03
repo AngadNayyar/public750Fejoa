@@ -77,6 +77,14 @@ public class UserData extends StorageDirObject {
         return branchList;
     }
 
+    public BranchInfo findBranchInfo(String branch) {
+        for (BranchInfo branchInfo : branchList.getEntries()) {
+            if (branchInfo.equals(branch))
+                return branchInfo;
+        }
+        return null;
+    }
+
     public ContactStore getContactStore() {
         return contactStore;
     }

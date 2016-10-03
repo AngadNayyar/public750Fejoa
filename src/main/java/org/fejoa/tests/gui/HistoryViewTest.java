@@ -8,7 +8,7 @@ import org.fejoa.chunkstore.BoxPointer;
 import org.fejoa.chunkstore.CommitBox;
 import org.fejoa.chunkstore.IRepoChunkAccessors;
 import org.fejoa.chunkstore.Repository;
-import org.fejoa.gui.javafx.HistoryView;
+import org.fejoa.gui.javafx.HistoryListView;
 import org.fejoa.library.FejoaContext;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.support.StorageLib;
@@ -29,7 +29,7 @@ public class HistoryViewTest extends Application {
         FejoaContext context = new FejoaContext(MAIN_DIR);
         StorageDir storageDir = context.getStorage("test", null, null);
 
-        HistoryView historyView = new HistoryView(storageDir);
+        HistoryListView historyView = new HistoryListView(storageDir);
 
         storageDir.writeString("test", "test");
         storageDir.commit("commit 1");
@@ -42,6 +42,7 @@ public class HistoryViewTest extends Application {
         storageDir.writeString("test3", "test3");
         storageDir.commit("commit 3");
         CommitBox commit3 = repository.getHeadCommit();
+
 
         CommitBox branchCommit = CommitBox.create();
         branchCommit.setTree(base0.getTree());
