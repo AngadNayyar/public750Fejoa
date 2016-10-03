@@ -46,7 +46,8 @@ public class UserData extends StorageDirObject {
         this.keyStore = keyStore;
 
         branchList = new BranchList(new StorageDir(storageDir, BRANCHES_PATH));
-        branchList.add(new BranchInfo(keyStore.getStorageDir().getBranch(), "KeyStore"));
+        if (findBranchInfo(keyStore.getStorageDir().getBranch()) == null)
+            branchList.add(new BranchInfo(keyStore.getStorageDir().getBranch(), "KeyStore"));
 
         myself = new ContactPrivate(context, new StorageDir(storageDir, MYSELF_PATH));
         contactStore = new ContactStore(context, new StorageDir(storageDir, CONTACT_PATH));
@@ -79,7 +80,7 @@ public class UserData extends StorageDirObject {
 
     public BranchInfo findBranchInfo(String branch) {
         for (BranchInfo branchInfo : branchList.getEntries()) {
-            if (branchInfo.equals(branch))
+            if (branchInfo.getBranch().equals(branch))
                 return branchInfo;
         }
         return null;

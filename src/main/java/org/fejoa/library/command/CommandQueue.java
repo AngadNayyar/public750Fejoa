@@ -60,8 +60,14 @@ abstract class CommandQueue<T extends CommandQueue.Entry> {
         this.storageDir = new StorageDir(dir);
         this.storageDir.setFilter(null);
 
-        // write dummy file TODO: fix in the database
-        dir.writeString(Constants.ID_KEY, dir.getBranch());
+        String oldIdKey = null;
+        try {
+            oldIdKey = dir.readString(Constants.ID_KEY);
+        } catch (IOException e) {
+
+        }
+        if (oldIdKey == null || !oldIdKey.equals(dir.getBranch()))
+            dir.writeString(Constants.ID_KEY, dir.getBranch());
     }
 
     public String getId() {
