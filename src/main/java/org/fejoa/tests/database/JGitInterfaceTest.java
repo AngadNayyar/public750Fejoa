@@ -5,7 +5,7 @@
  * Authors:
  *      Clemens Zeidler <czei002@aucklanduni.ac.nz>
  */
-package org.fejoa.tests;
+package org.fejoa.tests.database;
 
 import junit.framework.TestCase;
 import org.fejoa.chunkstore.Config;
@@ -19,7 +19,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
+
 
 public class JGitInterfaceTest extends TestCase {
     final List<String> cleanUpDirs = new ArrayList<String>();
@@ -110,7 +112,7 @@ public class JGitInterfaceTest extends TestCase {
 
         git.commit();
 
-        List<String> entries = git.listDirectories("");
+        Collection<String> entries = git.listDirectories("");
         assertTrue(equals(entries, Arrays.asList("dir", "dir2")));
 
         entries = git.listDirectories("dir");
@@ -159,7 +161,7 @@ public class JGitInterfaceTest extends TestCase {
 
 
         git.remove("test2");
-        List<String> entries = git.listFiles("");
+        Collection<String> entries = git.listFiles("");
         assertTrue(equals(entries, Arrays.asList("test1")));
 
         git.remove("dir/sub1/test7");
@@ -184,7 +186,7 @@ public class JGitInterfaceTest extends TestCase {
         assertTrue(entries.size() == 0);
     }
 
-    private boolean equals(List<String> list1, List<String> list2) {
+    private boolean equals(Collection<String> list1, Collection<String> list2) {
         return list1.containsAll(list2) && list2.containsAll(list1);
     }
 

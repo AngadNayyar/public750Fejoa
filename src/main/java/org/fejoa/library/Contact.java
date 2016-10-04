@@ -8,6 +8,7 @@
 package org.fejoa.library;
 
 import org.fejoa.library.crypto.*;
+import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.database.StorageDir;
 
 import java.io.IOException;
@@ -21,7 +22,7 @@ abstract class Contact<SignKey, EncKey> implements IContactPublic {
     final protected FejoaContext context;
     final protected StorageDirList.IEntryIO<SignKey> signEntryIO;
     final protected StorageDirList.IEntryIO<EncKey> encEntryIO;
-    protected StorageDir storageDir;
+    protected IOStorageDir storageDir;
 
     protected String id;
 
@@ -29,29 +30,30 @@ abstract class Contact<SignKey, EncKey> implements IContactPublic {
     protected StorageDirList<EncKey> encryptionKeys;
 
     protected Contact(FejoaContext context, StorageDirList.IEntryIO<SignKey> signEntryIO,
-                      StorageDirList.IEntryIO<EncKey> encEntryIO, StorageDir dir) {
+                      StorageDirList.IEntryIO<EncKey> encEntryIO, IOStorageDir dir) {
         this.context = context;
         this.signEntryIO = signEntryIO;
         this.encEntryIO = encEntryIO;
 
-        if (dir != null)
+        if (dir != null) {
             setStorageDir(dir);
+
+            try {
+                read(storageDir);
+            } catch (IOException e) {
+                //e.printStackTrace();
+            }
+        }
     }
 
-    protected void setStorageDir(StorageDir dir) {
+    protected void setStorageDir(IOStorageDir dir) {
         this.storageDir = dir;
 
-        try {
-            read(storageDir);
-        } catch (IOException e) {
-            //e.printStackTrace();
-        }
-
-        signatureKeys = new StorageDirList<>(new StorageDir(dir, SIGNATURE_KEYS_DIR), signEntryIO);
-        encryptionKeys = new StorageDirList<>(new StorageDir(dir, ENCRYPTION_KEYS_DIR), encEntryIO);
+        signatureKeys = new StorageDirList<>(new IOStorageDir(dir, SIGNATURE_KEYS_DIR), signEntryIO);
+        encryptionKeys = new StorageDirList<>(new IOStorageDir(dir, ENCRYPTION_KEYS_DIR), encEntryIO);
     }
 
-    protected void read(StorageDir storageDir) throws IOException {
+    protected void read(IOStorageDir storageDir) throws IOException {
         id = storageDir.readString(Constants.ID_KEY);
     }
 
@@ -84,7 +86,7 @@ abstract class Contact<SignKey, EncKey> implements IContactPublic {
         return encryptionKeys;
     }
 
-    public void addSignatureKey(SignKey key) throws IOException {
+    public void addSignatureKey(SignKey key) throws IOException, CryptoException {
         signatureKeys.add(key);
     }
 
@@ -92,7 +94,7 @@ abstract class Contact<SignKey, EncKey> implements IContactPublic {
         return signatureKeys.get(id.toString());
     }
 
-    public void addEncryptionKey(EncKey key) throws IOException {
+    public void addEncryptionKey(EncKey key) throws IOException, CryptoException {
         encryptionKeys.add(key);
     }
 

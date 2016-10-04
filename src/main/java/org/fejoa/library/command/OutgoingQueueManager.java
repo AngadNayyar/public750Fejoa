@@ -63,7 +63,7 @@ public class OutgoingQueueManager {
                     OutgoingCommandQueue.Entry command = commands.get(i);
                     send(queue, command, observer, commands.size(), i);
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
@@ -96,10 +96,10 @@ public class OutgoingQueueManager {
                         if (result.status == Portal.Errors.DONE) {
                             observer.onProgress(new TaskUpdate(TASK_NAME, totalCommands, currentCommand + 1,
                                     "command sent"));
-                            queue.removeCommand(entry);
                             try {
+                                queue.removeCommand(entry);
                                 queue.commit();
-                            } catch (IOException e) {
+                            } catch (Exception e) {
                                 e.printStackTrace();
                             }
                         }

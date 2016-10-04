@@ -7,13 +7,16 @@
  */
 package org.fejoa.library.command;
 
+import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.crypto.CryptoHelper;
 import org.fejoa.library.Constants;
 import org.fejoa.library.IStorageDirBundle;
+import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.database.StorageDir;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 
@@ -44,12 +47,12 @@ abstract class CommandQueue<T extends CommandQueue.Entry> {
         }
 
         @Override
-        public void write(StorageDir dir) throws IOException {
+        public void write(IOStorageDir dir) throws IOException, CryptoException {
             dir.writeBytes(COMMAND_KEY, data);
         }
 
         @Override
-        public void read(StorageDir dir) throws IOException {
+        public void read(IOStorageDir dir) throws IOException, CryptoException {
             this.data = dir.readBytes(COMMAND_KEY);
         }
     }
@@ -82,23 +85,23 @@ abstract class CommandQueue<T extends CommandQueue.Entry> {
         return storageDir;
     }
 
-    protected void addCommand(T command) throws IOException {
-        StorageDir dir = new StorageDir(storageDir, command.hash());
+    protected void addCommand(T command) throws IOException, CryptoException {
+        IOStorageDir dir = new IOStorageDir(storageDir, command.hash());
         command.write(dir);
     }
 
-    public List<T> getCommands() throws IOException {
+    public List<T> getCommands() throws IOException, CryptoException {
         List<T> commands = new ArrayList<>();
         getCommands(storageDir, commands);
         return commands;
     }
 
-    private void getCommands(StorageDir dir, List<T> list) throws IOException {
-        List<String> hashes = dir.listDirectories("");
+    private void getCommands(IOStorageDir dir, List<T> list) throws IOException, CryptoException {
+        Collection<String> hashes = dir.listDirectories("");
         for (String hash : hashes) {
             try {
                 T entry = instantiate();
-                entry.read(new StorageDir(dir, hash));
+                entry.read(new IOStorageDir(dir, hash));
                 list.add(entry);
             } catch (IOException e) {
                 dir.remove(hash);
@@ -106,7 +109,7 @@ abstract class CommandQueue<T extends CommandQueue.Entry> {
         }
     }
 
-    public void removeCommand(T command) {
+    public void removeCommand(T command) throws IOException, CryptoException {
         storageDir.remove(command.hash());
     }
 

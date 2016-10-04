@@ -7,6 +7,8 @@
  */
 package org.fejoa.library;
 
+import org.fejoa.library.crypto.CryptoException;
+import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.database.StorageDir;
 
 import java.io.IOException;
@@ -26,18 +28,18 @@ public class ContactStore extends StorageDirObject {
                     }
 
                     @Override
-                    public ContactPublic read(StorageDir dir) throws IOException {
+                    public ContactPublic read(IOStorageDir dir) throws IOException {
                         return new ContactPublic(context, dir);
                     }
 
                     @Override
-                    public void write(ContactPublic entry, StorageDir dir) throws IOException {
+                    public void write(ContactPublic entry, IOStorageDir dir) throws IOException {
 
                     }
                 });
     }
 
-    public ContactPublic addContact(String id) throws IOException {
+    public ContactPublic addContact(String id) throws IOException, CryptoException {
         ContactPublic contact = new ContactPublic(context, contactList.getStorageDirForId(id));
         contact.setId(id);
         // contact needs an id before added to the contact list

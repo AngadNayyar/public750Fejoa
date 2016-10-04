@@ -76,29 +76,33 @@ public class IncomingCommandManager extends WeakListenable<IncomingCommandManage
             StorageDir.IListener listener = new StorageDir.IListener() {
                 @Override
                 public void onTipChanged(DatabaseDiff diff, String base, String tip) {
-                    try {
-                        onNewCommands(queue);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+                    handleCommands(queue);
                 }
             };
             hardRefList.add(listener);
             dir.addListener(listener);
+
+            handleCommands(queue);
         }
     }
 
-    private void onNewCommands(IncomingCommandQueue queue) throws IOException {
-        List<CommandQueue.Entry> commands = queue.getCommands();
-        boolean anyHandled = false;
-        for (CommandQueue.Entry command : commands) {
-            if (handleCommand(queue, command)) {
-                anyHandled = true;
-                break;
+    private void handleCommands(IncomingCommandQueue queue) {
+        try {
+            List<CommandQueue.Entry> commands = queue.getCommands();
+            boolean anyHandled = false;
+            for (CommandQueue.Entry command : commands) {
+                if (handleCommand(queue, command)) {
+                    anyHandled = true;
+                    break;
+                }
             }
+            if (anyHandled)
+                queue.commit();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (CryptoException e) {
+            e.printStackTrace();
         }
-        if (anyHandled)
-            queue.commit();
     }
 
     private boolean handleCommand(IncomingCommandQueue queue, CommandQueue.Entry command) {
@@ -123,7 +127,11 @@ public class IncomingCommandManager extends WeakListenable<IncomingCommandManage
                 continue;
             handled = true;
             if (returnValue.status == ReturnValue.HANDLED) {
-                queue.removeCommand(command);
+                try {
+                    queue.removeCommand(command);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
                 notifyOnCommandReceived(returnValue);
             } else if (returnValue.status == ReturnValue.RETRY)
                 retryHandlers.add(handler);

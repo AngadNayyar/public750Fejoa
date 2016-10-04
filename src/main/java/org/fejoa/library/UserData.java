@@ -40,7 +40,7 @@ public class UserData extends StorageDirObject {
     final private RemoteList remoteStore;
 
     protected UserData(FejoaContext context, StorageDir storageDir, KeyStore keyStore)
-            throws IOException {
+            throws IOException, CryptoException {
         super(context, storageDir);
 
         this.keyStore = keyStore;
@@ -70,7 +70,7 @@ public class UserData extends StorageDirObject {
         return myself;
     }
 
-    public void addBranch(BranchInfo branchEntry) throws IOException {
+    public void addBranch(BranchInfo branchEntry) throws IOException, CryptoException {
         branchList.add(branchEntry);
     }
 

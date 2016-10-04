@@ -7,6 +7,7 @@
  */
 package org.fejoa.library;
 
+import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.database.StorageDir;
 
 import java.io.IOException;
@@ -21,7 +22,7 @@ public class BranchList extends StorageDirList<BranchInfo> {
             }
 
             @Override
-            public BranchInfo read(StorageDir dir) throws IOException {
+            public BranchInfo read(IOStorageDir dir) throws IOException {
                 return BranchInfo.read(idFromStoragePath(dir), dir);
             }
         });

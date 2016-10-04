@@ -8,6 +8,8 @@
 package org.fejoa.library.command;
 
 import org.fejoa.library.Remote;
+import org.fejoa.library.crypto.CryptoException;
+import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.database.StorageDir;
 
 import java.io.IOException;
@@ -34,7 +36,7 @@ public class OutgoingCommandQueue extends CommandQueue<OutgoingCommandQueue.Entr
         }
 
         @Override
-        public void write(StorageDir dir) throws IOException {
+        public void write(IOStorageDir dir) throws IOException, CryptoException {
             super.write(dir);
 
             dir.writeString(USER_KEY, user);
@@ -42,7 +44,7 @@ public class OutgoingCommandQueue extends CommandQueue<OutgoingCommandQueue.Entr
         }
 
         @Override
-        public void read(StorageDir dir) throws IOException {
+        public void read(IOStorageDir dir) throws IOException, CryptoException {
             super.read(dir);
 
             user = dir.readString(USER_KEY);
@@ -62,7 +64,8 @@ public class OutgoingCommandQueue extends CommandQueue<OutgoingCommandQueue.Entr
         super(dir);
     }
 
-    public void updateReceiver(String oldUser, String oldServer, String newUser, String newServer) throws IOException {
+    public void updateReceiver(String oldUser, String oldServer, String newUser, String newServer) throws IOException,
+            CryptoException {
         List<Entry> commands = getCommands();
         for (Entry entry : commands) {
             if (!entry.getUser().equals(oldUser) && !entry.getServer().equals(oldServer))
@@ -72,12 +75,12 @@ public class OutgoingCommandQueue extends CommandQueue<OutgoingCommandQueue.Entr
         }
     }
 
-    public void post(ICommand command, Remote receiver, boolean commit) throws IOException {
+    public void post(ICommand command, Remote receiver, boolean commit) throws IOException, CryptoException {
         post(command, receiver.getUser(), receiver.getServer(), commit);
     }
 
     public void post(ICommand command, String user, String server, boolean commit)
-            throws IOException {
+            throws IOException, CryptoException {
 
         OutgoingCommandQueue.Entry entry = new OutgoingCommandQueue.Entry(command.getCommand(), user, server);
         addCommand(entry);
@@ -87,7 +90,7 @@ public class OutgoingCommandQueue extends CommandQueue<OutgoingCommandQueue.Entr
     }
 
     public void post(ICommand command, String user, String server)
-            throws IOException {
+            throws IOException, CryptoException {
         post(command, user, server, true);
     }
 

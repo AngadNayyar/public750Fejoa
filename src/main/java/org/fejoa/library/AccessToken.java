@@ -8,6 +8,7 @@
 package org.fejoa.library;
 
 import org.fejoa.library.crypto.*;
+import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.crypto.CryptoSettingsIO;
 import org.json.JSONException;
@@ -19,6 +20,7 @@ import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 
@@ -47,7 +49,7 @@ public class AccessToken implements IStorageDirBundle {
         return new AccessToken(context);
     }
 
-    static public AccessToken open(FejoaContext context, StorageDir storageDir) throws IOException {
+    static public AccessToken open(FejoaContext context, IOStorageDir storageDir) throws IOException, CryptoException {
         return new AccessToken(context, storageDir);
     }
 
@@ -62,7 +64,7 @@ public class AccessToken implements IStorageDirBundle {
         accessSignatureKey = crypto.generateKeyPair(accessSignatureKeySettings);
     }
 
-    private AccessToken(FejoaContext context, StorageDir storageDir) throws IOException {
+    private AccessToken(FejoaContext context, IOStorageDir storageDir) throws IOException, CryptoException {
         this.context = context;
 
         contactAuthKeySettings = new CryptoSettings.Signature();
@@ -113,40 +115,34 @@ public class AccessToken implements IStorageDirBundle {
     }
 
     @Override
-    public void write(StorageDir dir) throws IOException {
+    public void write(IOStorageDir dir) throws IOException, CryptoException {
         // the public keys must be readable by the server
-        StorageDir plainDir = new StorageDir(dir);
-        plainDir.setFilter(null);
 
-        CryptoSettingsIO.write(contactAuthKeySettings, plainDir, CONTACT_AUTH_KEY_SETTINGS_KEY);
-        plainDir.writeBytes(CONTACT_AUTH_PUBLIC_KEY_KEY, contactAuthKey.getPublic().getEncoded());
+        CryptoSettingsIO.write(contactAuthKeySettings, dir, CONTACT_AUTH_KEY_SETTINGS_KEY);
+        dir.writeBytes(CONTACT_AUTH_PUBLIC_KEY_KEY, contactAuthKey.getPublic().getEncoded());
         dir.writeBytes(CONTACT_AUTH_PRIVATE_KEY_KEY, contactAuthKey.getPrivate().getEncoded());
 
-        CryptoSettingsIO.write(accessSignatureKeySettings, plainDir, SIGNATURE_KEY_SETTINGS_KEY);
-        plainDir.writeBytes(ACCESS_VERIFICATION_KEY_KEY, accessSignatureKey.getPublic().getEncoded());
+        CryptoSettingsIO.write(accessSignatureKeySettings, dir, SIGNATURE_KEY_SETTINGS_KEY);
+        dir.writeBytes(ACCESS_VERIFICATION_KEY_KEY, accessSignatureKey.getPublic().getEncoded());
         dir.writeBytes(ACCESS_SIGNING_KEY_KEY, accessSignatureKey.getPrivate().getEncoded());
 
         dir.writeString(ACCESS_ENTRY_KEY, accessEntry);
 
         // write contacts
-        StorageDir contactBaseDir = new StorageDir(dir, "contacts");
+        IOStorageDir contactBaseDir = new IOStorageDir(dir, "contacts");
         for (AccessContact contact : contacts) {
-            StorageDir contactDir = new StorageDir(contactBaseDir, contact.getContact());
+            IOStorageDir contactDir = new IOStorageDir(contactBaseDir, contact.getContact());
             contact.write(contactDir);
         }
     }
 
     @Override
-    public void read(StorageDir dir) throws IOException {
-        // the public keys must be readable by the server
-        StorageDir plainDir = new StorageDir(dir);
-        plainDir.setFilter(null);
-
-        CryptoSettingsIO.read(contactAuthKeySettings, plainDir, CONTACT_AUTH_KEY_SETTINGS_KEY);
+    public void read(IOStorageDir dir) throws IOException, CryptoException {
+        CryptoSettingsIO.read(contactAuthKeySettings, dir, CONTACT_AUTH_KEY_SETTINGS_KEY);
         PrivateKey privateKey;
         PublicKey publicKey;
         try {
-            publicKey = CryptoHelper.publicKeyFromRaw(plainDir.readBytes(CONTACT_AUTH_PUBLIC_KEY_KEY),
+            publicKey = CryptoHelper.publicKeyFromRaw(dir.readBytes(CONTACT_AUTH_PUBLIC_KEY_KEY),
                     contactAuthKeySettings.keyType);
             privateKey = CryptoHelper.privateKeyFromRaw(dir.readBytes(CONTACT_AUTH_PRIVATE_KEY_KEY),
                     contactAuthKeySettings.keyType);
@@ -155,9 +151,9 @@ public class AccessToken implements IStorageDirBundle {
         }
         contactAuthKey = new KeyPair(publicKey, privateKey);
 
-        CryptoSettingsIO.read(accessSignatureKeySettings, plainDir, SIGNATURE_KEY_SETTINGS_KEY);
+        CryptoSettingsIO.read(accessSignatureKeySettings, dir, SIGNATURE_KEY_SETTINGS_KEY);
         try {
-            publicKey = CryptoHelper.publicKeyFromRaw(plainDir.readBytes(ACCESS_VERIFICATION_KEY_KEY),
+            publicKey = CryptoHelper.publicKeyFromRaw(dir.readBytes(ACCESS_VERIFICATION_KEY_KEY),
                     accessSignatureKeySettings.keyType);
             privateKey = CryptoHelper.privateKeyFromRaw(dir.readBytes(ACCESS_SIGNING_KEY_KEY),
                     accessSignatureKeySettings.keyType);
@@ -169,9 +165,9 @@ public class AccessToken implements IStorageDirBundle {
         accessEntry = dir.readString(ACCESS_ENTRY_KEY);
 
         // read contacts
-        List<String> dirs = dir.listDirectories("contacts");
+        Collection<String> dirs = dir.listDirectories("contacts");
         for (String subDir : dirs) {
-            StorageDir contactDir = new StorageDir(dir, "contacts/" + subDir);
+            IOStorageDir contactDir = new IOStorageDir(dir, "contacts/" + subDir);
             AccessContact accessContact = new AccessContact();
             accessContact.read(contactDir);
             contacts.add(accessContact);

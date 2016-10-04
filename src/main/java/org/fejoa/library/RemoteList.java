@@ -8,13 +8,14 @@
 package org.fejoa.library;
 
 
+import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.database.StorageDir;
 
 import java.io.IOException;
 
 
 public class RemoteList extends StorageDirList<Remote> {
-    public RemoteList(StorageDir storageDir) {
+    public RemoteList(IOStorageDir storageDir) {
         super(storageDir, new AbstractEntryIO<Remote>() {
             @Override
             public String getId(Remote entry) {
@@ -22,7 +23,7 @@ public class RemoteList extends StorageDirList<Remote> {
             }
 
             @Override
-            public Remote read(StorageDir dir) throws IOException {
+            public Remote read(IOStorageDir dir) throws IOException {
                 Remote remote = new Remote();
                 remote.read(dir);
                 return remote;

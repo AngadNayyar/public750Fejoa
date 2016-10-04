@@ -18,11 +18,13 @@ import javafx.scene.layout.StackPane;
 import org.fejoa.library.BranchInfo;
 import org.fejoa.library.Client;
 import org.fejoa.library.UserData;
+import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.database.DatabaseDiff;
 import org.fejoa.library.database.StorageDir;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 
@@ -40,7 +42,8 @@ public class UserDataStorageView extends SplitPane {
         private final StorageDir.IListener storageDirListener;
         final TreeItem<String> root;
 
-        public BranchItem(final TreeItem<String> root, final StorageDir storageDir, final String path) throws IOException {
+        public BranchItem(final TreeItem<String> root, final StorageDir storageDir, final String path)
+                throws IOException, CryptoException {
             this.root = root;
 
             fillTree(root, storageDir, path);
@@ -50,7 +53,7 @@ public class UserDataStorageView extends SplitPane {
                 public void onTipChanged(DatabaseDiff diff, String base, String tip) {
                     try {
                         update(root, storageDir, path);
-                    } catch (IOException e) {
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
@@ -62,19 +65,21 @@ public class UserDataStorageView extends SplitPane {
             return root;
         }
 
-        private void update(TreeItem<String> rootItem, StorageDir storageDir, String path) throws IOException {
+        private void update(TreeItem<String> rootItem, StorageDir storageDir, String path) throws IOException,
+                CryptoException {
             root.getChildren().clear();
             fillTree(rootItem, storageDir, path);
         }
 
-        private void fillTree(TreeItem<String> rootItem, StorageDir storageDir, String path) throws IOException {
-            List<String> dirs = storageDir.listDirectories(path);
+        private void fillTree(TreeItem<String> rootItem, StorageDir storageDir, String path) throws IOException,
+                CryptoException {
+            Collection<String> dirs = storageDir.listDirectories(path);
             for (String dir : dirs) {
                 TreeItem<String> dirItem = new TreeItem<String> (dir);
                 rootItem.getChildren().add(dirItem);
                 fillTree(dirItem, storageDir, StorageDir.appendDir(path, dir));
             }
-            List<String> files = storageDir.listFiles(path);
+            Collection<String> files = storageDir.listFiles(path);
             for (String file : files) {
                 FileTreeEntry item = new FileTreeEntry(file, StorageDir.appendDir(path, file));
                 rootItem.getChildren().add(item);
@@ -111,7 +116,8 @@ public class UserDataStorageView extends SplitPane {
     }
 
     private void addStorageDirToTree(final StorageDir storageDir, TreeItem<String> rootItem, String branchDescription,
-                                     TreeView<String> treeView, final TextArea textArea) throws IOException {
+                                     TreeView<String> treeView, final TextArea textArea) throws IOException,
+            CryptoException {
         final TreeItem<String> item = new TreeItem<> (branchDescription + ": " + storageDir.getBranch());
         item.setExpanded(false);
         BranchItem branchItem = new BranchItem(item, storageDir, "");

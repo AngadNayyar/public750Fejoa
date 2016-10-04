@@ -7,8 +7,10 @@
  */
 package org.fejoa.library;
 
+import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.crypto.CryptoHelper;
 import org.fejoa.library.crypto.CryptoSettings;
+import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.crypto.CryptoSettingsIO;
 
@@ -42,14 +44,14 @@ public class PublicKeyItem implements IStorageDirBundle {
     }
 
     @Override
-    public void write(StorageDir dir) throws IOException {
+    public void write(IOStorageDir dir) throws IOException, CryptoException {
         dir.writeString(Constants.ID_KEY, id);
         dir.writeBytes(PATH_KEY, key.getEncoded());
         CryptoSettingsIO.write(typeSettings, dir, "");
     }
 
     @Override
-    public void read(StorageDir dir) throws IOException {
+    public void read(IOStorageDir dir) throws IOException {
         id = dir.readString(Constants.ID_KEY);
         CryptoSettingsIO.read(typeSettings, dir, "");
         try {

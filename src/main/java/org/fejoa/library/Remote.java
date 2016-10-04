@@ -9,6 +9,7 @@ package org.fejoa.library;
 
 import org.fejoa.library.crypto.Crypto;
 import org.fejoa.library.crypto.CryptoHelper;
+import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.database.StorageDir;
 
 import java.io.IOException;
@@ -42,14 +43,14 @@ public class Remote implements IStorageDirBundle {
     }
 
     @Override
-    public void write(StorageDir dir) throws IOException {
+    public void write(IOStorageDir dir) throws IOException {
         dir.writeString(Constants.ID_KEY, id);
         dir.writeString(Constants.USER_KEY, user);
         dir.writeString(Constants.SERVER_KEY, server);
     }
 
     @Override
-    public void read(StorageDir dir) throws IOException {
+    public void read(IOStorageDir dir) throws IOException {
         id = dir.readString(Constants.ID_KEY);
         user = dir.readString(Constants.USER_KEY);
         server = dir.readString(Constants.SERVER_KEY);

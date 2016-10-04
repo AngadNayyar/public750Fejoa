@@ -46,7 +46,6 @@ public class AccessTokenServer {
         contactAuthKeySettings = new CryptoSettings.Signature();
         accessSignatureKeySettings = new CryptoSettings.Signature();
 
-        System.out.println(dir.listFiles(""));
         CryptoSettingsIO.read(contactAuthKeySettings, dir, AccessToken.CONTACT_AUTH_KEY_SETTINGS_KEY);
         try {
             contactAuthKey = CryptoHelper.publicKeyFromRaw(dir.readBytes(AccessToken.CONTACT_AUTH_PUBLIC_KEY_KEY),

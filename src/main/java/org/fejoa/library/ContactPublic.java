@@ -7,6 +7,8 @@
  */
 package org.fejoa.library;
 
+import org.fejoa.library.crypto.CryptoException;
+import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.database.StorageDir;
 
 import java.io.IOException;
@@ -20,7 +22,7 @@ public class ContactPublic extends Contact<PublicKeyItem, PublicKeyItem> {
     private RemoteList remotes;
     private ContactBranchList contactBranchList;
 
-    protected ContactPublic(FejoaContext context, StorageDir storageDir) {
+    protected ContactPublic(FejoaContext context, IOStorageDir storageDir) {
         super(context, getEntryIO(), getEntryIO(),
                 storageDir);
     }
@@ -33,7 +35,7 @@ public class ContactPublic extends Contact<PublicKeyItem, PublicKeyItem> {
             }
 
             @Override
-            public PublicKeyItem read(StorageDir dir) throws IOException {
+            public PublicKeyItem read(IOStorageDir dir) throws IOException, CryptoException {
                 PublicKeyItem item = new PublicKeyItem();
                 item.read(dir);
                 return item;
@@ -42,11 +44,11 @@ public class ContactPublic extends Contact<PublicKeyItem, PublicKeyItem> {
     }
 
     @Override
-    protected void setStorageDir(StorageDir dir) {
+    protected void setStorageDir(IOStorageDir dir) {
         super.setStorageDir(dir);
 
-        remotes = new RemoteList(new StorageDir(storageDir, REMOTES_DIR));
-        contactBranchList = new ContactBranchList(context, new StorageDir(storageDir, ACCESS_DIR));
+        remotes = new RemoteList(new IOStorageDir(storageDir, REMOTES_DIR));
+        contactBranchList = new ContactBranchList(context, new IOStorageDir(storageDir, ACCESS_DIR));
     }
 
     @Override

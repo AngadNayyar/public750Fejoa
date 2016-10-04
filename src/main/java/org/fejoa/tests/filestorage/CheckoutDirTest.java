@@ -10,6 +10,7 @@ package org.fejoa.tests.filestorage;
 import junit.framework.TestCase;
 import org.fejoa.filestorage.CheckoutDir;
 import org.fejoa.filestorage.Index;
+import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.database.JGitInterface;
 import org.fejoa.library.support.StorageLib;
 import org.fejoa.library.database.StorageDir;
@@ -58,7 +59,7 @@ public class CheckoutDirTest extends TestCase {
         outputStream.close();
     }
 
-    public void testCheckout() throws IOException, InterruptedException {
+    public void testCheckout() throws IOException, InterruptedException, CryptoException {
         String gitDir = "checkout";
         String destination = "checkoutDestination";
         cleanUpDirs.add(gitDir);

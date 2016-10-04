@@ -10,6 +10,7 @@ package org.fejoa.library;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.crypto.CryptoSettings;
 import org.fejoa.library.crypto.ICryptoInterface;
+import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.database.StorageDir;
 
 import java.io.IOException;
@@ -30,7 +31,7 @@ public class EncryptionKeyPair extends KeyPairData {
         return new EncryptionKeyPair(cryptoInterface.generateKeyPair(encSettings), encSettings);
     }
 
-    static public EncryptionKeyPair open(StorageDir dir) throws IOException {
+    static public EncryptionKeyPair open(IOStorageDir dir) throws IOException {
         EncryptionKeyPair keyPair = new EncryptionKeyPair();
         keyPair.read(dir);
         return keyPair;

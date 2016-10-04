@@ -9,12 +9,14 @@ package org.fejoa.filestorage;
 
 import org.fejoa.chunkstore.Config;
 import org.fejoa.chunkstore.HashValue;
+import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.database.StorageDir;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 
 
@@ -94,15 +96,15 @@ public class Index {
         return Entry.open(bundle);
     }
 
-    public void remove(String filePath) {
+    public void remove(String filePath) throws IOException, CryptoException {
         storageDir.remove(filePath);
     }
 
-    public List<String> listFiles(String dir) throws IOException {
+    public Collection<String> listFiles(String dir) throws IOException, CryptoException {
         return storageDir.listFiles(dir);
     }
 
-    public List<String> listDirectories(String dir) throws IOException {
+    public Collection<String> listDirectories(String dir) throws IOException, CryptoException {
         return storageDir.listDirectories(dir);
     }
 

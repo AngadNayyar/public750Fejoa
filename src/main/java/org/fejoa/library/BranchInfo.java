@@ -8,6 +8,7 @@
 package org.fejoa.library;
 
 import org.fejoa.chunkstore.HashValue;
+import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.database.StorageDir;
 
 import java.io.IOException;
@@ -26,7 +27,7 @@ public class BranchInfo implements IStorageDirBundle {
 
     private boolean signBranch;
 
-    static public BranchInfo read(String id, StorageDir dir) throws IOException {
+    static public BranchInfo read(String id, IOStorageDir dir) throws IOException {
         BranchInfo entry = new BranchInfo(id);
         entry.read(dir);
         return entry;
@@ -71,14 +72,14 @@ public class BranchInfo implements IStorageDirBundle {
     }
 
     @Override
-    public void write(StorageDir dir) throws IOException {
+    public void write(IOStorageDir dir) throws IOException {
         dir.writeString(DESCRIPTION_KEY, description);
         if (encKey != null && !encKey.isZero())
             dir.writeString(ENCRYPTION_KEY, encKey.toHex());
     }
 
     @Override
-    public void read(StorageDir dir) throws IOException {
+    public void read(IOStorageDir dir) throws IOException {
         description = dir.readString(DESCRIPTION_KEY);
         try {
             encKey = HashValue.fromHex(dir.readString(ENCRYPTION_KEY));

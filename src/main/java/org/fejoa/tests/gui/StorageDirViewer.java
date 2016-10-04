@@ -21,11 +21,13 @@ import javafx.stage.Stage;
 import org.fejoa.library.BranchInfo;
 import org.fejoa.library.FejoaContext;
 import org.fejoa.library.UserData;
+import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.support.StorageLib;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 
 
@@ -39,14 +41,15 @@ public class StorageDirViewer extends Application {
         }
     }
 
-    private void fillTree(TreeItem<String> rootItem, StorageDir storageDir, String path) throws IOException {
-        List<String> dirs = storageDir.listDirectories(path);
+    private void fillTree(TreeItem<String> rootItem, StorageDir storageDir, String path) throws IOException,
+            CryptoException {
+        Collection<String> dirs = storageDir.listDirectories(path);
         for (String dir : dirs) {
             TreeItem<String> dirItem = new TreeItem<String> (dir);
             rootItem.getChildren().add(dirItem);
             fillTree(dirItem, storageDir, StorageDir.appendDir(path, dir));
         }
-        List<String> files = storageDir.listFiles(path);
+        Collection<String> files = storageDir.listFiles(path);
         for (String file : files) {
             FileTreeEntry item = new FileTreeEntry(file, StorageDir.appendDir(path, file));
             rootItem.getChildren().add(item);
@@ -58,7 +61,8 @@ public class StorageDirViewer extends Application {
     }
 
     private void addStorageDirToTree(final StorageDir storageDir, TreeItem<String> rootItem, String branchDescription,
-                                     TreeView<String> treeView, final TextArea textArea) throws IOException {
+                                     TreeView<String> treeView, final TextArea textArea) throws IOException,
+            CryptoException {
         final TreeItem<String> item = new TreeItem<> (branchDescription + ": " + storageDir.getBranch());
         item.setExpanded(false);
         fillTree(item, storageDir, "");

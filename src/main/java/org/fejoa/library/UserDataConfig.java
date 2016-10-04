@@ -10,6 +10,7 @@ package org.fejoa.library;
 import org.fejoa.chunkstore.HashValue;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.crypto.CryptoHelper;
+import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.database.StorageDir;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -53,7 +54,7 @@ class SyncConfig extends StorageDirList<SyncConfig.SyncConfigEntry> {
         }
 
         @Override
-        public void write(StorageDir dir) throws IOException {
+        public void write(IOStorageDir dir) throws IOException {
             try {
                 dir.writeString(DATA_KEY, toJson().toString());
             } catch (JSONException e) {
@@ -63,7 +64,7 @@ class SyncConfig extends StorageDirList<SyncConfig.SyncConfigEntry> {
         }
 
         @Override
-        public void read(StorageDir dir) throws IOException {
+        public void read(IOStorageDir dir) throws IOException {
             try {
                 fromJson(dir.readString(DATA_KEY));
             } catch (JSONException e) {
@@ -89,14 +90,14 @@ class SyncConfig extends StorageDirList<SyncConfig.SyncConfigEntry> {
             }
 
             @Override
-            public SyncConfigEntry read(StorageDir dir) throws IOException {
+            public SyncConfigEntry read(IOStorageDir dir) throws IOException {
                 SyncConfigEntry entry = new SyncConfigEntry();
                 entry.read(dir);
                 return entry;
             }
 
             @Override
-            public void write(SyncConfigEntry entry, StorageDir dir) throws IOException {
+            public void write(SyncConfigEntry entry, IOStorageDir dir) throws IOException {
                 entry.write(dir);
             }
         };

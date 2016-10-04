@@ -10,6 +10,7 @@ package org.fejoa.library;
 import org.apache.commons.codec.binary.Base64;
 import org.fejoa.chunkstore.HashValue;
 import org.fejoa.library.crypto.*;
+import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.database.StorageDir;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -37,7 +38,7 @@ public class SymmetricKeyData implements IStorageDirBundle {
         iv = context.getCrypto().generateInitializationVector(settings.ivSize);
     }
 
-    private SymmetricKeyData(StorageDir dir) throws IOException {
+    private SymmetricKeyData(IOStorageDir dir) throws IOException, CryptoException {
         this.settings = new CryptoSettings.Symmetric();
         read(dir);
     }
@@ -51,7 +52,7 @@ public class SymmetricKeyData implements IStorageDirBundle {
         return new SymmetricKeyData(context, settings);
     }
 
-    static public SymmetricKeyData open(StorageDir dir) throws IOException {
+    static public SymmetricKeyData open(IOStorageDir dir) throws IOException, CryptoException {
         return new SymmetricKeyData(dir);
     }
 
@@ -64,7 +65,7 @@ public class SymmetricKeyData implements IStorageDirBundle {
     }
 
     @Override
-    public void write(StorageDir dir) throws IOException {
+    public void write(IOStorageDir dir) throws IOException, CryptoException {
         dir.writeBytes(PATH_SYMMETRIC_KEY, key.getEncoded());
         dir.writeBytes(PATH_SYMMETRIC_IV, iv);
 
@@ -72,7 +73,7 @@ public class SymmetricKeyData implements IStorageDirBundle {
     }
 
     @Override
-    public void read(StorageDir dir) throws IOException {
+    public void read(IOStorageDir dir) throws IOException, CryptoException {
         settings = new CryptoSettings.Symmetric();
         CryptoSettingsIO.read(settings, dir);
 

@@ -8,16 +8,15 @@
 package org.fejoa.filestorage;
 
 import org.fejoa.chunkstore.HashValue;
-import org.fejoa.library.crypto.CryptoHelper;
+import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.support.StreamHelper;
 import org.fejoa.library.support.Task;
 import org.json.JSONException;
 
 import java.io.*;
-import java.security.DigestOutputStream;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 
@@ -77,13 +76,14 @@ public class CheckoutDir {
         return task;
     }
 
-    private void performCheckOut(Task<Update, Result> task, String dir) throws IOException, JSONException {
-        List<String> files = storageDir.listFiles(dir);
+    private void performCheckOut(Task<Update, Result> task, String dir) throws IOException, JSONException,
+            CryptoException {
+        Collection<String> files = storageDir.listFiles(dir);
         // checkout files
         File targetDir = new File(destination, dir);
         targetDir.mkdirs();
 
-        List<String> indexedFiles;
+        Collection<String> indexedFiles;
         try {
             indexedFiles = index.listFiles(dir);
         } catch (IOException e) {
@@ -108,12 +108,13 @@ public class CheckoutDir {
             task.onProgress(new Update(outFile));
         }
 
-        List<String> subDirs = storageDir.listDirectories(dir);
+        Collection<String> subDirs = storageDir.listDirectories(dir);
         for (String subDir : subDirs)
             performCheckOut(task, StorageDir.appendDir(dir, subDir));
     }
 
-    private void performCheckIn(Task<Update, Result> task, String dir) throws IOException, JSONException {
+    private void performCheckIn(Task<Update, Result> task, String dir) throws IOException, JSONException,
+            CryptoException {
         File checkOutDir = new File(destination, dir);
 
         File[] checkOutDirContent = checkOutDir.listFiles();

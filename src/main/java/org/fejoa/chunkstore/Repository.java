@@ -170,6 +170,11 @@ public class Repository implements IDatabaseInterface {
     }
 
     @Override
+    public boolean hasFile(String path) throws IOException, CryptoException {
+        return treeAccessor.hasFile(path);
+    }
+
+    @Override
     public byte[] readBytes(String path) throws IOException, CryptoException {
         return treeAccessor.read(path);
     }

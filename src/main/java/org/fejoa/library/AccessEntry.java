@@ -7,6 +7,7 @@
  */
 package org.fejoa.library;
 
+import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.database.StorageDir;
 
 import java.io.IOException;
@@ -35,13 +36,13 @@ public class AccessEntry implements IStorageDirBundle {
     }
 
     @Override
-    public void write(StorageDir dir) throws IOException {
+    public void write(IOStorageDir dir) throws IOException {
         dir.writeString(Constants.BRANCH_KEY, branch);
         dir.writeInt(ACCESS_RIGHT_KEY, accessRight);
     }
 
     @Override
-    public void read(StorageDir dir) throws IOException {
+    public void read(IOStorageDir dir) throws IOException {
         branch = dir.readString(Constants.BRANCH_KEY);
         accessRight = dir.readInt(ACCESS_RIGHT_KEY);
     }

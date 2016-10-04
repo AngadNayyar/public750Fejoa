@@ -10,6 +10,7 @@ package org.fejoa.library;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.crypto.CryptoSettings;
 import org.fejoa.library.crypto.ICryptoInterface;
+import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.database.StorageDir;
 
 import java.io.IOException;
@@ -26,7 +27,7 @@ public class ContactPrivate extends Contact<SigningKeyPair, EncryptionKeyPair> i
             }
 
             @Override
-            public SigningKeyPair read(StorageDir dir) throws IOException {
+            public SigningKeyPair read(IOStorageDir dir) throws IOException {
                 return SigningKeyPair.open(dir);
             }
         }, new StorageDirList.AbstractEntryIO<EncryptionKeyPair>() {
@@ -36,7 +37,7 @@ public class ContactPrivate extends Contact<SigningKeyPair, EncryptionKeyPair> i
             }
 
             @Override
-            public EncryptionKeyPair read(StorageDir dir) throws IOException {
+            public EncryptionKeyPair read(IOStorageDir dir) throws IOException {
                 return EncryptionKeyPair.open(dir);
             }
         }, dir);

@@ -7,6 +7,8 @@
  */
 package org.fejoa.library;
 
+import org.fejoa.library.crypto.CryptoException;
+import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.database.StorageDir;
 
 import java.io.IOException;
@@ -26,13 +28,13 @@ public class AccessStore extends StorageDirObject {
                     }
 
                     @Override
-                    public AccessToken read(StorageDir dir) throws IOException {
+                    public AccessToken read(IOStorageDir dir) throws IOException, CryptoException {
                         return AccessToken.open(context, dir);
                     }
                 });
     }
 
-    public void addAccessToken(AccessToken token) throws IOException {
+    public void addAccessToken(AccessToken token) throws IOException, CryptoException {
         accessTokens.add(token);
     }
 

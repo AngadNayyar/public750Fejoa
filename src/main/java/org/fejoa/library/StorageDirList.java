@@ -7,6 +7,8 @@
  */
 package org.fejoa.library;
 
+import org.fejoa.library.crypto.CryptoException;
+import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.database.StorageDir;
 
 import java.io.IOException;
@@ -16,8 +18,8 @@ import java.util.*;
 public class StorageDirList<T> {
     public interface IEntryIO<T> {
         String getId(T entry);
-        T read(StorageDir dir) throws IOException;
-        void write(T entry, StorageDir dir) throws IOException;
+        T read(IOStorageDir dir) throws IOException, CryptoException;
+        void write(T entry, IOStorageDir dir) throws IOException, CryptoException;
     }
 
     abstract static public class AbstractIdEntry implements IStorageDirBundle {
@@ -34,11 +36,11 @@ public class StorageDirList<T> {
 
     abstract static public class AbstractEntryIO<T extends IStorageDirBundle> implements IEntryIO<T> {
         @Override
-        public void write(T entry, StorageDir dir) throws IOException {
+        public void write(T entry, IOStorageDir dir) throws IOException, CryptoException {
             entry.write(dir);
         }
 
-        protected String idFromStoragePath(StorageDir dir) {
+        protected String idFromStoragePath(IOStorageDir dir) {
             String baseDir = dir.getBaseDir();
             int lastSlash = baseDir.lastIndexOf("/");
             if (lastSlash < 0)
@@ -51,24 +53,24 @@ public class StorageDirList<T> {
 
     final private IEntryIO<T> entryIO;
     final private Map<String, T> map = new HashMap<>();
-    protected StorageDir storageDir;
+    protected IOStorageDir storageDir;
 
     private T defaultEntry = null;
 
     protected void load() {
         List<String> dirs;
         try {
-            dirs = storageDir.listDirectories("");
-        } catch (IOException e) {
+            dirs = new ArrayList<>(storageDir.listDirectories(""));
+        } catch (Exception e) {
             return;
         }
         Collections.sort(dirs);
         for (String dir : dirs) {
-            StorageDir subDir = new StorageDir(storageDir, dir);
+            IOStorageDir subDir = new IOStorageDir(storageDir, dir);
             T entry;
             try {
                 entry = entryIO.read(subDir);
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
                 continue;
             }
@@ -89,13 +91,13 @@ public class StorageDirList<T> {
         this.entryIO = entryIO;
     }
 
-    public StorageDirList(StorageDir storageDir, IEntryIO<T> entryIO) {
+    public StorageDirList(IOStorageDir storageDir, IEntryIO<T> entryIO) {
         this.entryIO = entryIO;
 
         setTo(storageDir);
     }
 
-    public void setTo(StorageDir storageDir) {
+    public void setTo(IOStorageDir storageDir) {
         this.storageDir = storageDir;
 
         map.clear();
@@ -106,24 +108,24 @@ public class StorageDirList<T> {
         return map.values();
     }
 
-    public String add(T entry) throws IOException {
+    public String add(T entry) throws IOException, CryptoException {
         String id = entryIO.getId(entry);
-        StorageDir subDir = getStorageDirForId(id);
+        IOStorageDir subDir = getStorageDirForId(id);
         entryIO.write(entry, subDir);
         map.put(id, entry);
         return id;
     }
 
-    protected StorageDir getStorageDirForId(String id) {
-        return new StorageDir(storageDir, id);
+    protected IOStorageDir getStorageDirForId(String id) {
+        return new IOStorageDir(storageDir, id);
     }
 
-    public void update(T entry) throws IOException {
+    public void update(T entry) throws IOException, CryptoException {
         remove(entryIO.getId(entry));
         add(entry);
     }
 
-    public void remove(String key) {
+    public void remove(String key) throws IOException, CryptoException {
         storageDir.remove(key);
         map.remove(key);
     }

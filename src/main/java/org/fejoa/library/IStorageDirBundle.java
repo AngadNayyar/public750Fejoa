@@ -7,12 +7,13 @@
  */
 package org.fejoa.library;
 
-import org.fejoa.library.database.StorageDir;
+import org.fejoa.library.crypto.CryptoException;
+import org.fejoa.library.database.IOStorageDir;
 
 import java.io.IOException;
 
 
 public interface IStorageDirBundle {
-    void write(StorageDir dir) throws IOException;
-    void read(StorageDir dir) throws IOException;
+    void write(IOStorageDir dir) throws IOException, CryptoException;
+    void read(IOStorageDir dir) throws IOException, CryptoException;
 }

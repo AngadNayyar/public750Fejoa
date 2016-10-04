@@ -88,6 +88,13 @@ public class TreeAccessor {
         return entry;
     }
 
+    public boolean hasFile(String path) throws IOException, CryptoException {
+        DirectoryBox.Entry fileEntry = get(path);
+        if (fileEntry == null)
+            return false;
+        return fileEntry.isFile();
+    }
+
     public byte[] read(String path) throws IOException, CryptoException {
         DirectoryBox.Entry fileEntry = get(path);
         if (fileEntry == null)

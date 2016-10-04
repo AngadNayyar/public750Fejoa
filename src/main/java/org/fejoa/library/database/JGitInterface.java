@@ -33,6 +33,7 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 
 public class JGitInterface implements IDatabaseInterface {
@@ -117,6 +118,16 @@ public class JGitInterface implements IDatabaseInterface {
 
     public Repository getRepository() {
         return repository;
+    }
+
+    @Override
+    public boolean hasFile(String path) throws IOException, CryptoException {
+        try {
+            readBytes(path);
+        } catch (IOException e) {
+            return false;
+        }
+        return true;
     }
 
     @Override
@@ -256,7 +267,7 @@ public class JGitInterface implements IDatabaseInterface {
     }
 
     @Override
-    public List<String> listFiles(String path) throws IOException {
+    public Collection<String> listFiles(String path) throws IOException {
         List<String> files = new ArrayList<>();
 
         TreeWalk treeWalk = cd(path);
@@ -278,7 +289,7 @@ public class JGitInterface implements IDatabaseInterface {
     }
 
     @Override
-    public List<String> listDirectories(String path) throws IOException {
+    public Collection<String> listDirectories(String path) throws IOException {
         // TODO: this is horrible slow!!
         List<String> dirs = new ArrayList<>();
 

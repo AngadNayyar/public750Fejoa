@@ -7,6 +7,7 @@
  */
 package org.fejoa.library.command;
 
+import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.database.StorageDir;
 
 import java.io.IOException;
@@ -22,7 +23,7 @@ public class IncomingCommandQueue extends CommandQueue<CommandQueue.Entry> {
         return new Entry();
     }
 
-    public void addCommand(byte[] bytes) throws IOException {
+    public void addCommand(byte[] bytes) throws IOException, CryptoException {
         addCommand(new Entry(bytes));
     }
 }
