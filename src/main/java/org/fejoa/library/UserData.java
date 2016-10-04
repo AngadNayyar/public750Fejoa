@@ -131,6 +131,7 @@ public class UserData extends StorageDirObject {
         AccessStore accessStore = new AccessStore(context, accessControlBranch);
         userData.addBranch(new BranchInfo(accessStore.getStorageDir().getBranch(), "Access Store", null, null, false));
         userData.getStorageDir().writeString(ACCESS_STORE_PATH, accessStore.getStorageDir().getBranch());
+        accessStore.commit();
 
         // in queue
         StorageDir inQueueBranch = context.getStorage(
@@ -138,6 +139,7 @@ public class UserData extends StorageDirObject {
         IncomingCommandQueue incomingCommandQueue = new IncomingCommandQueue(inQueueBranch);
         userData.addBranch(new BranchInfo(incomingCommandQueue.getStorageDir().getBranch(), "In Queue", null, null, false));
         userData.getStorageDir().writeString(IN_QUEUE_PATH, incomingCommandQueue.getStorageDir().getBranch());
+        incomingCommandQueue.commit();
 
         // out queue
         StorageDir outQueueBranch = context.getStorage(
@@ -145,6 +147,7 @@ public class UserData extends StorageDirObject {
         OutgoingCommandQueue outgoingCommandQueue = new OutgoingCommandQueue(outQueueBranch);
         userData.addBranch(new BranchInfo(outgoingCommandQueue.getStorageDir().getBranch(), "Out Queue", null, null, false));
         userData.getStorageDir().writeString(OUT_QUEUE_PATH, outgoingCommandQueue.getStorageDir().getBranch());
+        outgoingCommandQueue.commit();
 
         return userData;
     }
