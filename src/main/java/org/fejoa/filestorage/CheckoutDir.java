@@ -10,6 +10,7 @@ package org.fejoa.filestorage;
 import org.fejoa.chunkstore.HashValue;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.database.StorageDir;
+import org.fejoa.library.support.StorageLib;
 import org.fejoa.library.support.StreamHelper;
 import org.fejoa.library.support.Task;
 import org.json.JSONException;
@@ -90,7 +91,7 @@ public class CheckoutDir {
             indexedFiles = new ArrayList<>();
         }
         for (String file : files) {
-            String filePath = StorageDir.appendDir(dir, file);
+            String filePath = StorageLib.appendDir(dir, file);
             File outFile = new File(targetDir, file);
 
             if (indexedFiles.contains(file) && !needsCheckout(outFile,  storageDir.getHash(filePath),
@@ -110,7 +111,7 @@ public class CheckoutDir {
 
         Collection<String> subDirs = storageDir.listDirectories(dir);
         for (String subDir : subDirs)
-            performCheckOut(task, StorageDir.appendDir(dir, subDir));
+            performCheckOut(task, StorageLib.appendDir(dir, subDir));
     }
 
     private void performCheckIn(Task<Update, Result> task, String dir) throws IOException, JSONException,
@@ -124,7 +125,7 @@ public class CheckoutDir {
         // checkout files
         for (File checkedOutFile : checkOutDirContent) {
             String name = checkedOutFile.getName();
-            String filePath = StorageDir.appendDir(dir, name);
+            String filePath = StorageLib.appendDir(dir, name);
             if (checkedOutFile.isFile()) {
                 files.remove(name);
                 if (checkoutFileChanged(checkedOutFile, index.get(filePath))) {
@@ -144,12 +145,12 @@ public class CheckoutDir {
 
         // remaining entries have been removed
         for (String removedFile : files) {
-            String filePath = StorageDir.appendDir(dir, removedFile);
+            String filePath = StorageLib.appendDir(dir, removedFile);
             storageDir.remove(filePath);
             index.remove(filePath);
         }
         for (String removedDir : dirs) {
-            String filePath = StorageDir.appendDir(dir, removedDir);
+            String filePath = StorageLib.appendDir(dir, removedDir);
             storageDir.remove(filePath);
             index.remove(filePath);
         }

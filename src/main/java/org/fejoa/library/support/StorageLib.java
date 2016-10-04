@@ -25,6 +25,30 @@ import java.nio.channels.FileChannel;
  */
 public class StorageLib {
 
+    static public String appendDir(String baseDir, String dir) {
+        String newDir = baseDir;
+        if (dir.equals(""))
+            return baseDir;
+        if (!newDir.equals(""))
+            newDir += "/";
+        newDir += dir;
+        return newDir;
+    }
+
+    static public String fileName(String path) {
+        int lastSlash = path.lastIndexOf("/");
+        if (lastSlash < 0)
+            return path;
+        return path.substring(lastSlash + 1);
+    }
+
+    static public String dirName(String path) {
+        int lastSlash = path.lastIndexOf("/");
+        if (lastSlash < 0)
+            return "";
+        return path.substring(0, lastSlash);
+    }
+
     /**
      * I file is a directory it deletes it recursively. If it is just a file it just deletes this file.
      * @param file

@@ -21,6 +21,7 @@ import org.fejoa.library.UserData;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.database.DatabaseDiff;
 import org.fejoa.library.database.StorageDir;
+import org.fejoa.library.support.StorageLib;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -77,11 +78,11 @@ public class UserDataStorageView extends SplitPane {
             for (String dir : dirs) {
                 TreeItem<String> dirItem = new TreeItem<String> (dir);
                 rootItem.getChildren().add(dirItem);
-                fillTree(dirItem, storageDir, StorageDir.appendDir(path, dir));
+                fillTree(dirItem, storageDir, StorageLib.appendDir(path, dir));
             }
             Collection<String> files = storageDir.listFiles(path);
             for (String file : files) {
-                FileTreeEntry item = new FileTreeEntry(file, StorageDir.appendDir(path, file));
+                FileTreeEntry item = new FileTreeEntry(file, StorageLib.appendDir(path, file));
                 rootItem.getChildren().add(item);
             }
         }

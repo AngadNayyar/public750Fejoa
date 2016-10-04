@@ -28,7 +28,6 @@ import org.fejoa.library.support.StorageLib;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.List;
 
 
 public class StorageDirViewer extends Application {
@@ -47,11 +46,11 @@ public class StorageDirViewer extends Application {
         for (String dir : dirs) {
             TreeItem<String> dirItem = new TreeItem<String> (dir);
             rootItem.getChildren().add(dirItem);
-            fillTree(dirItem, storageDir, StorageDir.appendDir(path, dir));
+            fillTree(dirItem, storageDir, StorageLib.appendDir(path, dir));
         }
         Collection<String> files = storageDir.listFiles(path);
         for (String file : files) {
-            FileTreeEntry item = new FileTreeEntry(file, StorageDir.appendDir(path, file));
+            FileTreeEntry item = new FileTreeEntry(file, StorageLib.appendDir(path, file));
             rootItem.getChildren().add(item);
         }
     }

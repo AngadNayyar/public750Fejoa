@@ -7,7 +7,7 @@
  */
 package org.fejoa.chunkstore.sync;
 
-import org.fejoa.library.database.StorageDir;
+import org.fejoa.library.support.StorageLib;
 
 import java.util.*;
 
@@ -109,7 +109,7 @@ public class DiffIterator<T> implements Iterator<DiffIterator.Change> {
                 theirIndex++;
                 ourIndex++;
                 if (!ourEntry.equals(theirEntry)) {
-                    next = Change.modified(StorageDir.appendDir(basePath, nameGetter.getName(ourEntry)), ourEntry,
+                    next = Change.modified(StorageLib.appendDir(basePath, nameGetter.getName(ourEntry)), ourEntry,
                             theirEntry);
                     break;
                 }
@@ -117,12 +117,12 @@ public class DiffIterator<T> implements Iterator<DiffIterator.Change> {
             } else if (compareValue > 0) {
                 // added
                 theirIndex++;
-                next = Change.added(StorageDir.appendDir(basePath, nameGetter.getName(theirEntry)), theirEntry);
+                next = Change.added(StorageLib.appendDir(basePath, nameGetter.getName(theirEntry)), theirEntry);
                 break;
             } else {
                 // removed
                 ourIndex++;
-                next = Change.removed(StorageDir.appendDir(basePath, nameGetter.getName(ourEntry)), ourEntry);
+                next = Change.removed(StorageLib.appendDir(basePath, nameGetter.getName(ourEntry)), ourEntry);
                 break;
 
             }

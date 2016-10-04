@@ -220,16 +220,6 @@ public class StorageDir extends IOStorageDir {
         return getStorageDirCache().getDatabase();
     }
 
-    static public String appendDir(String baseDir, String dir) {
-        String newDir = baseDir;
-        if (dir.equals(""))
-            return baseDir;
-        if (!newDir.equals(""))
-            newDir += "/";
-        newDir += dir;
-        return newDir;
-    }
-
     public HashValue getHash(String path) throws IOException {
         return getStorageDirCache().getHash(path, filter);
     }

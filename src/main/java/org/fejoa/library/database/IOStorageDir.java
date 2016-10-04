@@ -8,6 +8,7 @@
 package org.fejoa.library.database;
 
 import org.fejoa.library.crypto.CryptoException;
+import org.fejoa.library.support.StorageLib;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -23,7 +24,7 @@ public class IOStorageDir {
     }
 
     public IOStorageDir(IOStorageDir storageDir, String baseDir) {
-        this(storageDir, baseDir, true);
+        this(storageDir, baseDir, false);
     }
 
     public IOStorageDir(IOStorageDir storageDir, String baseDir, boolean absoluteBaseDir) {
@@ -32,7 +33,7 @@ public class IOStorageDir {
         if (absoluteBaseDir)
             this.baseDir = baseDir;
         else
-            this.baseDir = StorageDir.appendDir(storageDir.baseDir, baseDir);
+            this.baseDir = StorageLib.appendDir(storageDir.baseDir, baseDir);
     }
 
     public String getBaseDir() {
@@ -40,7 +41,7 @@ public class IOStorageDir {
     }
 
     private String getRealPath(String path) {
-        return StorageDir.appendDir(getBaseDir(), path);
+        return StorageLib.appendDir(getBaseDir(), path);
     }
 
     public boolean hasFile(String path) throws IOException, CryptoException {
@@ -109,5 +110,18 @@ public class IOStorageDir {
         String dataString = "";
         dataString += data;
         writeString(path, dataString);
+    }
+
+    public void copyTo(IOStorageDir target) throws IOException, CryptoException {
+        copyTo(target, "");
+    }
+
+    private void copyTo(IOStorageDir target, String currentDir) throws IOException, CryptoException {
+        for (String file : listFiles(currentDir)) {
+            String path = StorageLib.appendDir(currentDir, file);
+            target.writeBytes(path, readBytes(path));
+        }
+        for (String dir : listDirectories(currentDir))
+            copyTo(target, StorageLib.appendDir(currentDir, dir));
     }
 }

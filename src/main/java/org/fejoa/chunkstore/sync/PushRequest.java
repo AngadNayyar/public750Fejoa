@@ -9,8 +9,8 @@ package org.fejoa.chunkstore.sync;
 
 import org.fejoa.chunkstore.*;
 import org.fejoa.library.crypto.CryptoException;
-import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.remote.IRemotePipe;
+import org.fejoa.library.support.StorageLib;
 import org.fejoa.library.support.StreamHelper;
 
 import java.io.DataInputStream;
@@ -105,7 +105,7 @@ public class PushRequest {
 
         DirectoryBox dir = DirectoryBox.read(dirAccessor, dirPointer);
         for (DirectoryBox.Entry entry : dir.getEntries()) {
-            String childPath = StorageDir.appendDir(path, entry.getName());
+            String childPath = StorageLib.appendDir(path, entry.getName());
             if (entry.isFile())
                 collectFile(transaction, entry.getDataPointer(), childPath, list);
             else {

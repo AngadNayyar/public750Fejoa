@@ -8,6 +8,7 @@
 package org.fejoa.library.database;
 
 import org.fejoa.library.crypto.CryptoException;
+import org.fejoa.library.support.StorageLib;
 
 import java.io.IOException;
 import java.util.*;
@@ -45,30 +46,16 @@ public class MemoryIODatabase implements IIODatabaseInterface {
             return subDir;
         }
 
-        private String fileName(String path) {
-            int lastSlash = path.lastIndexOf("/");
-            if (lastSlash < 0)
-                return path;
-            return path.substring(lastSlash + 1);
-        }
-
-        private String dirName(String path) {
-            int lastSlash = path.lastIndexOf("/");
-            if (lastSlash < 0)
-                return "";
-            return path.substring(0, lastSlash);
-        }
-
         public void put(String path, byte[] data) {
-            String dirPath = dirName(path);
-            String fileName = fileName(path);
+            String dirPath = StorageLib.dirName(path);
+            String fileName = StorageLib.fileName(path);
             Dir subDir = getSubDir(dirPath, true);
             subDir.files.put(fileName, data);
         }
 
         public byte[] get(String path) {
-            String dirPath = dirName(path);
-            String fileName = fileName(path);
+            String dirPath = StorageLib.dirName(path);
+            String fileName = StorageLib.fileName(path);
             Dir subDir = getSubDir(dirPath, false);
             if (subDir == null)
                 return null;
@@ -76,8 +63,8 @@ public class MemoryIODatabase implements IIODatabaseInterface {
         }
 
         public boolean hasFile(String path) {
-            String dirPath = dirName(path);
-            String fileName = fileName(path);
+            String dirPath = StorageLib.dirName(path);
+            String fileName = StorageLib.fileName(path);
             Dir subDir = getSubDir(dirPath, false);
             if (subDir == null)
                 return false;
@@ -85,8 +72,8 @@ public class MemoryIODatabase implements IIODatabaseInterface {
         }
 
         public void remove(String path) {
-            String dirPath = dirName(path);
-            String fileName = fileName(path);
+            String dirPath = StorageLib.dirName(path);
+            String fileName = StorageLib.fileName(path);
             Dir subDir = getSubDir(dirPath, false);
             if (subDir == null)
                 return;
@@ -167,8 +154,8 @@ public class MemoryIODatabase implements IIODatabaseInterface {
 
     private void getEntries(Map<String, byte[]> out, Dir dir, String path) {
         for (Map.Entry<String, byte[]> entry : dir.files.entrySet())
-            out.put(StorageDir.appendDir(path, entry.getKey()), entry.getValue());
+            out.put(StorageLib.appendDir(path, entry.getKey()), entry.getValue());
         for (Map.Entry<String, Dir> entry : dir.dirs.entrySet())
-            getEntries(out, entry.getValue(), StorageDir.appendDir(path, entry.getKey()));
+            getEntries(out, entry.getValue(), StorageLib.appendDir(path, entry.getKey()));
     }
 }

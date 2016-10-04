@@ -10,11 +10,9 @@ package org.fejoa.tests.chunkstore;
 import junit.framework.TestCase;
 import org.apache.commons.codec.binary.Base64;
 import org.fejoa.chunkstore.BoxPointer;
-import org.fejoa.chunkstore.DirectoryBox;
 import org.fejoa.chunkstore.HashValue;
 import org.fejoa.chunkstore.Repository;
 import org.fejoa.library.crypto.CryptoException;
-import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.support.StorageLib;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -109,7 +107,7 @@ public class RepositoryTestBase extends TestCase {
     private int countFiles(Repository database, String dirPath) throws IOException {
         int fileCount = database.listFiles(dirPath).size();
         for (String dir : database.listDirectories(dirPath))
-            fileCount += countFiles(database, StorageDir.appendDir(dirPath, dir));
+            fileCount += countFiles(database, StorageLib.appendDir(dirPath, dir));
         return fileCount;
     }
 

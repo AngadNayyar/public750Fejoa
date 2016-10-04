@@ -12,6 +12,7 @@ import org.fejoa.library.crypto.*;
 import org.fejoa.library.database.DefaultCommitSignature;
 import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.database.StorageDir;
+import org.fejoa.library.support.StorageLib;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -194,11 +195,11 @@ public class KeyStore extends StorageDirObject {
     }
 
     public void addSymmetricKey(String id, SymmetricKeyData keyData) throws IOException, CryptoException {
-        keyData.write(new IOStorageDir(storageDir, StorageDir.appendDir(SYM_KEY_PATH, id)));
+        keyData.write(new IOStorageDir(storageDir, StorageLib.appendDir(SYM_KEY_PATH, id)));
     }
 
     public SymmetricKeyData getSymmetricKey(String id) throws IOException, CryptoException {
-        StorageDir dir = new StorageDir(storageDir, StorageDir.appendDir(SYM_KEY_PATH, id));
+        StorageDir dir = new StorageDir(storageDir, StorageLib.appendDir(SYM_KEY_PATH, id));
         return SymmetricKeyData.open(dir);
     }
 }
