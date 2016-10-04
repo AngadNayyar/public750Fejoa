@@ -16,7 +16,6 @@ import java.util.*;
 
 
 public class StorageDir extends IOStorageDir {
-    final private StorageDirCache cache;
     private IIOFilter filter;
 
     public interface IIOFilter {
@@ -29,11 +28,11 @@ public class StorageDir extends IOStorageDir {
     }
 
     public void addListener(IListener listener) {
-        cache.addListener(listener);
+        getStorageDirCache().addListener(listener);
     }
 
     public void removeListener(IListener listener) {
-        cache.removeListener(listener);
+        getStorageDirCache().removeListener(listener);
     }
 
     /**
@@ -193,22 +192,24 @@ public class StorageDir extends IOStorageDir {
     public StorageDir(StorageDir storageDir, String baseDir, boolean absoluteBaseDir) {
         super(storageDir, baseDir, absoluteBaseDir);
 
-        this.cache = storageDir.cache;
         this.filter = storageDir.filter;
     }
 
     public StorageDir(IDatabaseInterface database, String baseDir) {
         super(new StorageDirCache(database), baseDir);
 
-        this.cache = (StorageDirCache)this.database;
+    }
+
+    private StorageDirCache getStorageDirCache() {
+        return (StorageDirCache)this.database;
     }
 
     public void setCommitSignature(ICommitSignature commitSignature) {
-        this.cache.setCommitSignature(commitSignature);
+        this.getStorageDirCache().setCommitSignature(commitSignature);
     }
 
     public ICommitSignature getCommitSignature() {
-        return this.cache.getCommitSignature();
+        return this.getStorageDirCache().getCommitSignature();
     }
 
     public void setFilter(IIOFilter filter) {
@@ -216,7 +217,7 @@ public class StorageDir extends IOStorageDir {
     }
 
     public IDatabaseInterface getDatabase() {
-        return cache.getDatabase();
+        return getStorageDirCache().getDatabase();
     }
 
     static public String appendDir(String baseDir, String dir) {
@@ -230,7 +231,7 @@ public class StorageDir extends IOStorageDir {
     }
 
     public HashValue getHash(String path) throws IOException {
-        return cache.getHash(path, filter);
+        return getStorageDirCache().getHash(path, filter);
     }
 
     @Override
@@ -249,7 +250,7 @@ public class StorageDir extends IOStorageDir {
     }
 
     public void commit(String message) throws IOException {
-        cache.commit(message);
+        getStorageDirCache().commit(message);
     }
 
     public void commit() throws IOException {
@@ -273,6 +274,6 @@ public class StorageDir extends IOStorageDir {
     }
 
     public void onTipUpdated(HashValue old, HashValue newTip) throws IOException {
-        cache.onTipUpdated(old, newTip);
+        getStorageDirCache().onTipUpdated(old, newTip);
     }
 }

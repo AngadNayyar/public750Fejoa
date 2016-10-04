@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.util.Collection;
 
 
-public class IOStorageDir implements IIODatabaseInterface {
+public class IOStorageDir {
     private String baseDir;
     final protected IIODatabaseInterface database;
 
@@ -22,13 +22,17 @@ public class IOStorageDir implements IIODatabaseInterface {
         this.baseDir = baseDir;
     }
 
-    public IOStorageDir(IOStorageDir database, String baseDir, boolean absoluteBaseDir) {
-        this.database = database;
+    public IOStorageDir(IOStorageDir storageDir, String baseDir) {
+        this(storageDir, baseDir, true);
+    }
+
+    public IOStorageDir(IOStorageDir storageDir, String baseDir, boolean absoluteBaseDir) {
+        this.database = storageDir.database;
 
         if (absoluteBaseDir)
             this.baseDir = baseDir;
         else
-            this.baseDir = StorageDir.appendDir(database.baseDir, baseDir);
+            this.baseDir = StorageDir.appendDir(storageDir.baseDir, baseDir);
     }
 
     public String getBaseDir() {
@@ -39,32 +43,26 @@ public class IOStorageDir implements IIODatabaseInterface {
         return StorageDir.appendDir(getBaseDir(), path);
     }
 
-    @Override
     public boolean hasFile(String path) throws IOException, CryptoException {
         return database.hasFile(getRealPath(path));
     }
 
-    @Override
     public byte[] readBytes(String path) throws IOException, CryptoException {
         return database.readBytes(getRealPath(path));
     }
 
-    @Override
     public void writeBytes(String path, byte[] bytes) throws IOException, CryptoException {
         database.writeBytes(getRealPath(path), bytes);
     }
 
-    @Override
     public void remove(String path) throws IOException, CryptoException {
         database.remove(getRealPath(path));
     }
 
-    @Override
     public Collection<String> listFiles(String path) throws IOException, CryptoException {
         return database.listFiles(getRealPath(path));
     }
 
-    @Override
     public Collection<String> listDirectories(String path) throws IOException, CryptoException {
         return database.listDirectories(getRealPath(path));
     }
