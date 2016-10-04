@@ -23,6 +23,7 @@ import org.fejoa.library.database.StorageDir;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 
@@ -114,6 +115,8 @@ public class HistoryView extends SplitPane {
             @Override
             public void changed(ObservableValue<? extends HistoryListView.HistoryEntry> observableValue,
                                 HistoryListView.HistoryEntry historyEntry, HistoryListView.HistoryEntry newItem) {
+                if (newItem == null)
+                    return;
                 CommitBox commitBox = newItem.getCommitBox();
                 Repository repository = (Repository) historyView.getStorageDir().getDatabase();
                 List<HashValue> parents = new ArrayList<>();
@@ -140,16 +143,18 @@ public class HistoryView extends SplitPane {
         });
     }
 
-    private void fillTree(TreeItem<String> rootItem, StorageDir storageDir, String path) throws IOException {
-        List<String> dirs = storageDir.listDirectories(path);
+    private void fillTree(TreeItem<String> rootItem, StorageDir storageDir, String path) throws IOException,
+            CryptoException {
+        Collection<String> dirs = storageDir.listDirectories(path);
         for (String dir : dirs) {
             TreeItem<String> dirItem = new TreeItem<String> (dir);
             rootItem.getChildren().add(dirItem);
             fillTree(dirItem, storageDir, StorageDir.appendDir(path, dir));
         }
-        List<String> files = storageDir.listFiles(path);
+        Collection<String> files = storageDir.listFiles(path);
         for (String file : files) {
-            UserDataStorageView.FileTreeEntry item = new UserDataStorageView.FileTreeEntry(file, StorageDir.appendDir(path, file));
+            UserDataStorageView.FileTreeEntry item
+                    = new UserDataStorageView.FileTreeEntry(file, StorageDir.appendDir(path, file));
             rootItem.getChildren().add(item);
         }
     }
