@@ -136,12 +136,13 @@ public class Client {
         syncManager = null;
     }
 
-    public void startCommandManagers(Task.IObserver<TaskUpdate, Void> outgoingCommandObserver)
+    public void startCommandManagers(Task.IObserver<TaskUpdate, Void> outgoingCommandObserver,
+                                     ContactRequestCommandHandler.IListener listener)
             throws IOException, CryptoException {
         outgoingQueueManager = new OutgoingQueueManager(userData.getOutgoingCommandQueue(), connectionManager);
         outgoingQueueManager.start(outgoingCommandObserver);
 
-        incomingCommandManager = new IncomingCommandManager(config);
+        incomingCommandManager = new IncomingCommandManager(config, listener);
         incomingCommandManager.start();
 
         contactRequestHandler.start();

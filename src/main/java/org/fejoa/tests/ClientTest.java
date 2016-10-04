@@ -274,6 +274,18 @@ public class ClientTest extends TestCase {
                 public void onException(Exception exception) {
                     finishAndFail(exception.getMessage());
                 }
+            }, new ContactRequestCommandHandler.IListener() {
+                @Override
+                public void onContactRequest(ContactPublic contact) {
+                    ContactStore contactStore = client.getUserData().getContactStore();
+                    try {
+                        contactStore.addContact(contact);
+                        contactStore.commit();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        finishAndFail(e.getMessage());
+                    }
+                }
             });
         }
     }

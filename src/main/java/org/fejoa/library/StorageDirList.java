@@ -15,7 +15,7 @@ import java.io.IOException;
 import java.util.*;
 
 
-public class StorageDirList<T> {
+public class StorageDirList<T> extends MoveableStorage {
     public interface IEntryIO<T> {
         String getId(T entry);
         T read(IOStorageDir dir) throws IOException, CryptoException;
@@ -53,7 +53,6 @@ public class StorageDirList<T> {
 
     final private IEntryIO<T> entryIO;
     final private Map<String, T> map = new HashMap<>();
-    protected IOStorageDir storageDir;
 
     private T defaultEntry = null;
 
@@ -88,17 +87,20 @@ public class StorageDirList<T> {
     }
 
     public StorageDirList(IEntryIO<T> entryIO) {
+        super(null);
         this.entryIO = entryIO;
     }
 
     public StorageDirList(IOStorageDir storageDir, IEntryIO<T> entryIO) {
+        super(storageDir);
         this.entryIO = entryIO;
 
-        setTo(storageDir);
+        load();
     }
 
-    public void setTo(IOStorageDir storageDir) {
-        this.storageDir = storageDir;
+    @Override
+    public void setStorageDir(IOStorageDir target) throws IOException, CryptoException {
+        super.setStorageDir(target);
 
         map.clear();
         load();

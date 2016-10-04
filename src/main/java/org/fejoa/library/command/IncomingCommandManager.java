@@ -56,11 +56,12 @@ public class IncomingCommandManager extends WeakListenable<IncomingCommandManage
     final private List<IncomingCommandQueue> queues = new ArrayList<>();
     final private List<Handler> handlerList = new ArrayList<>();
 
-    public IncomingCommandManager(UserDataConfig userDataConfig) throws IOException, CryptoException {
+    public IncomingCommandManager(UserDataConfig userDataConfig, ContactRequestCommandHandler.IListener listener)
+            throws IOException, CryptoException {
         this.queues.add(userDataConfig.getUserData().getIncomingCommandQueue());
 
         UserData userData = userDataConfig.getUserData();
-        addHandler(new ContactRequestCommandHandler(userData));
+        addHandler(new ContactRequestCommandHandler(userData, listener));
         addHandler(new AccessCommandHandler(userData));
         addHandler(new MigrationCommandHandler(userDataConfig));
     }

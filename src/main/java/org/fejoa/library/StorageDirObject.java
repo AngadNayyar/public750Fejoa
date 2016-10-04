@@ -25,6 +25,10 @@ public class StorageDirObject {
         return storageDir;
     }
 
+    public FejoaContext getContext() {
+        return context;
+    }
+
     public void commit() throws IOException {
         storageDir.commit();
     }

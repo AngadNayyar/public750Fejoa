@@ -17,6 +17,8 @@ import javafx.scene.paint.Color;
 import org.fejoa.gui.JobStatus;
 import org.fejoa.library.Client;
 import org.fejoa.gui.IStatusManager;
+import org.fejoa.library.ContactPublic;
+import org.fejoa.library.command.ContactRequestCommandHandler;
 import org.fejoa.library.remote.TaskUpdate;
 import org.fejoa.library.support.Task;
 
@@ -88,6 +90,11 @@ public class ClientView extends HBox {
                     statusManager.addJobStatus(commandManagerStatus);
                     commandManagerStatus.setStatus(exception.getMessage());
                     commandManagerStatus.setFailed();
+                }
+            }, new ContactRequestCommandHandler.IListener() {
+                @Override
+                public void onContactRequest(ContactPublic contact) {
+
                 }
             });
         } catch (Exception exception) {

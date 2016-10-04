@@ -110,7 +110,11 @@ abstract class CommandQueue<T extends CommandQueue.Entry> {
     }
 
     public void removeCommand(T command) throws IOException, CryptoException {
-        storageDir.remove(command.hash());
+        removeCommand(command.hash());
+    }
+
+    public void removeCommand(String id) throws IOException, CryptoException {
+        storageDir.remove(id);
     }
 
     abstract protected T instantiate();

@@ -20,6 +20,7 @@ import java.security.PublicKey;
 
 public class ContactRequestCommandHandler extends EnvelopeCommandHandler {
     final private ContactStore contactStore;
+    final private IListener listener;
 
     static public class ReturnValue extends IncomingCommandManager.ReturnValue {
         final public String contactId;
@@ -32,9 +33,14 @@ public class ContactRequestCommandHandler extends EnvelopeCommandHandler {
         }
     }
 
-    public ContactRequestCommandHandler(UserData userData) {
+    public interface IListener {
+        void onContactRequest(ContactPublic contact);
+    }
+
+    public ContactRequestCommandHandler(UserData userData, IListener listener) {
         super(userData, ContactRequestCommand.COMMAND_NAME);
         this.contactStore = userData.getContactStore();
+        this.listener = listener;
     }
 
     @Override
@@ -73,14 +79,15 @@ public class ContactRequestCommandHandler extends EnvelopeCommandHandler {
         if (!crypto.verifySignature(hash.getBytes(), signature, signingKey, signatureSettings))
             throw new Exception("Contact request with invalid signature!");
 
-        ContactPublic contactPublic = contactStore.addContact(id);
+        ContactPublic contactPublic = new ContactPublic(contactStore.getContext(), null);
+        contactPublic.setId(id);
         contactPublic.addSignatureKey(signingKeyItem);
         contactPublic.getSignatureKeys().setDefault(signingKeyItem);
         contactPublic.addEncryptionKey(publicKeyItem);
         contactPublic.getEncryptionKeys().setDefault(publicKeyItem);
         contactPublic.getRemotes().add(remote);
         contactPublic.getRemotes().setDefault(remote);
-        contactStore.commit();
+        listener.onContactRequest(contactPublic);
 
         return new ReturnValue(IncomingCommandManager.ReturnValue.HANDLED, id, state);
     }

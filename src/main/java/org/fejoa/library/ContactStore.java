@@ -47,6 +47,11 @@ public class ContactStore extends StorageDirObject {
         return contact;
     }
 
+    public void addContact(ContactPublic contact) throws IOException, CryptoException {
+        contact.setStorageDir(contactList.getStorageDirForId(contact.getId()));
+        contactList.add(contact);
+    }
+
     public StorageDirList<ContactPublic> getContactList() {
         return contactList;
     }

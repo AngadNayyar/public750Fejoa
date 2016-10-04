@@ -22,11 +22,6 @@ public class ContactPublic extends Contact<PublicKeyItem, PublicKeyItem> {
     private RemoteList remotes;
     private ContactBranchList contactBranchList;
 
-    protected ContactPublic(FejoaContext context, IOStorageDir storageDir) {
-        super(context, getEntryIO(), getEntryIO(),
-                storageDir);
-    }
-
     static private StorageDirList.AbstractEntryIO<PublicKeyItem> getEntryIO() {
         return new StorageDirList.AbstractEntryIO<PublicKeyItem>() {
             @Override
@@ -43,12 +38,28 @@ public class ContactPublic extends Contact<PublicKeyItem, PublicKeyItem> {
         };
     }
 
+    public ContactPublic(FejoaContext context, IOStorageDir storageDir) {
+        super(context, getEntryIO(), getEntryIO(),
+                storageDir);
+
+        remotes = new RemoteList(getRemoteListDir());
+        contactBranchList = new ContactBranchList(context, getAccessListDir());
+    }
+
     @Override
-    protected void setStorageDir(IOStorageDir dir) {
+    public void setStorageDir(IOStorageDir dir) throws IOException, CryptoException {
         super.setStorageDir(dir);
 
-        remotes = new RemoteList(new IOStorageDir(storageDir, REMOTES_DIR));
-        contactBranchList = new ContactBranchList(context, new IOStorageDir(storageDir, ACCESS_DIR));
+        remotes.setStorageDir(getRemoteListDir());
+        contactBranchList.setStorageDir(getAccessListDir());
+    }
+
+    private IOStorageDir getRemoteListDir() {
+        return new IOStorageDir(storageDir, REMOTES_DIR);
+    }
+
+    private IOStorageDir getAccessListDir() {
+        return new IOStorageDir(storageDir, ACCESS_DIR);
     }
 
     @Override

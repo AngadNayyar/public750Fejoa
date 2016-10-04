@@ -9,20 +9,35 @@ package org.fejoa.library;
 
 import org.fejoa.library.crypto.*;
 import org.fejoa.library.database.IOStorageDir;
-import org.fejoa.library.database.StorageDir;
+import org.fejoa.library.database.MemoryIODatabase;
 
 import java.io.IOException;
 import java.security.PublicKey;
 
 
-abstract class Contact<SignKey, EncKey> implements IContactPublic {
+class MoveableStorage {
+    protected IOStorageDir storageDir;
+
+    public MoveableStorage(IOStorageDir storageDir) {
+        if (storageDir == null)
+            this.storageDir = new IOStorageDir(new MemoryIODatabase(), "");
+        else
+            this.storageDir = storageDir;
+    }
+
+    public void setStorageDir(IOStorageDir target) throws IOException, CryptoException {
+        storageDir.copyTo(target);
+        this.storageDir = target;
+    }
+}
+
+abstract class Contact<SignKey, EncKey> extends MoveableStorage implements IContactPublic {
     final static private String SIGNATURE_KEYS_DIR = "signatureKeys";
     final static private String ENCRYPTION_KEYS_DIR = "encryptionKeys";
 
     final protected FejoaContext context;
     final protected StorageDirList.IEntryIO<SignKey> signEntryIO;
     final protected StorageDirList.IEntryIO<EncKey> encEntryIO;
-    protected IOStorageDir storageDir;
 
     protected String id;
 
@@ -31,26 +46,34 @@ abstract class Contact<SignKey, EncKey> implements IContactPublic {
 
     protected Contact(FejoaContext context, StorageDirList.IEntryIO<SignKey> signEntryIO,
                       StorageDirList.IEntryIO<EncKey> encEntryIO, IOStorageDir dir) {
+        super(dir);
         this.context = context;
         this.signEntryIO = signEntryIO;
         this.encEntryIO = encEntryIO;
+        this.signatureKeys = new StorageDirList<>(getSignatureKeysDir(), signEntryIO);
+        this.encryptionKeys = new StorageDirList<>(getEncKeysDir(), encEntryIO);
 
-        if (dir != null) {
-            setStorageDir(dir);
-
-            try {
-                read(storageDir);
-            } catch (IOException e) {
-                //e.printStackTrace();
-            }
+        try {
+            read(storageDir);
+        } catch (IOException e) {
+            //e.printStackTrace();
         }
     }
 
-    protected void setStorageDir(IOStorageDir dir) {
-        this.storageDir = dir;
+    @Override
+    public void setStorageDir(IOStorageDir dir) throws IOException, CryptoException {
+        super.setStorageDir(dir);
 
-        signatureKeys = new StorageDirList<>(new IOStorageDir(dir, SIGNATURE_KEYS_DIR), signEntryIO);
-        encryptionKeys = new StorageDirList<>(new IOStorageDir(dir, ENCRYPTION_KEYS_DIR), encEntryIO);
+        signatureKeys.setStorageDir(getSignatureKeysDir());
+        encryptionKeys.setStorageDir(getEncKeysDir());
+    }
+
+    private IOStorageDir getSignatureKeysDir() {
+        return new IOStorageDir(storageDir, SIGNATURE_KEYS_DIR);
+    }
+
+    private IOStorageDir getEncKeysDir() {
+        return new IOStorageDir(storageDir, ENCRYPTION_KEYS_DIR);
     }
 
     protected void read(IOStorageDir storageDir) throws IOException {
