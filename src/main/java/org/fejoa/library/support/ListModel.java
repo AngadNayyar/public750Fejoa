@@ -5,9 +5,7 @@
  * Authors:
  *      Clemens Zeidler <czei002@aucklanduni.ac.nz>
  */
-package org.fejoa.gui;
-
-import org.fejoa.library.support.WeakListenable;
+package org.fejoa.library.support;
 
 import java.util.Iterator;
 

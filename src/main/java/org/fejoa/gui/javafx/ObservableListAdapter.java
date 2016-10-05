@@ -8,7 +8,7 @@
 package org.fejoa.gui.javafx;
 
 import javafx.collections.ObservableListBase;
-import org.fejoa.gui.ListModel;
+import org.fejoa.library.support.ListModel;
 
 
 public class ObservableListAdapter<T> extends ObservableListBase<T> {

@@ -7,6 +7,7 @@
  */
 package org.fejoa.gui;
 
+import org.fejoa.library.support.ArrayListModel;
 import org.fejoa.library.support.WeakListenable;
 
 import java.io.File;
