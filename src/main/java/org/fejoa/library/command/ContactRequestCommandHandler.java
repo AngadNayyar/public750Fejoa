@@ -7,50 +7,94 @@
  */
 package org.fejoa.library.command;
 
-import org.fejoa.library.crypto.CryptoHelper;
-import org.fejoa.library.crypto.CryptoSettings;
-import org.fejoa.library.crypto.ICryptoInterface;
-import org.fejoa.library.crypto.JsonCryptoSettings;
+import org.fejoa.library.crypto.*;
 import org.fejoa.library.*;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import javax.xml.bind.DatatypeConverter;
+import java.io.IOException;
 import java.security.PublicKey;
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class ContactRequestCommandHandler extends EnvelopeCommandHandler {
     final private ContactStore contactStore;
-    final private IListener listener;
+    private IListener listener;
+    final private List<ContactRequest> contactRequestList = new ArrayList<>();
 
-    static public class ReturnValue extends IncomingCommandManager.ReturnValue {
-        final public String contactId;
-        final public String state;
+    public interface IListener extends IncomingCommandManager.IListener {
+        void onContactRequest(ContactRequestCommandHandler handler, ContactRequest contactRequest);
+        void onContactRequestReply(ContactRequestCommandHandler handler, ContactRequest contactRequest);
+        void onContactRequestFinished();
+    }
 
-        public ReturnValue(int status, String contactId, String state) {
-            super(status, ContactRequestCommand.COMMAND_NAME);
-            this.contactId = contactId;
-            this.state = state;
+    static public class AutoAccept implements IListener {
+        @Override
+        public void onContactRequest(ContactRequestCommandHandler handler, ContactRequest contactRequest) {
+            handler.acceptContactRequest(contactRequest);
+        }
+
+        @Override
+        public void onContactRequestReply(ContactRequestCommandHandler handler, ContactRequest contactRequest) {
+            handler.acceptContactRequestReply(contactRequest);
+        }
+
+        @Override
+        public void onContactRequestFinished() {
+
+        }
+
+        @Override
+        public void onError(Exception exception) {
+
         }
     }
 
-    public interface IListener {
-        void onContactRequest(ContactPublic contact);
+    public static class ContactRequest {
+        final private IncomingCommandManager.HandlerResponse response;
+        final private String state;
+        final public ContactPublic contact;
+
+        private ContactRequest(IncomingCommandManager.HandlerResponse response, String state, ContactPublic contact) {
+            this.response = response;
+            this.state = state;
+            this.contact = contact;
+        }
     }
 
-    public ContactRequestCommandHandler(UserData userData, IListener listener) {
+    public ContactRequestCommandHandler(UserData userData) {
         super(userData, ContactRequestCommand.COMMAND_NAME);
         this.contactStore = userData.getContactStore();
+    }
+
+    public void setListener(IListener listener) {
         this.listener = listener;
     }
 
     @Override
-    protected IncomingCommandManager.ReturnValue handle(JSONObject command) throws Exception {
+    public IListener getListener() {
+        return listener;
+    }
+
+    @Override
+    protected boolean handle(JSONObject command, IncomingCommandManager.HandlerResponse response) throws Exception {
+        if (listener == null) {
+            response.setRetryLater();
+            return true;
+        }
+
         String state = command.getString(ContactRequestCommand.STATE);
         String id = command.getString(Constants.SENDER_ID_KEY);
         if (id.equals(""))
-            return new ReturnValue(IncomingCommandManager.ReturnValue.HANDLED, id, "invalid contact id");
-        if (state.equals(ContactRequestCommand.FINISH_STATE))
-            return new ReturnValue(IncomingCommandManager.ReturnValue.HANDLED, id, state);
+            throw new Exception("invalid contact id");
+
+        if (state.equals(ContactRequestCommand.FINISH_STATE)) {
+            response.setHandled();
+            listener.onContactRequestFinished();
+            return true;
+        }
 
         String signingKeyBase64 = command.getString(ContactRequestCommand.SIGNING_KEY_KEY);
         CryptoSettings.KeyTypeSettings signingKeySettings = JsonCryptoSettings.keyTypeFromJson(command.getJSONObject(
@@ -87,8 +131,56 @@ public class ContactRequestCommandHandler extends EnvelopeCommandHandler {
         contactPublic.getEncryptionKeys().setDefault(publicKeyItem);
         contactPublic.getRemotes().add(remote);
         contactPublic.getRemotes().setDefault(remote);
-        listener.onContactRequest(contactPublic);
 
-        return new ReturnValue(IncomingCommandManager.ReturnValue.HANDLED, id, state);
+        ContactRequest contactRequest = new ContactRequest(response, state, contactPublic);
+        contactRequestList.add(contactRequest);
+        if (state.equals(ContactRequestCommand.INITIAL_STATE))
+            listener.onContactRequest(this, contactRequest);
+        else if (state.equals(ContactRequestCommand.REPLY_STATE))
+            listener.onContactRequestReply(this, contactRequest);
+        else
+            throw new Exception("Unknown state: " + state);
+
+        return true;
+    }
+
+    public void acceptContactRequest(ContactRequest contactRequest) {
+        assert contactRequestList.contains(contactRequest);
+        contactRequestList.remove(contactRequest);
+        contactRequest.response.setHandled();
+
+        Remote remote = contactRequest.contact.getRemotes().getDefault();
+        try {
+            contactStore.addContact(contactRequest.contact);
+            contactStore.commit();
+
+            userData.getOutgoingCommandQueue().post(ContactRequestCommand.makeReplyRequest(
+                    userData.getContext(),
+                    userData.getMyself(),
+                    userData.getGateway(), contactRequest.contact),
+                    remote.getUser(), remote.getServer());
+        } catch (Exception e) {
+            listener.onError(e);
+        }
+    }
+
+    public void acceptContactRequestReply(ContactRequest contactRequest) {
+        //TODO: verify that we started this request!
+        assert contactRequestList.contains(contactRequest);
+        contactRequestList.remove(contactRequest);
+        contactRequest.response.setHandled();
+
+        Remote remote = contactRequest.contact.getRemotes().getDefault();
+        try {
+            contactStore.addContact(contactRequest.contact);
+            contactStore.commit();
+
+            userData.getOutgoingCommandQueue().post(ContactRequestCommand.makeFinish(
+                    userData.getContext(),
+                    userData.getMyself(), contactRequest.contact),
+                    remote.getUser(), remote.getServer());
+        } catch (Exception e) {
+           listener.onError(e);
+        }
     }
 }

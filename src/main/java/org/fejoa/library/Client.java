@@ -30,8 +30,6 @@ public class Client {
     private OutgoingQueueManager outgoingQueueManager;
     private IncomingCommandManager incomingCommandManager;
 
-    private IncomingContactRequestHandler contactRequestHandler = new IncomingContactRequestHandler(this, null);
-
     private Client(File homeDir) {
         this.context = new FejoaContext(homeDir);
         this.connectionManager = new ConnectionManager();
@@ -136,16 +134,13 @@ public class Client {
         syncManager = null;
     }
 
-    public void startCommandManagers(Task.IObserver<TaskUpdate, Void> outgoingCommandObserver,
-                                     ContactRequestCommandHandler.IListener listener)
+    public void startCommandManagers(Task.IObserver<TaskUpdate, Void> outgoingCommandObserver)
             throws IOException, CryptoException {
         outgoingQueueManager = new OutgoingQueueManager(userData.getOutgoingCommandQueue(), connectionManager);
         outgoingQueueManager.start(outgoingCommandObserver);
 
-        incomingCommandManager = new IncomingCommandManager(config, listener);
+        incomingCommandManager = new IncomingCommandManager(config);
         incomingCommandManager.start();
-
-        contactRequestHandler.start();
     }
 
     public IncomingCommandManager getIncomingCommandManager() {

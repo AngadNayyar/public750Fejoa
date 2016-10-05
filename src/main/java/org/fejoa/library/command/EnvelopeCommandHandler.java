@@ -37,7 +37,7 @@ abstract class EnvelopeCommandHandler implements IncomingCommandManager.Handler 
     }
 
     @Override
-    public IncomingCommandManager.ReturnValue handle(CommandQueue.Entry command) throws Exception {
+    public boolean handle(CommandQueue.Entry command, IncomingCommandManager.HandlerResponse response) throws Exception {
         byte[] request;
         Envelope envelope = new Envelope();
         try {
@@ -47,13 +47,13 @@ abstract class EnvelopeCommandHandler implements IncomingCommandManager.Handler 
         } catch (Exception e) {
             LOG.warning("Can't open envelop or not an enveloped command: " + e.getMessage());
             LOG.info("Command as string: " + new String(command.getData()));
-            return null;
+            return false;
         }
 
         JSONObject object = new JSONObject(new String(request));
         if (!object.has(Constants.COMMAND_NAME_KEY)
                 || !object.getString(Constants.COMMAND_NAME_KEY).equals(this.commandType))
-            return null;
+            return false;
 
         LOG.info("Handle command: " + object.toString());
 
@@ -63,10 +63,10 @@ abstract class EnvelopeCommandHandler implements IncomingCommandManager.Handler 
             if (!senderId.equals(object.getString(Constants.SENDER_ID_KEY))) {
                 LOG.warning("Command with mismatching sender id. Signature sender id: " + senderId +
                         " command sender id: " + object.getString(Constants.SENDER_ID_KEY));
-                return null;
+                return false;
             }
         }
-        return handle(object);
+        return handle(object, response);
     }
 
     /**
@@ -76,5 +76,6 @@ abstract class EnvelopeCommandHandler implements IncomingCommandManager.Handler 
      * @return
      * @throws Exception
      */
-    abstract protected IncomingCommandManager.ReturnValue handle(JSONObject command) throws Exception;
+    abstract protected boolean handle(JSONObject command, IncomingCommandManager.HandlerResponse response)
+            throws Exception;
 }

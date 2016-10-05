@@ -53,18 +53,11 @@ public class ContactsView extends VBox {
         addContactButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
-                ContactRequest contactRequest = new ContactRequest(client);
-                contactRequest.startRequest("User2", "http://localhost:8080", new ContactRequest.AutoAcceptHandler() {
-                    @Override
-                    public void onFinish() {
-
-                    }
-
-                    @Override
-                    public void onException(Exception exception) {
-
-                    }
-                });
+                try {
+                    ContactRequest.startRequest(client.getUserData(), "User2", "http://localhost:8080");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         });
     }

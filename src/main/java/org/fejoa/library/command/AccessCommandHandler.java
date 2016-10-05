@@ -12,28 +12,31 @@ import org.json.JSONObject;
 
 
 public class AccessCommandHandler extends EnvelopeCommandHandler {
-    static public class ReturnValue extends IncomingCommandManager.ReturnValue {
-        final public String contactId;
-        final public AccessTokenContact accessTokenContact;
-
-        public ReturnValue(int status, String command, String contactId, AccessTokenContact accessTokenContact) {
-            super(status, command);
-            this.contactId = contactId;
-            this.accessTokenContact = accessTokenContact;
-        }
+    public interface IListener extends IncomingCommandManager.IListener {
+        void onAccessGranted(String contactId, AccessTokenContact accessTokenContact);
     }
 
     final private ContactStore contactStore;
+    private IListener listener;
 
     public AccessCommandHandler(UserData userData) {
         super(userData, AccessCommand.COMMAND_NAME);
         this.contactStore = userData.getContactStore();
     }
 
+    public void setListener(IListener listener) {
+        this.listener = listener;
+    }
+
     @Override
-    protected IncomingCommandManager.ReturnValue handle(JSONObject command) throws Exception {
+    public IListener getListener() {
+        return listener;
+    }
+
+    @Override
+    protected boolean handle(JSONObject command, IncomingCommandManager.HandlerResponse response) throws Exception {
         if (!command.getString(Constants.COMMAND_NAME_KEY).equals(AccessCommand.COMMAND_NAME))
-            return null;
+            return false;
         String senderId = command.getString(Constants.SENDER_ID_KEY);
 
         String branch = command.getString(Constants.BRANCH_KEY);
@@ -50,7 +53,10 @@ public class AccessCommandHandler extends EnvelopeCommandHandler {
 
         contactStore.commit();
 
-        return new ReturnValue(IncomingCommandManager.ReturnValue.HANDLED, AccessCommand.COMMAND_NAME, senderId,
-                accessTokenContact);
+        if (listener != null)
+            listener.onAccessGranted(senderId, accessTokenContact);
+
+        response.setHandled();
+        return true;
     }
 }

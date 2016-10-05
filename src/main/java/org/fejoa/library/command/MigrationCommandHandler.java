@@ -12,16 +12,12 @@ import org.json.JSONObject;
 
 
 public class MigrationCommandHandler extends EnvelopeCommandHandler {
-    static public class ReturnValue extends IncomingCommandManager.ReturnValue {
-        final public String contactId;
-
-        public ReturnValue(int status, String command, String contactId) {
-            super(status, command);
-            this.contactId = contactId;
-        }
+    public interface IListener extends IncomingCommandManager.IListener {
+        void onContactMigrated(String contactId);
     }
 
     final private UserDataConfig config;
+    private IListener listener;
 
     public MigrationCommandHandler(UserDataConfig userDataConfig) {
         super(userDataConfig.getUserData(), MigrationCommand.COMMAND_NAME);
@@ -29,8 +25,17 @@ public class MigrationCommandHandler extends EnvelopeCommandHandler {
         this.config = userDataConfig;
     }
 
+    public void setListener(IListener listener) {
+        this.listener = listener;
+    }
+
     @Override
-    protected IncomingCommandManager.ReturnValue handle(JSONObject command) throws Exception {
+    public IListener getListener() {
+        return listener;
+    }
+
+    @Override
+    protected boolean handle(JSONObject command, IncomingCommandManager.HandlerResponse response) throws Exception {
         String senderId = command.getString(Constants.SENDER_ID_KEY);
         String newUserName = command.getString(MigrationCommand.NEW_USER_KEY);
         String newServer = command.getString(MigrationCommand.NEW_SERVER_KEY);
@@ -50,7 +55,9 @@ public class MigrationCommandHandler extends EnvelopeCommandHandler {
                 newRemote.getUser(), newRemote.getServer());
         queue.commit();
 
+        if (listener != null)
+            listener.onContactMigrated(senderId);
 
-        return new ReturnValue(IncomingCommandManager.ReturnValue.HANDLED, MigrationCommand.COMMAND_NAME, senderId);
+        return true;
     }
 }

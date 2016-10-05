@@ -91,11 +91,6 @@ public class ClientView extends HBox {
                     commandManagerStatus.setStatus(exception.getMessage());
                     commandManagerStatus.setFailed();
                 }
-            }, new ContactRequestCommandHandler.IListener() {
-                @Override
-                public void onContactRequest(ContactPublic contact) {
-
-                }
             });
         } catch (Exception exception) {
             final JobStatus commandManagerStatus = new JobStatus();

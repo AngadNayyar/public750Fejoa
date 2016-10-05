@@ -20,23 +20,44 @@ import java.util.List;
 import java.util.logging.Logger;
 
 
-public class IncomingCommandManager extends WeakListenable<IncomingCommandManager.IListener> {
-    static public class ReturnValue {
-        final static int HANDLED = 0;
-        final static int RETRY = 1;
+public class IncomingCommandManager {
+    public class HandlerResponse {
+        final private IncomingCommandQueue queue;
+        final private String commandId;
 
-        final public int status;
-        final public String command;
+        public HandlerResponse(IncomingCommandQueue queue, String id) {
+            this.queue = queue;
+            this.commandId = id;
+        }
 
-        public ReturnValue(int status, String command) {
-            this.status = status;
-            this.command = command;
+        public void setHandled() {
+            removeCommand();
+        }
+
+        private boolean removeCommand() {
+            try {
+                queue.removeCommand(commandId);
+                queue.commit();
+                return true;
+            } catch (Exception e) {
+                e.printStackTrace();
+                LOG.throwing("Can't remove command.", e.getMessage(), e);
+                return false;
+            }
+        }
+
+        public void setError(Exception e) {
+            LOG.throwing("Error.", e.getMessage(), e);
+            removeCommand();
+        }
+
+        public void setRetryLater() {
+            //todo: schedule a new handling
         }
     }
 
     public interface IListener {
-        void onCommandReceived(ReturnValue returnValue);
-        void onException(Exception exception);
+        void onError(Exception e);
     }
 
     public interface Handler {
@@ -46,28 +67,40 @@ public class IncomingCommandManager extends WeakListenable<IncomingCommandManage
          * Handler for a command.
          *
          * @param command the command entry
-         * @return null if unhandled
+         * @param response to communicate with the manager
+         * @return true if the command is accepted by the handler
          * @throws Exception
          */
-        ReturnValue handle(CommandQueue.Entry command) throws Exception;
+        boolean handle(CommandQueue.Entry command, HandlerResponse response) throws Exception;
+
+        IListener getListener();
     }
 
     final static private Logger LOG = Logger.getLogger(IncomingCommandManager.class.getName());
     final private List<IncomingCommandQueue> queues = new ArrayList<>();
     final private List<Handler> handlerList = new ArrayList<>();
+    final private List<HandlerResponse> ongoingHandling = new ArrayList<>();
 
-    public IncomingCommandManager(UserDataConfig userDataConfig, ContactRequestCommandHandler.IListener listener)
+    public IncomingCommandManager(UserDataConfig userDataConfig)
             throws IOException, CryptoException {
         this.queues.add(userDataConfig.getUserData().getIncomingCommandQueue());
 
         UserData userData = userDataConfig.getUserData();
-        addHandler(new ContactRequestCommandHandler(userData, listener));
+        addHandler(new ContactRequestCommandHandler(userData));
         addHandler(new AccessCommandHandler(userData));
         addHandler(new MigrationCommandHandler(userDataConfig));
     }
 
     public void addHandler(Handler handler) {
         handlerList.add(handler);
+    }
+
+    public Handler getHandler(String name) {
+        for (Handler handler : handlerList) {
+            if (handler.handlerName().equals(name))
+                return handler;
+        }
+        return null;
     }
 
     private List<StorageDir.IListener> hardRefList = new ArrayList<>();
@@ -87,18 +120,22 @@ public class IncomingCommandManager extends WeakListenable<IncomingCommandManage
         }
     }
 
+    private boolean isCommandHandling(CommandQueue.Entry command) {
+        for (HandlerResponse response : ongoingHandling) {
+            if (response.commandId.equals(command.hash()))
+                return true;
+        }
+        return false;
+    }
+
     private void handleCommands(IncomingCommandQueue queue) {
         try {
             List<CommandQueue.Entry> commands = queue.getCommands();
-            boolean anyHandled = false;
             for (CommandQueue.Entry command : commands) {
-                if (handleCommand(queue, command)) {
-                    anyHandled = true;
-                    break;
-                }
+                if (isCommandHandling(command))
+                    continue;
+                handleCommand(queue, command);
             }
-            if (anyHandled)
-                queue.commit();
         } catch (IOException e) {
             e.printStackTrace();
         } catch (CryptoException e) {
@@ -107,54 +144,26 @@ public class IncomingCommandManager extends WeakListenable<IncomingCommandManage
     }
 
     private boolean handleCommand(IncomingCommandQueue queue, CommandQueue.Entry command) {
-        return handleCommand(queue, command, handlerList, 0);
-    }
-
-    private boolean handleCommand(IncomingCommandQueue queue, CommandQueue.Entry command, List<Handler> handlers,
-                                  int retryCount) {
-        if (retryCount > 1)
-            return false;
-        boolean handled = false;
-        List<Handler> retryHandlers = new ArrayList<>();
-        for (Handler handler : handlers) {
-            ReturnValue returnValue = null;
+        boolean accepted = false;
+        HandlerResponse response = new HandlerResponse(queue, command.hash());
+        ongoingHandling.add(response);
+        for (Handler handler : handlerList) {
             try {
-                returnValue = handler.handle(command);
+                accepted = handler.handle(command, response);
             } catch (Exception e) {
+                if (handler.getListener() != null)
+                    handler.getListener().onError(e);
                 LOG.warning("Exception in command: " + handler.handlerName());
-                notifyOnException(e);
+                response.setError(e);
             }
-            if (returnValue == null)
-                continue;
-            handled = true;
-            if (returnValue.status == ReturnValue.HANDLED) {
-                try {
-                    queue.removeCommand(command);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                notifyOnCommandReceived(returnValue);
-            } else if (returnValue.status == ReturnValue.RETRY)
-                retryHandlers.add(handler);
-            break;
+            if (accepted)
+                break;
         }
-        if (!handled)
+        if (!accepted) {
+            ongoingHandling.remove(response);
             LOG.warning("Unhandled command!");
+        }
 
-        retryCount++;
-        if (retryHandlers.size() > 0)
-            handleCommand(queue, command, retryHandlers, retryCount);
-
-        return handled;
-    }
-
-    public void notifyOnCommandReceived(ReturnValue returnValue) {
-        for (IListener listener : getListeners())
-            listener.onCommandReceived(returnValue);
-    }
-
-    private void notifyOnException(Exception exception) {
-        for (IListener listener : getListeners())
-            listener.onException(exception);
+        return accepted;
     }
 }

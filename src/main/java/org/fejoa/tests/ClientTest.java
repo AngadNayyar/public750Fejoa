@@ -274,70 +274,67 @@ public class ClientTest extends TestCase {
                 public void onException(Exception exception) {
                     finishAndFail(exception.getMessage());
                 }
-            }, new ContactRequestCommandHandler.IListener() {
+            });
+            ContactRequestCommandHandler handler = (ContactRequestCommandHandler)client.getIncomingCommandManager()
+                    .getHandler(ContactRequestCommand.COMMAND_NAME);
+            handler.setListener(new ContactRequestCommandHandler.AutoAccept() {
                 @Override
-                public void onContactRequest(ContactPublic contact) {
-                    ContactStore contactStore = client.getUserData().getContactStore();
-                    try {
-                        contactStore.addContact(contact);
-                        contactStore.commit();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        finishAndFail(e.getMessage());
-                    }
+                public void onError(Exception exception) {
+                    exception.printStackTrace();
+                    finishAndFail(exception.getMessage());
                 }
             });
         }
     }
 
     class ContactRequestTask extends TestTask {
-        private ContactRequest contactRequest = new ContactRequest(client1);
-        private ContactRequest.IHandler handler = new ContactRequest.AutoAcceptHandler() {
-            @Override
-            public void onFinish() {
-                onTaskPerformed();
-            }
-
-            @Override
-            public void onException(Exception exception) {
-                finishAndFail(exception.getMessage());
-            }
-        };
-
         @Override
         protected void perform(TestTask previousTask) throws Exception {
-            contactRequest.startRequest(USER_NAME_2, SERVER_URL_2, handler);
+            ContactRequestCommandHandler handler = (ContactRequestCommandHandler)client1.getIncomingCommandManager()
+                    .getHandler(ContactRequestCommand.COMMAND_NAME);
+            handler.setListener(new ContactRequestCommandHandler.AutoAccept() {
+                @Override
+                public void onContactRequestReply(ContactRequestCommandHandler handler, ContactRequestCommandHandler.ContactRequest contactRequest) {
+                    super.onContactRequestReply(handler, contactRequest);
+                    onTaskPerformed();
+                }
+
+                @Override
+                public void onError(Exception exception) {
+                    exception.printStackTrace();
+                    finishAndFail(exception.getMessage());
+                }
+            });
+            ContactRequest.startRequest(client1.getUserData(), USER_NAME_2, SERVER_URL_2);
         }
     }
 
     class GrantAccessForClient1Task extends TestTask {
-        private IncomingCommandManager.IListener listener = new IncomingCommandManager.IListener() {
+        private AccessCommandHandler.IListener listener = new AccessCommandHandler.IListener() {
             @Override
-            public void onCommandReceived(IncomingCommandManager.ReturnValue returnValue) {
-                if (returnValue.command.equals(AccessCommand.COMMAND_NAME)) {
-                    AccessCommandHandler.ReturnValue ret = (AccessCommandHandler.ReturnValue)returnValue;
-                    String contactId = ret.contactId;
-                    AccessTokenContact accessTokenContact = ret.accessTokenContact;
-                    System.out.println("Access granted: " + contactId + " access entry: "
-                            + accessTokenContact.getAccessEntry());
-
-                    try {
-                        waitTillClient2UploadedTheAccessStore(0);
-                    } catch (IOException e) {
-                        onException(e);
-                    }
-                }
+            public void onError(Exception e) {
+                finishAndFail(e.getMessage());
             }
 
             @Override
-            public void onException(Exception exception) {
-                finishAndFail(exception.getMessage());
+            public void onAccessGranted(String contactId, AccessTokenContact accessTokenContact) {
+                System.out.println("Access granted: " + contactId + " access entry: "
+                        + accessTokenContact.getAccessEntry());
+
+                try {
+                    waitTillClient2UploadedTheAccessStore(0);
+                } catch (IOException e) {
+                    onError(e);
+                }
             }
         };
 
         @Override
         protected void perform(TestTask previousTask) throws Exception {
-            client1.getIncomingCommandManager().addListener(listener);
+            AccessCommandHandler handler = (AccessCommandHandler)client1.getIncomingCommandManager()
+                    .getHandler(AccessCommand.COMMAND_NAME);
+
+            handler.setListener(listener);
 
             UserData clientUserData = client2.getUserData();
             ContactStore contactStore = clientUserData.getContactStore();
@@ -352,7 +349,9 @@ public class ClientTest extends TestCase {
 
         @Override
         protected void cleanUp() {
-            client1.getIncomingCommandManager().removeListener(listener);
+            AccessCommandHandler handler = (AccessCommandHandler)client1.getIncomingCommandManager()
+                    .getHandler(AccessCommand.COMMAND_NAME);
+            handler.setListener(null);
         }
 
         private void waitTillClient2UploadedTheAccessStore(final int retryCount) throws IOException {
@@ -425,27 +424,26 @@ public class ClientTest extends TestCase {
     }
 
     class MigrateTask extends TestTask {
-        private IncomingCommandManager.IListener listener = new IncomingCommandManager.IListener() {
+        private MigrationCommandHandler.IListener listener = new MigrationCommandHandler.IListener() {
             @Override
-            public void onCommandReceived(IncomingCommandManager.ReturnValue returnValue) {
-                if (returnValue.command.equals(MigrationCommand.COMMAND_NAME)) {
-                    MigrationCommandHandler.ReturnValue ret = (MigrationCommandHandler.ReturnValue)returnValue;
-                    System.out.println("Contact migrated: " + ret.contactId);
-
-                    ContactPublic contactPublic = (ContactPublic)client2.getUserData().getContactStore()
-                            .getContactFinder().get(ret.contactId);
-                    Remote newRemote = contactPublic.getRemotes().getDefault();
-                    assertEquals(USER_NAME_1_NEW, newRemote.getUser());
-                    assertEquals(SERVER_URL_1_NEW, newRemote.getServer());
-
-                    client2.getIncomingCommandManager().removeListener(listener);
-                    onTaskPerformed();
-                }
+            public void onError(Exception e) {
+                finishAndFail(e.getMessage());
             }
 
             @Override
-            public void onException(Exception exception) {
-                finishAndFail(exception.getMessage());
+            public void onContactMigrated(String contactId) {
+                System.out.println("Contact migrated: " + contactId);
+
+                ContactPublic contactPublic = (ContactPublic)client2.getUserData().getContactStore()
+                        .getContactFinder().get(contactId);
+                Remote newRemote = contactPublic.getRemotes().getDefault();
+                assertEquals(USER_NAME_1_NEW, newRemote.getUser());
+                assertEquals(SERVER_URL_1_NEW, newRemote.getServer());
+
+                MigrationCommandHandler handler = (MigrationCommandHandler)client2.getIncomingCommandManager()
+                        .getHandler(MigrationCommand.COMMAND_NAME);
+                handler.setListener(null);
+                onTaskPerformed();
             }
         };
 
@@ -465,7 +463,9 @@ public class ClientTest extends TestCase {
         }
 
         private void migrate() throws Exception {
-            client2.getIncomingCommandManager().addListener(listener);
+            MigrationCommandHandler handler = (MigrationCommandHandler)client2.getIncomingCommandManager()
+                    .getHandler(MigrationCommand.COMMAND_NAME);
+            handler.setListener(listener);
 
             MigrationManager migrationManager = new MigrationManager(client1);
             migrationManager.migrate(USER_NAME_1_NEW, SERVER_URL_1_NEW, PASSWORD,
@@ -482,7 +482,9 @@ public class ClientTest extends TestCase {
 
                 @Override
                 public void onException(Exception exception) {
-                    client2.getIncomingCommandManager().removeListener(listener);
+                    MigrationCommandHandler handler = (MigrationCommandHandler)client2.getIncomingCommandManager()
+                            .getHandler(MigrationCommand.COMMAND_NAME);
+                    handler.setListener(null);
                     finishAndFail(exception.getMessage());
                 }
             });
