@@ -10,10 +10,7 @@ package org.fejoa.gui.javafx;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
+import javafx.scene.control.*;
 import javafx.scene.control.cell.TextFieldListCell;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -125,8 +122,17 @@ public class ContactsView extends VBox {
                         IStatusManager statusManager) {
         ContactStore contactStore = client.getUserData().getContactStore();
 
+        HBox addContactLayout = new HBox();
+        addContactLayout.getChildren().add(new Label("User:"));
+        final TextField userName = new TextField("User2");
+        addContactLayout.getChildren().add(userName);
+        addContactLayout.getChildren().add(new Label("@"));
+        final TextField serverName = new TextField("http://localhost:8080");
+        addContactLayout.getChildren().add(serverName);
         Button addContactButton = new Button("Add Contact");
-        getChildren().add(addContactButton);
+        addContactLayout.getChildren().add(addContactButton);
+
+        getChildren().add(addContactLayout);
         getChildren().add(new Label("Contact Requests:"));
         ContactRequestList contactRequestList = new ContactRequestList();
         contactRequestList.setItems(contactRequests);
@@ -140,7 +146,7 @@ public class ContactsView extends VBox {
             @Override
             public void handle(ActionEvent actionEvent) {
                 try {
-                    client.contactRequest("User2", "http://localhost:8080");
+                    client.contactRequest(userName.getText(), serverName.getText());
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
