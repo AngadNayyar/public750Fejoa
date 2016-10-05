@@ -12,6 +12,8 @@ import org.fejoa.library.command.*;
 import org.fejoa.library.crypto.CryptoHelper;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.remote.*;
+import org.fejoa.library.support.ArrayListModel;
+import org.fejoa.library.support.ListModel;
 import org.fejoa.library.support.Task;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -46,6 +48,7 @@ public class Client {
         client.userData.getRemoteStore().add(remoteRemote);
         //userData.getRemoteStore().setDefault(remoteRemote);
         client.userData.setGateway(remoteRemote);
+        client.loadCommandManagers();
 
         UserDataSettings userDataSettings = client.userData.getSettings();
         Writer writer = new BufferedWriter(new OutputStreamWriter(
@@ -60,12 +63,14 @@ public class Client {
     static public Client open(File homeDir, String password) throws IOException, CryptoException, JSONException {
         Client client = new Client(homeDir);
         client.userData = UserData.open(client.context, client.readUserDataSettings(), password);
+
         StorageDir userConfigDir = client.userData.getConfigStore().getConfigDir("org.fejoa.client");
         client.config = UserDataConfig.open(client.context, userConfigDir, client.userData);
 
         Remote gateway = client.userData.getGateway();
         client.context.registerRootPassword(gateway.getUser(), gateway.getServer(), password);
 
+        client.loadCommandManagers();
         return client;
     }
 
@@ -149,12 +154,14 @@ public class Client {
         syncManager = null;
     }
 
+    private void loadCommandManagers() throws IOException, CryptoException {
+        outgoingQueueManager = new OutgoingQueueManager(userData.getOutgoingCommandQueue(), connectionManager);
+        incomingCommandManager = new IncomingCommandManager(config);
+    }
+
     public void startCommandManagers(Task.IObserver<TaskUpdate, Void> outgoingCommandObserver)
             throws IOException, CryptoException {
-        outgoingQueueManager = new OutgoingQueueManager(userData.getOutgoingCommandQueue(), connectionManager);
         outgoingQueueManager.start(outgoingCommandObserver);
-
-        incomingCommandManager = new IncomingCommandManager(config);
         incomingCommandManager.start();
     }
 

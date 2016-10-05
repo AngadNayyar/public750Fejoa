@@ -294,8 +294,8 @@ public class ClientTest extends TestCase {
                     .getHandler(ContactRequestCommand.COMMAND_NAME);
             handler.setListener(new ContactRequestCommandHandler.AutoAccept() {
                 @Override
-                public void onContactRequestReply(ContactRequestCommandHandler handler, ContactRequestCommandHandler.ContactRequest contactRequest) {
-                    super.onContactRequestReply(handler, contactRequest);
+                public void onContactRequestReply(ContactRequestCommandHandler.ContactRequest contactRequest) {
+                    super.onContactRequestReply(contactRequest);
                     onTaskPerformed();
                 }
 

@@ -12,7 +12,6 @@ import org.fejoa.library.*;
 import org.json.JSONObject;
 
 import javax.xml.bind.DatatypeConverter;
-import java.io.IOException;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -25,24 +24,24 @@ public class ContactRequestCommandHandler extends EnvelopeCommandHandler {
     final private List<ContactRequest> contactRequestList = new ArrayList<>();
 
     public interface IListener extends IncomingCommandManager.IListener {
-        void onContactRequest(ContactRequestCommandHandler handler, ContactRequest contactRequest);
-        void onContactRequestReply(ContactRequestCommandHandler handler, ContactRequest contactRequest);
-        void onContactRequestFinished();
+        void onContactRequest(ContactRequest contactRequest);
+        void onContactRequestReply(ContactRequest contactRequest);
+        void onContactRequestFinished(ContactPublic contactPublic);
     }
 
     static public class AutoAccept implements IListener {
         @Override
-        public void onContactRequest(ContactRequestCommandHandler handler, ContactRequest contactRequest) {
-            handler.acceptContactRequest(contactRequest);
+        public void onContactRequest(ContactRequest contactRequest) {
+            contactRequest.accept();
         }
 
         @Override
-        public void onContactRequestReply(ContactRequestCommandHandler handler, ContactRequest contactRequest) {
-            handler.acceptContactRequestReply(contactRequest);
+        public void onContactRequestReply(ContactRequest contactRequest) {
+            contactRequest.accept();
         }
 
         @Override
-        public void onContactRequestFinished() {
+        public void onContactRequestFinished(ContactPublic contactPublic) {
 
         }
 
@@ -52,7 +51,7 @@ public class ContactRequestCommandHandler extends EnvelopeCommandHandler {
         }
     }
 
-    public static class ContactRequest {
+    public class ContactRequest {
         final private IncomingCommandManager.HandlerResponse response;
         final private String state;
         final public ContactPublic contact;
@@ -61,6 +60,13 @@ public class ContactRequestCommandHandler extends EnvelopeCommandHandler {
             this.response = response;
             this.state = state;
             this.contact = contact;
+        }
+
+        public void accept() {
+            if (state.equals(ContactRequestCommand.INITIAL_STATE))
+                acceptContactRequest(this);
+            else if (state.equals(ContactRequestCommand.REPLY_STATE))
+                acceptContactRequestReply(this);
         }
     }
 
@@ -92,7 +98,8 @@ public class ContactRequestCommandHandler extends EnvelopeCommandHandler {
 
         if (state.equals(ContactRequestCommand.FINISH_STATE)) {
             response.setHandled();
-            listener.onContactRequestFinished();
+            ContactPublic contactPublic = contactStore.getContactList().get(id);
+            listener.onContactRequestFinished(contactPublic);
             return true;
         }
 
@@ -134,9 +141,9 @@ public class ContactRequestCommandHandler extends EnvelopeCommandHandler {
         ContactRequest contactRequest = new ContactRequest(response, state, contactPublic);
         contactRequestList.add(contactRequest);
         if (state.equals(ContactRequestCommand.INITIAL_STATE))
-            listener.onContactRequest(this, contactRequest);
+            listener.onContactRequest(contactRequest);
         else if (state.equals(ContactRequestCommand.REPLY_STATE))
-            listener.onContactRequestReply(this, contactRequest);
+            listener.onContactRequestReply(contactRequest);
         else
             throw new Exception("Unknown state: " + state);
 
