@@ -9,13 +9,13 @@ package org.fejoa.library.command;
 
 import org.fejoa.library.crypto.*;
 import org.fejoa.library.*;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import javax.xml.bind.DatatypeConverter;
 import java.io.IOException;
 import java.security.PublicKey;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 
@@ -129,8 +129,7 @@ public class ContactRequestCommandHandler extends EnvelopeCommandHandler {
         contactPublic.getSignatureKeys().setDefault(signingKeyItem);
         contactPublic.addEncryptionKey(publicKeyItem);
         contactPublic.getEncryptionKeys().setDefault(publicKeyItem);
-        contactPublic.getRemotes().add(remote);
-        contactPublic.getRemotes().setDefault(remote);
+        contactPublic.getRemotes().add(remote, true);
 
         ContactRequest contactRequest = new ContactRequest(response, state, contactPublic);
         contactRequestList.add(contactRequest);
@@ -146,8 +145,6 @@ public class ContactRequestCommandHandler extends EnvelopeCommandHandler {
 
     public void acceptContactRequest(ContactRequest contactRequest) {
         assert contactRequestList.contains(contactRequest);
-        contactRequestList.remove(contactRequest);
-        contactRequest.response.setHandled();
 
         Remote remote = contactRequest.contact.getRemotes().getDefault();
         try {
@@ -162,16 +159,39 @@ public class ContactRequestCommandHandler extends EnvelopeCommandHandler {
         } catch (Exception e) {
             listener.onError(e);
         }
+
+        contactRequestList.remove(contactRequest);
+        contactRequest.response.setHandled();
+    }
+
+    private ContactPublic getRequestedContact(ContactPublic contactPublic) {
+        Remote remote = contactPublic.getRemotes().getDefault();
+        Collection<ContactPublic> requestedContacts = userData.getContactStore().getRequestedContacts().getEntries();
+        for (ContactPublic requestedContact : requestedContacts) {
+            Remote requestedRemote = requestedContact.getRemotes().getDefault();
+            if (remote.getUser().equals(requestedRemote.getUser())
+                    && remote.getServer().equals(requestedRemote.getServer())) {
+                return requestedContact;
+            }
+        }
+        return null;
     }
 
     public void acceptContactRequestReply(ContactRequest contactRequest) {
-        //TODO: verify that we started this request!
         assert contactRequestList.contains(contactRequest);
-        contactRequestList.remove(contactRequest);
-        contactRequest.response.setHandled();
 
         Remote remote = contactRequest.contact.getRemotes().getDefault();
+        ContactPublic requestContact = getRequestedContact(contactRequest.contact);
+        if (requestContact == null) {
+            Exception exception = new Exception("Contact has not been requested: " + remote.getUser() + "@"
+                    + remote.getServer());
+            contactRequest.response.setError(exception);
+            listener.onError(exception);
+            return;
+        }
+
         try {
+            contactStore.getRequestedContacts().remove(requestContact.getId());
             contactStore.addContact(contactRequest.contact);
             contactStore.commit();
 
@@ -182,5 +202,8 @@ public class ContactRequestCommandHandler extends EnvelopeCommandHandler {
         } catch (Exception e) {
            listener.onError(e);
         }
+
+        contactRequestList.remove(contactRequest);
+        contactRequest.response.setHandled();
     }
 }

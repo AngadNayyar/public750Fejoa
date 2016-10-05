@@ -30,7 +30,6 @@ public class ContactRequestCommand {
     static final public String REPLY_STATE = "reply";
     static final public String FINISH_STATE = "finish";
 
-
     static String makeInfoCommand(ContactPrivate myself, Remote myServer,
                               boolean reply) throws JSONException, CryptoException {
         SigningKeyPair signingKeyPair = myself.getSignatureKeys().getDefault();
