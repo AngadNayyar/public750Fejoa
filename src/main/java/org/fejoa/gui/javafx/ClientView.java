@@ -7,6 +7,8 @@
  */
 package org.fejoa.gui.javafx;
 
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.geometry.Side;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
@@ -18,7 +20,9 @@ import org.fejoa.gui.JobStatus;
 import org.fejoa.library.Client;
 import org.fejoa.gui.IStatusManager;
 import org.fejoa.library.ContactPublic;
+import org.fejoa.library.command.ContactRequestCommand;
 import org.fejoa.library.command.ContactRequestCommandHandler;
+import org.fejoa.library.command.IncomingCommandManager;
 import org.fejoa.library.remote.TaskUpdate;
 import org.fejoa.library.support.Task;
 
@@ -27,9 +31,63 @@ import java.io.IOException;
 
 public class ClientView extends HBox {
     final private Client client;
+    private ObservableList<ContactRequestCommandHandler.ContactRequest> contactRequests
+            = FXCollections.observableArrayList();
 
     public ClientView(final Client client, final IStatusManager statusManager) {
         this.client = client;
+
+        IncomingCommandManager incomingCommandManager = client.getIncomingCommandManager();
+        ContactRequestCommandHandler contactRequestCommandHandler
+                = (ContactRequestCommandHandler)incomingCommandManager.getHandler(ContactRequestCommand.COMMAND_NAME);
+        contactRequestCommandHandler.setListener(new ContactRequestCommandHandler.IListener() {
+            @Override
+            public void onContactRequest(ContactRequestCommandHandler.ContactRequest contactRequest) {
+                contactRequests.add(contactRequest);
+
+                JobStatus jobStatus = new JobStatus();
+                jobStatus.setDone("Contact Request Received");
+                statusManager.addJobStatus(jobStatus);
+            }
+
+            @Override
+            public void onContactRequestReply(ContactRequestCommandHandler.ContactRequest contactRequest) {
+                contactRequest.accept();
+
+                JobStatus jobStatus = new JobStatus();
+                jobStatus.setDone("Contact Request Reply Received");
+                statusManager.addJobStatus(jobStatus);
+            }
+
+            @Override
+            public void onContactRequestFinished(ContactPublic contactPublic) {
+                ContactRequestCommandHandler.ContactRequest finishedRequest = null;
+                for (ContactRequestCommandHandler.ContactRequest request : contactRequests) {
+                    if (request.contact.getId().equals(contactPublic.getId())) {
+                        finishedRequest = request;
+                        break;
+                    }
+                }
+                if (finishedRequest == null) {
+                    JobStatus jobStatus = new JobStatus();
+                    jobStatus.setFailed("Unknown contact requested finished!");
+                    statusManager.addJobStatus(jobStatus);
+                    return;
+                }
+                contactRequests.remove(finishedRequest);
+
+                JobStatus jobStatus = new JobStatus();
+                jobStatus.setDone("Contact Request Finished");
+                statusManager.addJobStatus(jobStatus);
+            }
+
+            @Override
+            public void onError(Exception e) {
+                JobStatus jobStatus = new JobStatus();
+                jobStatus.setFailed("Error in Contact Request Handling: " + e.getMessage());
+                statusManager.addJobStatus(jobStatus);
+            }
+        });
 
         final JobStatus syncStatus = new JobStatus();
         syncStatus.setStatus("WatchJob:");
@@ -118,7 +176,7 @@ public class ClientView extends HBox {
         tabPane.getTabs().add(historyTab);
 
         Tab contactsTab = new Tab("Contacts");
-        contactsTab.setContent(new ContactsView(client, statusManager));
+        contactsTab.setContent(new ContactsView(client, contactRequests, statusManager));
         tabPane.getTabs().add(contactsTab);
 
         getChildren().add(tabPane);
