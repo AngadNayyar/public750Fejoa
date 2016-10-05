@@ -305,7 +305,7 @@ public class ClientTest extends TestCase {
                     finishAndFail(exception.getMessage());
                 }
             });
-            ContactRequest.startRequest(client1.getUserData(), USER_NAME_2, SERVER_URL_2);
+            client1.contactRequest(USER_NAME_2, SERVER_URL_2);
         }
     }
 

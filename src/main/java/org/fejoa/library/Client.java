@@ -9,6 +9,7 @@ package org.fejoa.library;
 
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.command.*;
+import org.fejoa.library.crypto.CryptoHelper;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.remote.*;
 import org.fejoa.library.support.Task;
@@ -103,6 +104,20 @@ public class Client {
 
     public ConnectionManager getConnectionManager() {
         return connectionManager;
+    }
+
+    public void contactRequest(String user, String server) throws Exception {
+        ContactStore contactStore = userData.getContactStore();
+
+        ContactPublic requestedContact = new ContactPublic(context, null);
+        requestedContact.setId(CryptoHelper.sha1HashHex(user + "@" + server));
+        requestedContact.getRemotes().add(new Remote(user, server), true);
+        contactStore.getRequestedContacts().add(requestedContact);
+        contactStore.commit();
+
+        userData.getOutgoingCommandQueue().post(ContactRequestCommand.makeInitialRequest(
+                userData.getMyself(),
+                userData.getGateway()), user, server);
     }
 
     public void createAccount(String userName, String password, String server,

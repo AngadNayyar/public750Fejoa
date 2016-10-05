@@ -14,6 +14,7 @@ import javafx.scene.control.ListView;
 import javafx.scene.layout.VBox;
 import org.fejoa.gui.IStatusManager;
 import org.fejoa.library.*;
+import org.fejoa.library.command.ContactRequestCommand;
 import org.fejoa.library.database.DatabaseDiff;
 import org.fejoa.library.database.StorageDir;
 
@@ -54,7 +55,7 @@ public class ContactsView extends VBox {
             @Override
             public void handle(ActionEvent actionEvent) {
                 try {
-                    ContactRequest.startRequest(client.getUserData(), "User2", "http://localhost:8080");
+                    client.contactRequest("User2", "http://localhost:8080");
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
