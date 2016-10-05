@@ -110,6 +110,13 @@ public class StorageDirList<T> extends MoveableStorage {
         return map.values();
     }
 
+    public String add(T entry, boolean setDefault) throws IOException, CryptoException {
+        String id = add(entry);
+        if (setDefault)
+            setDefault(id);
+        return id;
+    }
+
     public String add(T entry) throws IOException, CryptoException {
         String id = entryIO.getId(entry);
         IOStorageDir subDir = getStorageDirForId(id);
