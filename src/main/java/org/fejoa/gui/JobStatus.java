@@ -43,6 +43,11 @@ public class JobStatus extends WeakListenable<JobStatus.IListener> {
         setDone();
     }
 
+    public void setFailed(String status) {
+        setStatus(status);
+        setFailed();
+    }
+
     public boolean isDone() {
         return isDone;
     }
@@ -50,6 +55,11 @@ public class JobStatus extends WeakListenable<JobStatus.IListener> {
     public void setDone() {
         isDone = true;
         notifyUpdated();
+    }
+
+    public void setDone(String status) {
+        setStatus(status);
+        setDone();
     }
 
     public String getStatus() {
