@@ -43,6 +43,7 @@ public class StorageDir extends IOStorageDir {
         final private IDatabaseInterface database;
         final private Map<String, byte[]> toAdd = new HashMap<>();
         final private List<String> toDelete = new ArrayList<>();
+        private boolean needsCommit = false;
 
         private void notifyTipChanged(DatabaseDiff diff, HashValue base, HashValue tip) {
             for (IListener listener : getListeners())
@@ -115,10 +116,11 @@ public class StorageDir extends IOStorageDir {
             }
             toAdd.clear();
             toDelete.clear();
+            needsCommit = true;
         }
 
         private boolean needsCommit() {
-            if (toAdd.size() == 0 && toDelete.size() == 0)
+            if ((toAdd.size() == 0 && toDelete.size() == 0) && !needsCommit)
                 return false;
             return true;
         }
@@ -127,6 +129,7 @@ public class StorageDir extends IOStorageDir {
             if (!needsCommit())
                 return;
             flush();
+            needsCommit = false;
             HashValue base = getDatabase().getTip();
             try {
                 database.commit(message, commitSignature);
