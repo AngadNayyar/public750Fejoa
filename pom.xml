@@ -6,7 +6,11 @@
 
     <groupId>fejoa</groupId>
     <artifactId>fejoa</artifactId>
+    <packaging>pom</packaging>
     <version>1.0-SNAPSHOT</version>
+    <modules>
+        <module>rabinfingerprint</module>
+    </modules>
 
     <properties>
         <maven.compiler.source>1.7</maven.compiler.source>
@@ -14,6 +18,11 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>org.rabinfingerprint</groupId>
+            <artifactId>rabinfingerprint</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
