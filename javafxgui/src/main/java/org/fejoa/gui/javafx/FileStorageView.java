@@ -96,7 +96,8 @@ public class FileStorageView extends VBox {
         this.client = client;
         this.statusManager = new StatusManagerMessenger(statusManager);
 
-        storageList = new StorageDirList<>(client.getUserDataConfig().getConfigDir(IDENTIFIER),
+        AppContext appContext = client.getUserData().getConfigStore().getAppContext(IDENTIFIER);
+        storageList = new StorageDirList<>(appContext.getStorageDir(),
                 new StorageDirList.AbstractEntryIO<FileStorageEntry>() {
             @Override
             public String getId(FileStorageEntry entry) {

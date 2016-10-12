@@ -26,7 +26,6 @@ public class Client {
     final private FejoaContext context;
     private ConnectionManager connectionManager;
     private UserData userData;
-    private UserDataConfig config;
     private SyncManager syncManager;
     private OutgoingQueueManager outgoingQueueManager;
     private IncomingCommandManager incomingCommandManager;
@@ -41,7 +40,6 @@ public class Client {
         Client client = new Client(homeDir);
         client.context.registerRootPassword(userName, server, password);
         client.userData = UserData.create(client.context, password);
-        client.config = UserDataConfig.create(client.context, client.userData, "org.fejoa.client");
         Remote remoteRemote = new Remote(userName, server);
         client.userData.getRemoteStore().add(remoteRemote);
         //userData.getRemoteStore().setDefault(remoteRemote);
@@ -61,9 +59,6 @@ public class Client {
     static public Client open(File homeDir, String password) throws IOException, CryptoException, JSONException {
         Client client = new Client(homeDir);
         client.userData = UserData.open(client.context, client.readUserDataSettings(), password);
-
-        StorageDir userConfigDir = client.userData.getConfigStore().getConfigDir("org.fejoa.client");
-        client.config = UserDataConfig.open(client.context, userConfigDir, client.userData);
 
         Remote gateway = client.userData.getGateway();
         client.context.registerRootPassword(gateway.getUser(), gateway.getServer(), password);
@@ -99,10 +94,6 @@ public class Client {
 
     public UserData getUserData() {
         return userData;
-    }
-
-    public UserDataConfig getUserDataConfig() {
-        return config;
     }
 
     public ConnectionManager getConnectionManager() {
@@ -154,7 +145,7 @@ public class Client {
 
     private void loadCommandManagers() throws IOException, CryptoException {
         outgoingQueueManager = new OutgoingQueueManager(userData.getOutgoingCommandQueue(), connectionManager);
-        incomingCommandManager = new IncomingCommandManager(config);
+        incomingCommandManager = new IncomingCommandManager(userData);
     }
 
     public void startCommandManagers(Task.IObserver<TaskUpdate, Void> outgoingCommandObserver)

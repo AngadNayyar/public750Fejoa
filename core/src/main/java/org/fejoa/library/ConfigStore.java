@@ -11,11 +11,16 @@ import org.fejoa.library.database.StorageDir;
 
 
 public class ConfigStore extends StorageDirObject {
-    protected ConfigStore(FejoaContext context, StorageDir storageDir) {
+    final private UserData userData;
+
+    protected ConfigStore(FejoaContext context, StorageDir storageDir, UserData userData) {
         super(context, storageDir);
+
+        this.userData = userData;
     }
 
-    public StorageDir getConfigDir(String configId) {
-        return new StorageDir(storageDir, configId);
+    public AppContext getAppContext(String appId) {
+        String path = appId.replace('.', '/');
+        return new AppContext(context, new StorageDir(storageDir, path), userData);
     }
 }

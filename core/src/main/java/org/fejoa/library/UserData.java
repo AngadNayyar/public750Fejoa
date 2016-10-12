@@ -53,7 +53,7 @@ public class UserData extends StorageDirObject {
 
         myself = new ContactPrivate(context, new StorageDir(storageDir, MYSELF_PATH));
         contactStore = new ContactStore(context, new StorageDir(storageDir, CONTACT_PATH));
-        configStore = new ConfigStore(context, new StorageDir(storageDir, CONFIG_PATH));
+        configStore = new ConfigStore(context, new StorageDir(storageDir, CONFIG_PATH), this);
         remoteStore = new RemoteList(new StorageDir(storageDir, REMOTES_PATH));
     }
 

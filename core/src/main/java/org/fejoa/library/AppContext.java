@@ -105,35 +105,17 @@ class SyncConfig extends StorageDirList<SyncConfig.SyncConfigEntry> {
 }
 
 
-public class UserDataConfig extends StorageDirObject {
+public class AppContext extends StorageDirObject {
     final private UserData userData;
 
-    protected UserDataConfig(FejoaContext context, StorageDir storageDir, UserData userData) {
+    protected AppContext(FejoaContext context, StorageDir storageDir, UserData userData) {
         super(context, storageDir);
 
         this.userData = userData;
-    }
-
-    static public UserDataConfig create(FejoaContext context, UserData userData, String configApp)
-            throws IOException, CryptoException {
-        String branch = CryptoHelper.sha1HashHex(context.getCrypto().generateInitializationVector(32));
-        StorageDir storageDir = new StorageDir(userData.getConfigStore().getConfigDir(configApp), branch);
-
-        UserDataConfig config = new UserDataConfig(context, storageDir, userData);
-
-        return config;
-    }
-
-    static public UserDataConfig open(FejoaContext context, StorageDir storageDir, UserData userData) {
-        return new UserDataConfig(context, storageDir, userData);
     }
 
     public UserData getUserData() {
         return userData;
     }
 
-    public StorageDir getConfigDir(String appId) {
-        String path = appId.replace('.', '/');
-        return new StorageDir(storageDir, path);
-    }
 }

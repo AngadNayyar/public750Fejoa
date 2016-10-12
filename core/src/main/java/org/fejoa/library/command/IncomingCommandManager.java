@@ -8,7 +8,7 @@
 package org.fejoa.library.command;
 
 import org.fejoa.library.database.StorageDir;
-import org.fejoa.library.UserDataConfig;
+import org.fejoa.library.AppContext;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.database.DatabaseDiff;
 import org.fejoa.library.UserData;
@@ -80,14 +80,13 @@ public class IncomingCommandManager {
     final private List<Handler> handlerList = new ArrayList<>();
     final private List<HandlerResponse> ongoingHandling = new ArrayList<>();
 
-    public IncomingCommandManager(UserDataConfig userDataConfig)
+    public IncomingCommandManager(UserData userData)
             throws IOException, CryptoException {
-        this.queues.add(userDataConfig.getUserData().getIncomingCommandQueue());
+        this.queues.add(userData.getIncomingCommandQueue());
 
-        UserData userData = userDataConfig.getUserData();
         addHandler(new ContactRequestCommandHandler(userData));
         addHandler(new AccessCommandHandler(userData));
-        addHandler(new MigrationCommandHandler(userDataConfig));
+        addHandler(new MigrationCommandHandler(userData));
     }
 
     public void addHandler(Handler handler) {

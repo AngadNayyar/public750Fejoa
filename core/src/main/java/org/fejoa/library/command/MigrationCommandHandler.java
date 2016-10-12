@@ -16,13 +16,11 @@ public class MigrationCommandHandler extends EnvelopeCommandHandler {
         void onContactMigrated(String contactId);
     }
 
-    final private UserDataConfig config;
     private IListener listener;
 
-    public MigrationCommandHandler(UserDataConfig userDataConfig) {
-        super(userDataConfig.getUserData(), MigrationCommand.COMMAND_NAME);
+    public MigrationCommandHandler(UserData userData) {
+        super(userData, MigrationCommand.COMMAND_NAME);
 
-        this.config = userDataConfig;
     }
 
     public void setListener(IListener listener) {
