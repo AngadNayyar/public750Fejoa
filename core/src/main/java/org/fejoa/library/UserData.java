@@ -72,6 +72,10 @@ public class UserData extends StorageDirObject {
         return myself;
     }
 
+    public KeyStore getKeyStore() {
+        return keyStore;
+    }
+
     public void addBranch(BranchInfo branchEntry) throws IOException, CryptoException {
         branchList.add(branchEntry);
     }

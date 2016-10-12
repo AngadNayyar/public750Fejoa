@@ -107,7 +107,6 @@ class SyncConfig extends StorageDirList<SyncConfig.SyncConfigEntry> {
 
 public class UserDataConfig extends StorageDirObject {
     final private UserData userData;
-    final static private String SYNC_PATH = "sync";
 
     protected UserDataConfig(FejoaContext context, StorageDir storageDir, UserData userData) {
         super(context, storageDir);
@@ -133,4 +132,8 @@ public class UserDataConfig extends StorageDirObject {
         return userData;
     }
 
+    public StorageDir getConfigDir(String appId) {
+        String path = appId.replace('.', '/');
+        return new StorageDir(storageDir, path);
+    }
 }

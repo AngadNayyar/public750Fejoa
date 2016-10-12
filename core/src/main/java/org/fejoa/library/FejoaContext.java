@@ -77,6 +77,10 @@ public class FejoaContext {
         return getStorage(branch, null, null);
     }
 
+    public StorageDir getPlainStorage(File path, String branch) throws IOException, CryptoException {
+        return getNew(path, branch, null, null);
+    }
+
     public StorageDir getStorage(String branch, SymmetricKeyData cryptoKeyData, ICommitSignature commitSignature)
             throws IOException, CryptoException {
         return getNew(getChunkStoreDir(), branch, cryptoKeyData, commitSignature);

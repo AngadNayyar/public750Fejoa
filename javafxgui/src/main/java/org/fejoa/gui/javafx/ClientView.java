@@ -167,7 +167,7 @@ public class ClientView extends HBox {
         gatewayTab.setContent(new GatewayView(client, statusManager));
         tabPane.getTabs().add(gatewayTab);
 
-        Tab userDataStorageTab = new Tab("Storage");
+        Tab userDataStorageTab = new Tab("Branches");
         userDataStorageTab.setContent(new UserDataStorageView(client));
         tabPane.getTabs().add(userDataStorageTab);
 
@@ -178,6 +178,10 @@ public class ClientView extends HBox {
         Tab contactsTab = new Tab("Contacts");
         contactsTab.setContent(new ContactsView(client, contactRequests, statusManager));
         tabPane.getTabs().add(contactsTab);
+
+        Tab fileStorageTab = new Tab("Files");
+        fileStorageTab.setContent(new FileStorageView(client, statusManager));
+        tabPane.getTabs().add(fileStorageTab);
 
         getChildren().add(tabPane);
     }
