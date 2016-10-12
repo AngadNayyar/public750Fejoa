@@ -135,9 +135,8 @@ public class Repository implements IDatabaseInterface {
     private DirectoryBox getDirBox(String path) throws IOException {
         try {
             DirectoryBox.Entry entry = treeAccessor.get(path);
-            if (entry == null)
+            if (entry == null || entry.isFile())
                 return null;
-            assert !entry.isFile();
             if (entry.getObject() == null)
                 entry.setObject(DirectoryBox.read(transaction.getTreeAccessor(), entry.getDataPointer()));
 

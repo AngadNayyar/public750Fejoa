@@ -238,5 +238,11 @@ public class RepositoryTest extends RepositoryTestBase {
         assertEquals(tip, repository.getHeadCommit().dataHash());
 
         containsContent(repository, content);
+
+        assertEquals(0, repository.listFiles("notThere").size());
+        assertEquals(0, repository.listDirectories("notThere").size());
+        assertEquals(0, repository.listFiles("file1").size());
+        assertEquals(0, repository.listDirectories("file1").size());
+        assertEquals(0, repository.listDirectories("dir1/file2").size());
     }
 }
