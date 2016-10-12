@@ -8,8 +8,8 @@
 package org.fejoa.filestorage;
 
 import junit.framework.TestCase;
+import org.fejoa.library.FejoaContext;
 import org.fejoa.library.crypto.CryptoException;
-import org.fejoa.library.database.JGitInterface;
 import org.fejoa.library.support.StorageLib;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.support.Task;
@@ -58,18 +58,16 @@ public class CheckoutDirTest extends TestCase {
     }
 
     public void testCheckout() throws IOException, InterruptedException, CryptoException {
-        String gitDir = "checkout";
+        String databasePath = "checkout";
         String destination = "checkoutDestination";
-        cleanUpDirs.add(gitDir);
+        cleanUpDirs.add(databasePath);
         cleanUpDirs.add(destination);
 
-        JGitInterface indexDatabase = new JGitInterface();
-        indexDatabase.init(gitDir, "testBranchIndex", true);
-        Index index = new Index(new StorageDir(indexDatabase, ""));
+        FejoaContext context = new FejoaContext(databasePath);
+        StorageDir indexDatabase = context.getPlainStorage("testBranchIndex");
+        Index index = new Index(indexDatabase);
 
-        JGitInterface git = new JGitInterface();
-        git.init(gitDir, "testBranch", true);
-        StorageDir storageDir = new StorageDir(git, "");
+        StorageDir storageDir = context.getPlainStorage("testBranch");
 
         byte data[] = "test".getBytes();
         storageDir.writeBytes("test1", data);
@@ -101,6 +99,11 @@ public class CheckoutDirTest extends TestCase {
         checkIn.start(createObserver(updates));
         assertEquals(1, updates.size());
         assertEquals("edited", storageDir.readString("test1"));
+
+        updates.clear();
+        updateFile(new File(destination, "newFile"), "new content");
+        checkIn.start(createObserver(updates));
+        assertEquals("new content", storageDir.readString("newFile"));
 
         updates.clear();
         new File(destination, "test1").delete();

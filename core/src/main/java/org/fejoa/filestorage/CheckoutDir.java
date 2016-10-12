@@ -110,8 +110,11 @@ public class CheckoutDir {
         }
 
         Collection<String> subDirs = storageDir.listDirectories(dir);
-        for (String subDir : subDirs)
+        for (String subDir : subDirs) {
+            if (isBlackListed(subDir))
+                continue;
             performCheckOut(task, StorageLib.appendDir(dir, subDir));
+        }
     }
 
     private void performCheckIn(Task<Update, Result> task, String dir) throws IOException, JSONException,
@@ -139,6 +142,8 @@ public class CheckoutDir {
                 }
             } else {
                 dirs.remove(name);
+                if (isBlackListed(name))
+                    continue;
                 performCheckIn(task, filePath);
             }
         }
@@ -156,7 +161,16 @@ public class CheckoutDir {
         }
     }
 
+    private boolean isBlackListed(String dirName) {
+        if (dirName.equals(".index"))
+            return true;
+        return true;
+    }
+
     private boolean checkoutFileChanged(File outFile, Index.Entry entry) throws IOException {
+        if (entry == null)
+            return true;
+
         long length = outFile.length();
         if (length != entry.getLength())
             return true;
@@ -189,6 +203,8 @@ public class CheckoutDir {
     }
 
     private boolean needsCheckout(File outFile, HashValue inDatabaseHash, Index.Entry entry) throws IOException {
+        if (entry == null)
+            return true;
         if (!outFile.exists())
             return true;
         if (!inDatabaseHash.equals(entry.getHash()))

@@ -90,8 +90,13 @@ public class Index {
         storageDir.writeString(filePath, bundle);
     }
 
-    public Entry get(String filePath) throws IOException, JSONException {
-        String bundle = storageDir.readString(filePath);
+    public Entry get(String filePath) throws JSONException {
+        String bundle;
+        try {
+            bundle = storageDir.readString(filePath);
+        } catch (IOException e) {
+            return null;
+        }
         return Entry.open(bundle);
     }
 
