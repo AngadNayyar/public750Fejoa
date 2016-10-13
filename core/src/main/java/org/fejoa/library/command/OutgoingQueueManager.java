@@ -82,8 +82,7 @@ public class OutgoingQueueManager {
         // if run synchronously job may finish before we are able to put it into the map
         runningSendJobs.put(entry.hash(), null);
         Task.ICancelFunction job = manager.submit(new SendCommandJob(entry.getData(), entry.getUser()),
-                new ConnectionManager.ConnectionInfo(entry.getUser(),
-                entry.getServer()), new ConnectionManager.AuthInfo(),
+                new ConnectionManager.ConnectionInfo(entry.getServer()), new ConnectionManager.AuthInfo(),
                 new Task.IObserver<Void, RemoteJob.Result>() {
                     @Override
                     public void onProgress(Void aVoid) {

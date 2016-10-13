@@ -14,7 +14,7 @@ import java.io.IOException;
 import java.util.*;
 
 
-public class StorageDirList<T> extends MoveableStorage {
+public class StorageDirList<T> extends MovableStorage {
     public interface IEntryIO<T> {
         String getId(T entry);
         T read(IOStorageDir dir) throws IOException, CryptoException;

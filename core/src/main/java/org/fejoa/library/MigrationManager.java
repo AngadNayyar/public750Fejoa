@@ -44,7 +44,7 @@ public class MigrationManager {
         final Remote currentRemote = client.getUserData().getGateway();
         client.getConnectionManager().submit(new StartMigrationJob(currentRemote.getUser(),
                         accessToken.toServerToken()),
-                new ConnectionManager.ConnectionInfo(currentRemote.getUser(), currentRemote.getServer()),
+                new ConnectionManager.ConnectionInfo(currentRemote.getServer()),
                 client.getContext().getRootAuthInfo(currentRemote.getUser(), currentRemote.getServer()),
                 new Task.IObserver<Void, RemoteJob.Result>() {
                     @Override
@@ -75,7 +75,7 @@ public class MigrationManager {
                 new RemotePullJob(newUserName, accessTokenContact, branchesToCopy.get(0).getBranch(),
                         currentRemote.getUser(),
                         currentRemote.getServer()),
-                new ConnectionManager.ConnectionInfo(newUserName, newServer),
+                new ConnectionManager.ConnectionInfo(newServer),
                 client.getContext().getRootAuthInfo(newUserName, newServer),
                 new Task.IObserver<Void, RemoteJob.Result>() {
                     @Override

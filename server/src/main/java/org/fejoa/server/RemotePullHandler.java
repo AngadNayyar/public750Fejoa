@@ -50,7 +50,7 @@ public class RemotePullHandler extends JsonRequestHandler {
         ConnectionManager connectionManager = new ConnectionManager();
         connectionManager.setStartScheduler(new Task.CurrentThreadScheduler());
         connectionManager.setObserverScheduler(new Task.CurrentThreadScheduler());
-        connectionManager.submit(pullJob, new ConnectionManager.ConnectionInfo(sourceUser, sourceServer),
+        connectionManager.submit(pullJob, new ConnectionManager.ConnectionInfo(sourceServer),
                 new ConnectionManager.AuthInfo(sourceUser, accessTokenContact),
                 new Task.IObserver<Void, RemoteJob.Result>() {
                     @Override

@@ -20,11 +20,9 @@ import java.util.Map;
 
 public class ConnectionManager {
     static public class ConnectionInfo {
-        final public String user;
         final public String url;
 
-        public ConnectionInfo(String user, String url) {
-            this.user = user;
+        public ConnectionInfo(String url) {
             this.url = url;
         }
     }
@@ -36,23 +34,20 @@ public class ConnectionManager {
 
         final public int authType;
         final public String serverUser;
-        final public String server;
         final public String password;
         final public AccessTokenContact token;
 
         public AuthInfo() {
             this.authType = NONE;
             this.token = null;
-            this.server = null;
             this.serverUser = null;
             this.password = null;
         }
 
-        public AuthInfo(String serverUser, String server, String password) {
+        public AuthInfo(String serverUser, String password) {
             this.authType = ROOT;
             this.token = null;
             this.serverUser = serverUser;
-            this.server = server;
             this.password = password;
         }
 
@@ -60,7 +55,6 @@ public class ConnectionManager {
             this.authType = TOKEN;
             this.token = token;
             this.serverUser = serverUser;
-            this.server = null;
             this.password = null;
         }
     }
@@ -192,7 +186,7 @@ public class ConnectionManager {
             IRemoteRequest remoteRequest = getRemoteRequest(connectionInfo);
             setCurrentRemoteRequest(remoteRequest);
 
-            boolean hasAccess = hasAccess(authInfo);
+            boolean hasAccess = hasAccess(connectionInfo, authInfo);
             if (!hasAccess) {
                 remoteRequest = getAuthRequest(remoteRequest, connectionInfo, authInfo);
                 setCurrentRemoteRequest(remoteRequest);
@@ -201,7 +195,7 @@ public class ConnectionManager {
             T result = runJob(remoteRequest, job);
             if (result.status == Errors.ACCESS_DENIED) {
                 if (authInfo.authType == AuthInfo.ROOT)
-                    tokenManager.removeRootAccess(authInfo.serverUser, authInfo.server);
+                    tokenManager.removeRootAccess(authInfo.serverUser, connectionInfo.url);
                 if (authInfo.authType == AuthInfo.TOKEN)
                     tokenManager.removeToken(authInfo.serverUser, authInfo.token.getId());
                 // if we had access try again
@@ -240,11 +234,11 @@ public class ConnectionManager {
             }
         }
 
-        private boolean hasAccess(AuthInfo authInfo) {
+        private boolean hasAccess(ConnectionInfo connectionInfo, AuthInfo authInfo) {
             if (authInfo.authType == AuthInfo.NONE)
                 return true;
             if (authInfo.authType == AuthInfo.ROOT)
-                return tokenManager.hasRootAccess(authInfo.serverUser, authInfo.server);
+                return tokenManager.hasRootAccess(authInfo.serverUser, connectionInfo.url);
             if (authInfo.authType == AuthInfo.TOKEN)
                 return tokenManager.hasToken(authInfo.serverUser, authInfo.token.getId());
             return false;
@@ -256,7 +250,7 @@ public class ConnectionManager {
             if (authInfo.authType == AuthInfo.ROOT) {
                 result = runJob(remoteRequest, new RootLoginJob(authInfo.serverUser,
                         authInfo.password));
-                tokenManager.addRootAccess(authInfo.serverUser, authInfo.server);
+                tokenManager.addRootAccess(authInfo.serverUser, connectionInfo.url);
             } else if (authInfo.authType == AuthInfo.TOKEN) {
                 result = runJob(remoteRequest, new AccessRequestJob(authInfo.serverUser,
                         authInfo.token));

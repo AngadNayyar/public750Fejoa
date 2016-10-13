@@ -117,7 +117,7 @@ public class Client {
     public void createAccount(String userName, String password, String server,
                               Task.IObserver<Void, RemoteJob.Result> observer) throws IOException {
         connectionManager.submit(new CreateAccountJob(userName, password, userData.getSettings()),
-                new ConnectionManager.ConnectionInfo(userName, server),
+                new ConnectionManager.ConnectionInfo(server),
                 new ConnectionManager.AuthInfo(),
                 observer);
     }
@@ -125,7 +125,7 @@ public class Client {
     public void createAccount(String userName, String password, UserData userData, String server,
                               Task.IObserver<Void, RemoteJob.Result> observer) throws IOException {
         connectionManager.submit(new CreateAccountJob(userName, password, userData.getSettings()),
-                new ConnectionManager.ConnectionInfo(userName, server),
+                new ConnectionManager.ConnectionInfo(server),
                 new ConnectionManager.AuthInfo(),
                 observer);
     }
@@ -183,9 +183,8 @@ public class Client {
         BranchInfo branch = getUserData().getBranchList().get(branchId);
         Remote remote = userData.getGateway();
         connectionManager.submit(new WatchJob(context, remote.getUser(), Collections.singletonList(branch), true),
-                new ConnectionManager.ConnectionInfo(remote.getUser(), remote.getServer()),
-                context.getRootAuthInfo(remote),
-                observer);
+                new ConnectionManager.ConnectionInfo(remote.getServer()),
+                context.getRootAuthInfo(remote), observer);
     }
 
     public void pullContactBranch(String user, String server, ContactBranch contactBranch,
@@ -199,7 +198,7 @@ public class Client {
                 contactBranch.getBranchKey(), userData.getCommitSignature());
 
         SyncManager.pull(getConnectionManager(), contactBranchDir,
-                new ConnectionManager.ConnectionInfo(user, server),
+                new ConnectionManager.ConnectionInfo(server),
                 new ConnectionManager.AuthInfo(user, contactBranch.getAccessToken()), observer);
     }
 

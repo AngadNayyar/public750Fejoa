@@ -140,7 +140,7 @@ public class FejoaContext {
         String password = getRootPassword(serverUser, server);
         if (password == null)
             password = "";
-        return new ConnectionManager.AuthInfo(serverUser, server, password);
+        return new ConnectionManager.AuthInfo(serverUser, password);
     }
 
     private String makeName(String serverUser, String server) {

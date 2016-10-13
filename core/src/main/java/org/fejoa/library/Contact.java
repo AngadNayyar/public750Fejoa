@@ -17,10 +17,10 @@ import java.io.IOException;
 import java.security.PublicKey;
 
 
-class MoveableStorage {
+class MovableStorage {
     protected IOStorageDir storageDir;
 
-    public MoveableStorage(IOStorageDir storageDir) {
+    public MovableStorage(IOStorageDir storageDir) {
         if (storageDir == null)
             this.storageDir = new IOStorageDir(new MemoryIODatabase(), "");
         else
@@ -33,7 +33,7 @@ class MoveableStorage {
     }
 }
 
-abstract class Contact<SignKey, EncKey> extends MoveableStorage implements IContactPublic {
+abstract class Contact<SignKey, EncKey> extends MovableStorage implements IContactPublic {
     final static private String SIGNATURE_KEYS_DIR = "signatureKeys";
     final static private String ENCRYPTION_KEYS_DIR = "encryptionKeys";
 

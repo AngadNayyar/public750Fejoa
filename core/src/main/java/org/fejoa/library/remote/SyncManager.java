@@ -59,12 +59,19 @@ public class SyncManager {
     private void watch(Collection<BranchInfo> branchInfoList, Task.IObserver<Void, WatchJob.Result> observer) {
         watchedBranches = branchInfoList;
         watchFunction = connectionManager.submit(new WatchJob(context, remote.getUser(), branchInfoList),
-                new ConnectionManager.ConnectionInfo(remote.getUser(), remote.getServer()),
+                new ConnectionManager.ConnectionInfo(remote.getServer()),
                 context.getRootAuthInfo(remote.getUser(), remote.getServer()),
                 observer);
     }
 
+    private boolean isWatching() {
+        return watchFunction != null;
+    }
+
     public void startWatching(final Collection<BranchInfo> branchInfoList, final Task.IObserver<TaskUpdate, Void> observer) {
+        if (isWatching())
+            stopWatching();
+
         final Task.IObserver<Void, WatchJob.Result> watchObserver = new Task.IObserver<Void, WatchJob.Result>() {
             private TaskUpdate makeUpdate(String message) {
                 return new TaskUpdate("Watching", -1, -1, message);
@@ -95,7 +102,7 @@ public class SyncManager {
                     @Override
                     public void onResult(Void result) {
                         // still watching?
-                        if (watchFunction != null)
+                        if (isWatching())
                             watch(branchInfoList, that);
                         else
                             observer.onResult(null);
@@ -111,7 +118,7 @@ public class SyncManager {
             @Override
             public void onException(Exception exception) {
                 // if we haven't stopped watching this is an real exception
-                if (watchFunction != null)
+                if (isWatching())
                     observer.onException(exception);
                 else
                     observer.onResult(null);
@@ -215,7 +222,7 @@ public class SyncManager {
 
         final Repository repository = (Repository)storageDir.getDatabase();
         return connectionManager.submit(new ChunkStorePullJob(repository, storageDir.getCommitSignature(),
-                        connectionInfo.user, storageDir.getBranch()), connectionInfo, authInfo,
+                        authInfo.serverUser, storageDir.getBranch()), connectionInfo, authInfo,
                 new Task.IObserver<Void, ChunkStorePullJob.Result>() {
             @Override
             public void onProgress(Void aVoid) {
@@ -249,7 +256,7 @@ public class SyncManager {
         final Repository repository = (Repository)storageDir.getDatabase();
         final String id = repository.getBranch();
         return connectionManager.submit(new ChunkStorePullJob(repository, storageDir.getCommitSignature(),
-                        connectionInfo.user, repository.getBranch()), connectionInfo, authInfo,
+                        authInfo.serverUser, repository.getBranch()), connectionInfo, authInfo,
                 new Task.IObserver<Void, ChunkStorePullJob.Result>() {
                     @Override
                     public void onProgress(Void aVoid) {
@@ -272,7 +279,7 @@ public class SyncManager {
                         }
 
                         // push
-                        connectionManager.submit(new ChunkStorePushJob(repository, connectionInfo.user,
+                        connectionManager.submit(new ChunkStorePushJob(repository, authInfo.serverUser,
                                         repository.getBranch()), connectionInfo, authInfo,
                                 new Task.IObserver<Void, ChunkStorePushJob.Result>() {
                                     @Override
@@ -311,8 +318,7 @@ public class SyncManager {
             return;
         }
 
-        final ConnectionManager.ConnectionInfo connectionInfo = new ConnectionManager.ConnectionInfo(remote.getUser(),
-                remote.getServer());
+        final ConnectionManager.ConnectionInfo connectionInfo = new ConnectionManager.ConnectionInfo(remote.getServer());
         final ConnectionManager.AuthInfo authInfo = context.getRootAuthInfo(remote.getUser(), remote.getServer());
         Task<Void, ChunkStorePullJob.Result> job = sync(connectionManager, dir, connectionInfo, authInfo,
                     new Task.IObserver<TaskUpdate, String>() {

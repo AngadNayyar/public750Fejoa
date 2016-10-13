@@ -40,7 +40,7 @@ public class JettyTest extends TestCase {
         server.setDebugNoAccessControl(true);
         server.start();
 
-        connectionInfo = new ConnectionManager.ConnectionInfo("", "http://localhost:8080/");
+        connectionInfo = new ConnectionManager.ConnectionInfo("http://localhost:8080/");
         authInfo = new ConnectionManager.AuthInfo();
         observer = new Task.IObserver<Void, RemoteJob.Result>() {
             @Override

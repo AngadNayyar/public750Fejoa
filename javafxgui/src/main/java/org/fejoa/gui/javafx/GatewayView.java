@@ -66,7 +66,7 @@ public class GatewayView extends VBox {
                 try {
                     Remote gateway = userData.getGateway();
                     Task task = client.getConnectionManager().submit(new JsonPingJob(),
-                            new ConnectionManager.ConnectionInfo(gateway.getUser(), gateway.getServer()),
+                            new ConnectionManager.ConnectionInfo(gateway.getServer()),
                             new ConnectionManager.AuthInfo(), new Task.IObserver<Void, RemoteJob.Result>() {
                                 @Override
                                 public void onProgress(Void o) {
