@@ -60,11 +60,13 @@ public class ClientTest extends TestCase {
     private class ClientStatus {
         final public String name;
         final public String server;
+        final public Remote remote;
         public boolean firstSync;
 
         public ClientStatus(String name, String server) {
             this.name = name;
             this.server = server;
+            this.remote = new Remote(name, server);
         }
     }
 
@@ -217,7 +219,7 @@ public class ClientTest extends TestCase {
 
         @Override
         protected void perform(TestTask previousTask) throws Exception {
-            client.createAccount(status.name, PASSWORD, status.server, new SimpleObserver(new Runnable() {
+            client.createAccount(status.remote, PASSWORD, new SimpleObserver(new Runnable() {
                 @Override
                 public void run() {
                     try {
@@ -410,7 +412,7 @@ public class ClientTest extends TestCase {
 
             final ContactBranch contactBranch = client2Contact.getContactBranchList().getEntries().iterator().next();
 
-            client1.pullContactBranch(USER_NAME_2, SERVER_URL_2, contactBranch,
+            client1.pullContactBranch(new Remote(USER_NAME_2, SERVER_URL_2), contactBranch,
                     new SimpleObserver(new Runnable() {
                         @Override
                         public void run() {
@@ -451,7 +453,7 @@ public class ClientTest extends TestCase {
 
         @Override
         protected void perform(TestTask previousTask) throws Exception {
-            client1.createAccount(USER_NAME_1_NEW, PASSWORD, client1.getUserData(), SERVER_URL_1_NEW,
+            client1.createAccount(new Remote(USER_NAME_1_NEW, SERVER_URL_1_NEW), PASSWORD, client1.getUserData(),
                     new SimpleObserver(new Runnable() {
                 @Override
                 public void run() {
@@ -470,7 +472,7 @@ public class ClientTest extends TestCase {
             handler.setListener(listener);
 
             MigrationManager migrationManager = new MigrationManager(client1);
-            migrationManager.migrate(USER_NAME_1_NEW, SERVER_URL_1_NEW, PASSWORD,
+            migrationManager.migrate(new Remote(USER_NAME_1_NEW, SERVER_URL_1_NEW), PASSWORD,
                     new Task.IObserver<Void, RemoteJob.Result>() {
                 @Override
                 public void onProgress(Void aVoid) {

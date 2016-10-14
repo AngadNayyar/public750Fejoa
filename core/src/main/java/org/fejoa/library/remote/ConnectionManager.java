@@ -7,7 +7,7 @@
  */
 package org.fejoa.library.remote;
 
-import org.fejoa.library.AccessTokenContact;
+import org.fejoa.library.Remote;
 import org.fejoa.library.support.Task;
 
 import java.net.CookieHandler;
@@ -19,46 +19,6 @@ import java.util.Map;
 
 
 public class ConnectionManager {
-    static public class ConnectionInfo {
-        final public String url;
-
-        public ConnectionInfo(String url) {
-            this.url = url;
-        }
-    }
-
-    static public class AuthInfo {
-        final static public int NONE = 0;
-        final static public int ROOT = 1;
-        final static public int TOKEN = 2;
-
-        final public int authType;
-        final public String serverUser;
-        final public String password;
-        final public AccessTokenContact token;
-
-        public AuthInfo() {
-            this.authType = NONE;
-            this.token = null;
-            this.serverUser = null;
-            this.password = null;
-        }
-
-        public AuthInfo(String serverUser, String password) {
-            this.authType = ROOT;
-            this.token = null;
-            this.serverUser = serverUser;
-            this.password = password;
-        }
-
-        public AuthInfo(String serverUser, AccessTokenContact token) {
-            this.authType = TOKEN;
-            this.token = token;
-            this.serverUser = serverUser;
-            this.password = null;
-        }
-    }
-
     /**
      * Maintains the access tokens gained for different target users.
      *
@@ -141,10 +101,10 @@ public class ConnectionManager {
     }
 
     public <Progress, T extends RemoteJob.Result> Task<Progress, T> submit(final JsonRemoteJob<T> job,
-                                                                    ConnectionInfo connectionInfo,
+                                                                    Remote remote,
                                                                     final AuthInfo authInfo,
                                                                     final Task.IObserver<Progress, T> observer) {
-        JobTask<Progress, T> jobTask = new JobTask<>(tokenManager, job, connectionInfo, authInfo);
+        JobTask<Progress, T> jobTask = new JobTask<>(tokenManager, job, remote, authInfo);
         jobTask.setStartScheduler(startScheduler).setObserverScheduler(observerScheduler).start(observer);
         return jobTask;
     }
@@ -152,18 +112,18 @@ public class ConnectionManager {
     static private class JobTask<Progress, T extends RemoteJob.Result> extends Task<Progress, T>{
         final private TokenManager tokenManager;
         final private JsonRemoteJob<T> job;
-        final private ConnectionInfo connectionInfo;
+        final private Remote remote;
         final private AuthInfo authInfo;
 
         private IRemoteRequest remoteRequest;
 
-        public JobTask(TokenManager tokenManager, final JsonRemoteJob<T> job, ConnectionInfo connectionInfo,
+        public JobTask(TokenManager tokenManager, final JsonRemoteJob<T> job, Remote remote,
                        final AuthInfo authInfo) {
             super();
 
             this.tokenManager = tokenManager;
             this.job = job;
-            this.connectionInfo = connectionInfo;
+            this.remote = remote;
             this.authInfo = authInfo;
 
             setTaskFunction(new ITaskFunction<Progress, T>() {
@@ -183,23 +143,23 @@ public class ConnectionManager {
         private void run(int retryCount) throws Exception {
             if (retryCount > MAX_RETRIES)
                 throw new Exception("too many retries");
-            IRemoteRequest remoteRequest = getRemoteRequest(connectionInfo);
+            IRemoteRequest remoteRequest = getRemoteRequest(remote);
             setCurrentRemoteRequest(remoteRequest);
 
-            boolean hasAccess = hasAccess(connectionInfo, authInfo);
+            boolean hasAccess = hasAccess(remote, authInfo);
             if (!hasAccess) {
-                remoteRequest = getAuthRequest(remoteRequest, connectionInfo, authInfo);
+                remoteRequest = getAuthRequest(remoteRequest, remote, authInfo);
                 setCurrentRemoteRequest(remoteRequest);
             }
 
             T result = runJob(remoteRequest, job);
             if (result.status == Errors.ACCESS_DENIED) {
-                if (authInfo.authType == AuthInfo.ROOT)
-                    tokenManager.removeRootAccess(authInfo.serverUser, connectionInfo.url);
-                if (authInfo.authType == AuthInfo.TOKEN)
-                    tokenManager.removeToken(authInfo.serverUser, authInfo.token.getId());
-                // if we had access try again
-                if (hasAccess) {
+                if (authInfo.authType == AuthInfo.PASSWORD)
+                    tokenManager.removeRootAccess(remote.getUser(), remote.getServer());
+                if (authInfo.authType == AuthInfo.TOKEN) {
+                    tokenManager.removeToken(remote.getUser(), ((AuthInfo.Token)authInfo).token.getId());
+                } if (hasAccess) {
+                    // if we had access try again
                     run(retryCount + 1);
                     return;
                 }
@@ -234,38 +194,38 @@ public class ConnectionManager {
             }
         }
 
-        private boolean hasAccess(ConnectionInfo connectionInfo, AuthInfo authInfo) {
-            if (authInfo.authType == AuthInfo.NONE)
+        private boolean hasAccess(Remote remote, AuthInfo authInfo) {
+            if (authInfo.authType == AuthInfo.PLAIN)
                 return true;
-            if (authInfo.authType == AuthInfo.ROOT)
-                return tokenManager.hasRootAccess(authInfo.serverUser, connectionInfo.url);
+            if (authInfo.authType == AuthInfo.PASSWORD)
+                return tokenManager.hasRootAccess(remote.getUser(), remote.getServer());
             if (authInfo.authType == AuthInfo.TOKEN)
-                return tokenManager.hasToken(authInfo.serverUser, authInfo.token.getId());
+                return tokenManager.hasToken(remote.getUser(), ((AuthInfo.Token)authInfo).token.getId());
             return false;
         }
 
-        private IRemoteRequest getAuthRequest(final IRemoteRequest remoteRequest, final ConnectionInfo connectionInfo,
+        private IRemoteRequest getAuthRequest(final IRemoteRequest remoteRequest, final Remote remote,
                                               final AuthInfo authInfo) throws Exception {
             RemoteJob.Result result;
-            if (authInfo.authType == AuthInfo.ROOT) {
-                result = runJob(remoteRequest, new RootLoginJob(authInfo.serverUser,
-                        authInfo.password));
-                tokenManager.addRootAccess(authInfo.serverUser, connectionInfo.url);
+            if (authInfo.authType == AuthInfo.PASSWORD) {
+                AuthInfo.Password passwordAuth = (AuthInfo.Password)authInfo;
+                result = runJob(remoteRequest, new RootLoginJob(remote.getUser(), passwordAuth.password));
+                tokenManager.addRootAccess(remote.getUser(), remote.getServer());
             } else if (authInfo.authType == AuthInfo.TOKEN) {
-                result = runJob(remoteRequest, new AccessRequestJob(authInfo.serverUser,
-                        authInfo.token));
-                tokenManager.addToken(authInfo.serverUser, authInfo.token.getId());
+                AuthInfo.Token tokenAuth = (AuthInfo.Token)authInfo;
+                result = runJob(remoteRequest, new AccessRequestJob(remote.getUser(), tokenAuth.token));
+                tokenManager.addToken(remote.getUser(), tokenAuth.token.getId());
             } else
                 throw new Exception("unknown auth type");
 
             if (result.status == Errors.DONE)
-                return getRemoteRequest(connectionInfo);
+                return getRemoteRequest(remote);
 
             throw new Exception(result.message);
         }
 
-        private IRemoteRequest getRemoteRequest(ConnectionInfo connectionInfo) {
-            return new HTMLRequest(connectionInfo.url);
+        private IRemoteRequest getRemoteRequest(Remote remote) {
+            return new HTMLRequest(remote.getServer());
         }
     }
 }

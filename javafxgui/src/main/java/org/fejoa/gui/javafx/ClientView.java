@@ -14,6 +14,7 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
 import org.fejoa.gui.JobStatus;
@@ -29,7 +30,7 @@ import org.fejoa.library.support.Task;
 import java.io.IOException;
 
 
-public class ClientView extends HBox {
+public class ClientView extends BorderPane {
     final private Client client;
     private ObservableList<ContactRequestCommandHandler.ContactRequest> contactRequests
             = FXCollections.observableArrayList();
@@ -183,7 +184,7 @@ public class ClientView extends HBox {
         fileStorageTab.setContent(new FileStorageView(client, statusManager));
         tabPane.getTabs().add(fileStorageTab);
 
-        getChildren().add(tabPane);
+        setCenter(tabPane);
     }
 
     public Client getClient() {

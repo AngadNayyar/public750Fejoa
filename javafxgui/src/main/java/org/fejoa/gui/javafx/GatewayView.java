@@ -19,6 +19,7 @@ import org.fejoa.gui.TaskStatus;
 import org.fejoa.library.Client;
 import org.fejoa.library.Remote;
 import org.fejoa.library.UserData;
+import org.fejoa.library.remote.AuthInfo;
 import org.fejoa.library.remote.ConnectionManager;
 import org.fejoa.library.remote.JsonPingJob;
 import org.fejoa.library.remote.RemoteJob;
@@ -66,8 +67,8 @@ public class GatewayView extends VBox {
                 try {
                     Remote gateway = userData.getGateway();
                     Task task = client.getConnectionManager().submit(new JsonPingJob(),
-                            new ConnectionManager.ConnectionInfo(gateway.getServer()),
-                            new ConnectionManager.AuthInfo(), new Task.IObserver<Void, RemoteJob.Result>() {
+                            gateway,
+                            new AuthInfo.Plain(), new Task.IObserver<Void, RemoteJob.Result>() {
                                 @Override
                                 public void onProgress(Void o) {
                                     guiJob.setStatus("update");

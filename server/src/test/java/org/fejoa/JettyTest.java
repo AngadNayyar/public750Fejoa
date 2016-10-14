@@ -4,6 +4,7 @@ import junit.framework.TestCase;
 import org.fejoa.chunkstore.HashValue;
 import org.fejoa.chunkstore.Repository;
 import org.fejoa.library.FejoaContext;
+import org.fejoa.library.Remote;
 import org.fejoa.library.UserData;
 import org.fejoa.library.database.ICommitSignature;
 import org.fejoa.library.database.JGitInterface;
@@ -25,8 +26,8 @@ public class JettyTest extends TestCase {
 
     final List<String> cleanUpDirs = new ArrayList<String>();
     JettyServer server;
-    ConnectionManager.ConnectionInfo connectionInfo;
-    ConnectionManager.AuthInfo authInfo;
+    Remote remote;
+    AuthInfo authInfo;
     Task.IObserver<Void, RemoteJob.Result> observer;
     ConnectionManager connectionManager;
 
@@ -40,8 +41,8 @@ public class JettyTest extends TestCase {
         server.setDebugNoAccessControl(true);
         server.start();
 
-        connectionInfo = new ConnectionManager.ConnectionInfo("http://localhost:8080/");
-        authInfo = new ConnectionManager.AuthInfo();
+        remote = new Remote("", "http://localhost:8080/");
+        authInfo = new AuthInfo.Plain();
         observer = new Task.IObserver<Void, RemoteJob.Result>() {
             @Override
             public void onProgress(Void aVoid) {
@@ -149,7 +150,7 @@ public class JettyTest extends TestCase {
 
     private void sync(final ConnectionManager connectionManager, final JGitInterface gitInterface, final String serverUser) {
         connectionManager.submit(new GitPullJob(gitInterface.getRepository(), serverUser,
-                gitInterface.getBranch()), connectionInfo, authInfo, new Task.IObserver<Void, GitPullJob.Result>() {
+                gitInterface.getBranch()), remote, authInfo, new Task.IObserver<Void, GitPullJob.Result>() {
             @Override
             public void onProgress(Void aVoid) {
                 observer.onProgress(aVoid);
@@ -165,7 +166,7 @@ public class JettyTest extends TestCase {
                     if (tip.equals(pullRevHash))
                         return;
                     connectionManager.submit(new GitPushJob(gitInterface.getRepository(), serverUser,
-                            gitInterface.getBranch()), connectionInfo, authInfo, observer);
+                            gitInterface.getBranch()), remote, authInfo, observer);
                 } catch (IOException e) {
                     observer.onException(e);
                 }
@@ -181,7 +182,7 @@ public class JettyTest extends TestCase {
     private void syncChunkStore(final ConnectionManager connectionManager, final Repository repository,
                                 final ICommitSignature commitSignature, final String serverUser) {
         connectionManager.submit(new ChunkStorePushJob(repository, serverUser, repository.getBranch()),
-                connectionInfo, authInfo, new Task.IObserver<Void, ChunkStorePushJob.Result>() {
+                remote, authInfo, new Task.IObserver<Void, ChunkStorePushJob.Result>() {
                     @Override
                     public void onProgress(Void aVoid) {
                         observer.onProgress(aVoid);
@@ -192,7 +193,7 @@ public class JettyTest extends TestCase {
                         observer.onResult(result);
                         if (result.pullRequired) {
                             connectionManager.submit(new ChunkStorePullJob(repository, commitSignature, serverUser,
-                                    repository.getBranch()), connectionInfo, authInfo,
+                                    repository.getBranch()), remote, authInfo,
                                     new Task.IObserver<Void, ChunkStorePullJob.Result>() {
                                 @Override
                                 public void onProgress(Void aVoid) {
@@ -253,14 +254,14 @@ public class JettyTest extends TestCase {
     }
 
     public void testSimple() throws Exception {
-        connectionManager.submit(new JsonPingJob(), connectionInfo, authInfo, observer);
+        connectionManager.submit(new JsonPingJob(), remote, authInfo, observer);
 
         UserData userData = UserData.create(new FejoaContext(TEST_DIR), "password");
         connectionManager.submit(new CreateAccountJob("userName", "password", userData.getSettings()),
-                connectionInfo, authInfo, observer);
+                remote, authInfo, observer);
         Thread.sleep(1000);
 
-        connectionManager.submit(new RootLoginJob("userName", "password"), connectionInfo, authInfo, observer);
+        connectionManager.submit(new RootLoginJob("userName", "password"), remote, authInfo, observer);
 
         Thread.sleep(1000);
     }

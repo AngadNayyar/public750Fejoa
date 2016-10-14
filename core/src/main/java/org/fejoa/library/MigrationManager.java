@@ -23,10 +23,10 @@ public class MigrationManager {
         this.client = client;
     }
 
-    public void migrate(final String newUserName, final String newServer, String password,
+    public void migrate(final Remote newRemote, String password,
                         final Task.IObserver<Void, RemoteJob.Result> observer)
             throws Exception {
-        client.getContext().registerRootPassword(newUserName, newServer, password);
+        client.getContext().registerRootPassword(newRemote.getUser(), newRemote.getServer(), password);
 
         // create access token for the new server
         final AccessToken accessToken = AccessToken.create(client.getContext());
@@ -44,7 +44,7 @@ public class MigrationManager {
         final Remote currentRemote = client.getUserData().getGateway();
         client.getConnectionManager().submit(new StartMigrationJob(currentRemote.getUser(),
                         accessToken.toServerToken()),
-                new ConnectionManager.ConnectionInfo(currentRemote.getServer()),
+                currentRemote,
                 client.getContext().getRootAuthInfo(currentRemote.getUser(), currentRemote.getServer()),
                 new Task.IObserver<Void, RemoteJob.Result>() {
                     @Override
@@ -58,7 +58,7 @@ public class MigrationManager {
                             observer.onException(new Exception(result.message));
                             return;
                         }
-                        copyBranches(currentRemote, branchesToCopy, newUserName, newServer, accessTokenContact, observer);
+                        copyBranches(currentRemote, branchesToCopy, newRemote, accessTokenContact, observer);
                     }
 
                     @Override
@@ -68,15 +68,15 @@ public class MigrationManager {
                 });
     }
 
-    private void copyBranches(final Remote currentRemote, final List<BranchInfo> branchesToCopy, final String newUserName, final String newServer,
+    private void copyBranches(final Remote currentRemote, final List<BranchInfo> branchesToCopy, final Remote newRemote,
                               final AccessTokenContact accessTokenContact,
                               final Task.IObserver<Void, RemoteJob.Result> observer) {
         client.getConnectionManager().submit(
-                new RemotePullJob(newUserName, accessTokenContact, branchesToCopy.get(0).getBranch(),
+                new RemotePullJob(newRemote.getUser(), accessTokenContact, branchesToCopy.get(0).getBranch(),
                         currentRemote.getUser(),
                         currentRemote.getServer()),
-                new ConnectionManager.ConnectionInfo(newServer),
-                client.getContext().getRootAuthInfo(newUserName, newServer),
+                newRemote,
+                client.getContext().getRootAuthInfo(newRemote.getUser(), newRemote.getServer()),
                 new Task.IObserver<Void, RemoteJob.Result>() {
                     @Override
                     public void onProgress(Void update) {
@@ -91,9 +91,9 @@ public class MigrationManager {
                         }
                         branchesToCopy.remove(0);
                         if (branchesToCopy.size() > 0)
-                            copyBranches(currentRemote, branchesToCopy, newUserName, newServer, accessTokenContact, observer);
+                            copyBranches(currentRemote, branchesToCopy, newRemote, accessTokenContact, observer);
                         else
-                            notifyContacts(newUserName, newServer, observer);
+                            notifyContacts(newRemote, observer);
                     }
 
                     @Override
@@ -103,13 +103,13 @@ public class MigrationManager {
                 });
     }
 
-    private void notifyContacts(final String newUserName, final String newServer,
+    private void notifyContacts(final Remote newRemote,
                                 final Task.IObserver<Void, RemoteJob.Result> observer) {
         ContactPrivate myself = client.getUserData().getMyself();
         for (ContactPublic contactPublic : client.getUserData().getContactStore().getContactList().getEntries()) {
             try {
                 OutgoingCommandQueue queue = client.getUserData().getOutgoingCommandQueue();
-                queue.post(new MigrationCommand(client.getContext(), newUserName, newServer, myself, contactPublic),
+                queue.post(new MigrationCommand(client.getContext(), newRemote, myself, contactPublic),
                         contactPublic.getRemotes().getDefault(), true);
             } catch (Exception e) {
                 observer.onException(e);

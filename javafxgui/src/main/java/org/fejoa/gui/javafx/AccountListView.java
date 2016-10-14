@@ -21,6 +21,7 @@ import org.fejoa.gui.AccountManager;
 import org.fejoa.gui.IStatusManager;
 import org.fejoa.gui.TaskStatus;
 import org.fejoa.library.Client;
+import org.fejoa.library.Remote;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.remote.RemoteJob;
 import org.fejoa.library.support.StorageLib;
@@ -113,7 +114,7 @@ public class AccountListView extends HBox {
         guiJob.setStatus("Create Account on Server");
         statusManager.addJobStatus(guiJob);
         try {
-            client.createAccount(user, password, server, new Task.IObserver<Void, RemoteJob.Result>() {
+            client.createAccount(new Remote(user, server), password, new Task.IObserver<Void, RemoteJob.Result>() {
                 @Override
                 public void onProgress(Void aVoid) {
 

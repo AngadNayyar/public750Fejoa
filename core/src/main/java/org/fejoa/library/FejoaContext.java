@@ -17,7 +17,7 @@ import org.fejoa.library.database.CSRepositoryBuilder;
 import org.fejoa.library.database.ICommitSignature;
 import org.fejoa.library.database.JGitInterface;
 import org.fejoa.library.database.StorageDir;
-import org.fejoa.library.remote.ConnectionManager;
+import org.fejoa.library.remote.AuthInfo;
 import org.fejoa.library.crypto.CryptoException;
 
 import java.io.*;
@@ -127,20 +127,20 @@ public class FejoaContext {
         return bufferedReader.readLine();
     }
 
-    public ConnectionManager.AuthInfo getTokenAuthInfo(Remote remote, String branch, int rights) {
+    public AuthInfo getTokenAuthInfo(Remote remote, String branch, int rights) {
         // TODO implement
         return getRootAuthInfo(remote.getUser(), remote.getServer());
     }
 
-    public ConnectionManager.AuthInfo getRootAuthInfo(Remote remote) {
+    public AuthInfo getRootAuthInfo(Remote remote) {
         return getRootAuthInfo(remote.getUser(), remote.getServer());
     }
 
-    public ConnectionManager.AuthInfo getRootAuthInfo(String serverUser, String server) {
+    public AuthInfo.Password getRootAuthInfo(String serverUser, String server) {
         String password = getRootPassword(serverUser, server);
         if (password == null)
             password = "";
-        return new ConnectionManager.AuthInfo(serverUser, password);
+        return new AuthInfo.Password(password);
     }
 
     private String makeName(String serverUser, String server) {

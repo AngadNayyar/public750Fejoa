@@ -59,8 +59,7 @@ public class SyncManager {
     private void watch(Collection<BranchInfo> branchInfoList, Task.IObserver<Void, WatchJob.Result> observer) {
         watchedBranches = branchInfoList;
         watchFunction = connectionManager.submit(new WatchJob(context, remote.getUser(), branchInfoList),
-                new ConnectionManager.ConnectionInfo(remote.getServer()),
-                context.getRootAuthInfo(remote.getUser(), remote.getServer()),
+                remote, context.getRootAuthInfo(remote.getUser(), remote.getServer()),
                 observer);
     }
 
@@ -143,12 +142,12 @@ public class SyncManager {
 
     private Task<Void, GitPullJob.Result> gitSync(final JGitInterface gitInterface, final StorageDir dir, final int nJobs,
                                                   final Task.IObserver<TaskUpdate, Void> observer,
-                                                  final ConnectionManager.ConnectionInfo connectionInfo,
-                                                  final ConnectionManager.AuthInfo authInfo) {
+                                                  final Remote remote,
+                                                  final AuthInfo authInfo) {
         final String id = dir.getBranch();
         return connectionManager.submit(new GitPullJob(gitInterface.getRepository(),
-                        remote.getUser(), dir.getBranch()),
-                connectionInfo, authInfo,
+                        this.remote.getUser(), dir.getBranch()),
+                remote, authInfo,
                 new Task.IObserver<Void, GitPullJob.Result>() {
                     @Override
                     public void onProgress(Void aVoid) {
@@ -173,8 +172,8 @@ public class SyncManager {
                         }
 
                         // push
-                        connectionManager.submit(new GitPushJob(gitInterface.getRepository(), remote.getUser(),
-                                        gitInterface.getBranch()), connectionInfo, authInfo,
+                        connectionManager.submit(new GitPushJob(gitInterface.getRepository(), SyncManager.this.remote.getUser(),
+                                        gitInterface.getBranch()), remote, authInfo,
                                 new Task.IObserver<Void, RemoteJob.Result>() {
                                     @Override
                                     public void onProgress(Void aVoid) {
@@ -203,26 +202,25 @@ public class SyncManager {
     }
 
     static public Task<Void, ChunkStorePullJob.Result> sync(ConnectionManager connectionManager, StorageDir storageDir,
-                                            ConnectionManager.ConnectionInfo connectionInfo,
-                                            ConnectionManager.AuthInfo authInfo,
+                                            Remote remote, AuthInfo authInfo,
                                             final Task.IObserver<TaskUpdate, String> observer) {
         if (storageDir.getDatabase() instanceof Repository) {
-            return csSync(connectionManager, storageDir, connectionInfo, authInfo, observer);
+            return csSync(connectionManager, storageDir, remote, authInfo, observer);
         } else {
             throw new RuntimeException("Unsupported database");
         }
     }
 
-    static public Task<Void, ChunkStorePullJob.Result> pull(ConnectionManager connectionManager, final StorageDir storageDir,
-                                            ConnectionManager.ConnectionInfo connectionInfo,
-                                            ConnectionManager.AuthInfo authInfo,
+    static public Task<Void, ChunkStorePullJob.Result> pull(ConnectionManager connectionManager,
+                                                            final StorageDir storageDir,
+                                            Remote remote, AuthInfo authInfo,
                                             final Task.IObserver<Void, ChunkStorePullJob.Result> observer) {
         if (!(storageDir.getDatabase() instanceof Repository))
             throw new RuntimeException("Unsupported database");
 
         final Repository repository = (Repository)storageDir.getDatabase();
         return connectionManager.submit(new ChunkStorePullJob(repository, storageDir.getCommitSignature(),
-                        authInfo.serverUser, storageDir.getBranch()), connectionInfo, authInfo,
+                        remote.getUser(), storageDir.getBranch()), remote, authInfo,
                 new Task.IObserver<Void, ChunkStorePullJob.Result>() {
             @Override
             public void onProgress(Void aVoid) {
@@ -250,13 +248,13 @@ public class SyncManager {
     }
 
     static private Task<Void, ChunkStorePullJob.Result> csSync(final ConnectionManager connectionManager, final StorageDir storageDir,
-                                               final ConnectionManager.ConnectionInfo connectionInfo,
-                                               final ConnectionManager.AuthInfo authInfo,
+                                               final Remote remote,
+                                               final AuthInfo authInfo,
                                                final Task.IObserver<TaskUpdate, String> observer) {
         final Repository repository = (Repository)storageDir.getDatabase();
         final String id = repository.getBranch();
         return connectionManager.submit(new ChunkStorePullJob(repository, storageDir.getCommitSignature(),
-                        authInfo.serverUser, repository.getBranch()), connectionInfo, authInfo,
+                        remote.getUser(), repository.getBranch()), remote, authInfo,
                 new Task.IObserver<Void, ChunkStorePullJob.Result>() {
                     @Override
                     public void onProgress(Void aVoid) {
@@ -279,8 +277,8 @@ public class SyncManager {
                         }
 
                         // push
-                        connectionManager.submit(new ChunkStorePushJob(repository, authInfo.serverUser,
-                                        repository.getBranch()), connectionInfo, authInfo,
+                        connectionManager.submit(new ChunkStorePushJob(repository, remote.getUser(),
+                                        repository.getBranch()), remote, authInfo,
                                 new Task.IObserver<Void, ChunkStorePushJob.Result>() {
                                     @Override
                                     public void onProgress(Void aVoid) {
@@ -318,9 +316,8 @@ public class SyncManager {
             return;
         }
 
-        final ConnectionManager.ConnectionInfo connectionInfo = new ConnectionManager.ConnectionInfo(remote.getServer());
-        final ConnectionManager.AuthInfo authInfo = context.getRootAuthInfo(remote.getUser(), remote.getServer());
-        Task<Void, ChunkStorePullJob.Result> job = sync(connectionManager, dir, connectionInfo, authInfo,
+        final AuthInfo authInfo = context.getRootAuthInfo(remote.getUser(), remote.getServer());
+        Task<Void, ChunkStorePullJob.Result> job = sync(connectionManager, dir, remote, authInfo,
                     new Task.IObserver<TaskUpdate, String>() {
                 @Override
                 public void onProgress(TaskUpdate taskUpdate) {

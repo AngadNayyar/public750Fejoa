@@ -114,20 +114,16 @@ public class Client {
                 userData.getGateway()), user, server);
     }
 
-    public void createAccount(String userName, String password, String server,
+    public void createAccount(Remote remote, String password,
                               Task.IObserver<Void, RemoteJob.Result> observer) throws IOException {
-        connectionManager.submit(new CreateAccountJob(userName, password, userData.getSettings()),
-                new ConnectionManager.ConnectionInfo(server),
-                new ConnectionManager.AuthInfo(),
-                observer);
+        connectionManager.submit(new CreateAccountJob(remote.getUser(), password, userData.getSettings()),
+                remote, new AuthInfo.Plain(), observer);
     }
 
-    public void createAccount(String userName, String password, UserData userData, String server,
+    public void createAccount(Remote remote, String password, UserData userData,
                               Task.IObserver<Void, RemoteJob.Result> observer) throws IOException {
-        connectionManager.submit(new CreateAccountJob(userName, password, userData.getSettings()),
-                new ConnectionManager.ConnectionInfo(server),
-                new ConnectionManager.AuthInfo(),
-                observer);
+        connectionManager.submit(new CreateAccountJob(remote.getUser(), password, userData.getSettings()),
+                remote, new AuthInfo.Plain(), observer);
     }
 
     public void startSyncing(Task.IObserver<TaskUpdate, Void> observer) throws IOException {
@@ -183,11 +179,10 @@ public class Client {
         BranchInfo branch = getUserData().getBranchList().get(branchId);
         Remote remote = userData.getGateway();
         connectionManager.submit(new WatchJob(context, remote.getUser(), Collections.singletonList(branch), true),
-                new ConnectionManager.ConnectionInfo(remote.getServer()),
-                context.getRootAuthInfo(remote), observer);
+                remote, context.getRootAuthInfo(remote), observer);
     }
 
-    public void pullContactBranch(String user, String server, ContactBranch contactBranch,
+    public void pullContactBranch(Remote remote, ContactBranch contactBranch,
                                   final Task.IObserver<Void, ChunkStorePullJob.Result> observer)
             throws IOException, CryptoException {
         if ((contactBranch.getAccessToken().getAccessRights().getEntries().get(0).getRights()
@@ -198,8 +193,7 @@ public class Client {
                 contactBranch.getBranchKey(), userData.getCommitSignature());
 
         SyncManager.pull(getConnectionManager(), contactBranchDir,
-                new ConnectionManager.ConnectionInfo(server),
-                new ConnectionManager.AuthInfo(user, contactBranch.getAccessToken()), observer);
+                remote, new AuthInfo.Token(contactBranch.getAccessToken()), observer);
     }
 
     public void migrate(String newUserName, String newServer) {

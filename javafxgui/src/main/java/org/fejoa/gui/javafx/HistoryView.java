@@ -115,10 +115,10 @@ public class HistoryView extends SplitPane {
         historyView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<HistoryListView.HistoryEntry>() {
             @Override
             public void changed(ObservableValue<? extends HistoryListView.HistoryEntry> observableValue,
-                                HistoryListView.HistoryEntry historyEntry, HistoryListView.HistoryEntry newItem) {
-                if (newItem == null)
+                                HistoryListView.HistoryEntry historyEntry, HistoryListView.HistoryEntry selectedItem) {
+                if (selectedItem == null)
                     return;
-                CommitBox commitBox = newItem.getCommitBox();
+                CommitBox commitBox = selectedItem.getCommitBox();
                 Repository repository = (Repository) historyView.getStorageDir().getDatabase();
                 List<HashValue> parents = new ArrayList<>();
                 IChunkAccessor commitAccessor = repository.getCurrentTransaction().getCommitAccessor();

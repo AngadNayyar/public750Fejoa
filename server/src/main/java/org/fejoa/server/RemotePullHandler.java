@@ -11,6 +11,7 @@ import org.fejoa.chunkstore.Repository;
 import org.fejoa.library.AccessTokenContact;
 import org.fejoa.library.Constants;
 import org.fejoa.library.FejoaContext;
+import org.fejoa.library.Remote;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.remote.*;
 import org.fejoa.library.support.Task;
@@ -42,6 +43,7 @@ public class RemotePullHandler extends JsonRequestHandler {
         String branch = params.getString(Constants.BRANCH_KEY);
         String sourceUser = params.getString(RemotePullJob.SOURCE_USER_KEY);
         String sourceServer = params.getString(RemotePullJob.SOURCE_SERVER_KEY);
+        Remote sourceRemote = new Remote(sourceUser, sourceServer);
 
         StorageDir targetDir = context.getStorage(branch, null, null);
         ChunkStorePullRepoJob pullJob = new ChunkStorePullRepoJob((Repository)targetDir.getDatabase(), sourceUser,
@@ -50,8 +52,8 @@ public class RemotePullHandler extends JsonRequestHandler {
         ConnectionManager connectionManager = new ConnectionManager();
         connectionManager.setStartScheduler(new Task.CurrentThreadScheduler());
         connectionManager.setObserverScheduler(new Task.CurrentThreadScheduler());
-        connectionManager.submit(pullJob, new ConnectionManager.ConnectionInfo(sourceServer),
-                new ConnectionManager.AuthInfo(sourceUser, accessTokenContact),
+        connectionManager.submit(pullJob, sourceRemote,
+                new AuthInfo.Token(accessTokenContact),
                 new Task.IObserver<Void, RemoteJob.Result>() {
                     @Override
                     public void onProgress(Void aVoid) {

@@ -24,12 +24,14 @@ public class Remote implements IStorageDirBundle {
     }
 
     public Remote(String user, String server) {
-        this.id = CryptoHelper.generateSha1Id(Crypto.get());
+        this.id = null;
         this.user = user;
         this.server = server;
     }
 
     public String getId() {
+        if (id == null)
+            id = CryptoHelper.generateSha1Id(Crypto.get());
         return id;
     }
 
@@ -43,7 +45,7 @@ public class Remote implements IStorageDirBundle {
 
     @Override
     public void write(IOStorageDir dir) throws IOException {
-        dir.writeString(Constants.ID_KEY, id);
+        dir.writeString(Constants.ID_KEY, getId());
         dir.writeString(Constants.USER_KEY, user);
         dir.writeString(Constants.SERVER_KEY, server);
     }
