@@ -17,7 +17,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Scanner;
 
 
@@ -44,6 +46,10 @@ public class Client {
         client.userData.getRemoteStore().add(remoteRemote);
         //userData.getRemoteStore().setDefault(remoteRemote);
         client.userData.setGateway(remoteRemote);
+        // connect branches
+        for (BranchInfo branchInfo : client.getUserData().getBranchList().getEntries())
+            branchInfo.addLocation(remoteRemote.getId(), new AuthInfo.Password(password));
+
         client.loadCommandManagers();
 
         UserDataSettings userDataSettings = client.userData.getSettings();
@@ -129,7 +135,12 @@ public class Client {
     public void startSyncing(Task.IObserver<TaskUpdate, Void> observer) throws IOException {
         Remote defaultRemote = getUserData().getGateway();
         syncManager = new SyncManager(context, userData, getConnectionManager(), defaultRemote);
-        syncManager.startWatching(getUserData().getBranchList().getEntries(), observer);
+        List<BranchInfo.Location> locations = new ArrayList<>();
+        for (BranchInfo branchInfo : getUserData().getBranchList().getEntries()) {
+            for (BranchInfo.Location location : branchInfo.getLocationEntries())
+                locations.add(location);
+        }
+        syncManager.startWatching(locations, observer);
     }
 
     public void stopSyncing() {
@@ -175,11 +186,12 @@ public class Client {
     }
 
     // Requires to be root user. TODO: implement peek for contact branches?
-    public void peekRemoteStatus(String branchId, Task.IObserver<Void, WatchJob.Result> observer) throws IOException {
-        BranchInfo branch = getUserData().getBranchList().get(branchId);
+    public void peekRemoteStatus(BranchInfo.Location location, Task.IObserver<Void, WatchJob.Result> observer)
+            throws IOException, CryptoException {
         Remote remote = userData.getGateway();
-        connectionManager.submit(new WatchJob(context, remote.getUser(), Collections.singletonList(branch), true),
-                remote, context.getRootAuthInfo(remote), observer);
+        AuthInfo authInfo = location.getAuthInfo(remote, context);
+        connectionManager.submit(new WatchJob(context, remote.getUser(), Collections.singletonList(location), true),
+                remote, authInfo, observer);
     }
 
     public void pullContactBranch(Remote remote, ContactBranch contactBranch,

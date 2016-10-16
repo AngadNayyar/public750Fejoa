@@ -327,7 +327,7 @@ public class ClientTest extends TestCase {
 
                 try {
                     waitTillClient2UploadedTheAccessStore(0);
-                } catch (IOException e) {
+                } catch (Exception e) {
                     onError(e);
                 }
             }
@@ -358,9 +358,11 @@ public class ClientTest extends TestCase {
             handler.setListener(null);
         }
 
-        private void waitTillClient2UploadedTheAccessStore(final int retryCount) throws IOException {
+        private void waitTillClient2UploadedTheAccessStore(final int retryCount) throws IOException, CryptoException {
             UserData userData = client2.getUserData();
-            client2.peekRemoteStatus(userData.getAccessStore().getId(), new Task.IObserver<Void, WatchJob.Result>() {
+            BranchInfo accessBranchInfo = userData.findBranchInfo(userData.getAccessStore().getId());
+            client2.peekRemoteStatus(accessBranchInfo.getLocationEntries().iterator().next(),
+                    new Task.IObserver<Void, WatchJob.Result>() {
                 @Override
                 public void onProgress(Void aVoid) {
 
@@ -389,7 +391,7 @@ public class ClientTest extends TestCase {
                     }
                     try {
                         waitTillClient2UploadedTheAccessStore(count);
-                    } catch (IOException e) {
+                    } catch (Exception e) {
                         onException(e);
                     }
                 }

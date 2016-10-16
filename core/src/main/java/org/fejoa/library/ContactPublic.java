@@ -41,24 +41,8 @@ public class ContactPublic extends Contact<PublicKeyItem, PublicKeyItem> {
         super(context, getEntryIO(), getEntryIO(),
                 storageDir);
 
-        remotes = new RemoteList(getRemoteListDir());
-        contactBranchList = new ContactBranchList(context, getAccessListDir());
-    }
-
-    @Override
-    public void setStorageDir(IOStorageDir dir) throws IOException, CryptoException {
-        super.setStorageDir(dir);
-
-        remotes.setStorageDir(getRemoteListDir());
-        contactBranchList.setStorageDir(getAccessListDir());
-    }
-
-    private IOStorageDir getRemoteListDir() {
-        return new IOStorageDir(storageDir, REMOTES_DIR);
-    }
-
-    private IOStorageDir getAccessListDir() {
-        return new IOStorageDir(storageDir, ACCESS_DIR);
+        remotes = new RemoteList(this, REMOTES_DIR);
+        contactBranchList = new ContactBranchList(context, this, ACCESS_DIR);
     }
 
     @Override

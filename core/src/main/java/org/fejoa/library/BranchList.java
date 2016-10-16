@@ -7,24 +7,25 @@
  */
 package org.fejoa.library;
 
+import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.database.IOStorageDir;
-import org.fejoa.library.database.StorageDir;
+import org.fejoa.library.database.MovableStorageList;
 
 import java.io.IOException;
 
 
-public class BranchList extends StorageDirList<BranchInfo> {
-    public BranchList(StorageDir storageDir) {
-        super(storageDir, new AbstractEntryIO<BranchInfo>() {
-            @Override
-            public String getId(BranchInfo entry) {
-                return entry.getBranch();
-            }
+public class BranchList extends MovableStorageList<BranchInfo> {
+    public BranchList(IOStorageDir storageDir) throws IOException, CryptoException {
+        super(storageDir);
+    }
 
-            @Override
-            public BranchInfo read(IOStorageDir dir) throws IOException {
-                return BranchInfo.read(idFromStoragePath(dir), dir);
-            }
-        });
+    @Override
+    protected BranchInfo createObject(IOStorageDir storageDir, String id) throws IOException, CryptoException {
+        return new BranchInfo(storageDir, id);
+    }
+
+
+    public void add(BranchInfo branchInfo) throws IOException, CryptoException {
+        super.add(branchInfo.getBranch(), branchInfo);
     }
 }

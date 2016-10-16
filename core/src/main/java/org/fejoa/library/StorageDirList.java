@@ -7,8 +7,10 @@
  */
 package org.fejoa.library;
 
+import org.fejoa.library.database.MovableStorage;
 import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.crypto.CryptoException;
+import org.fejoa.library.database.MovableStorageContainer;
 
 import java.io.IOException;
 import java.util.*;
@@ -85,9 +87,11 @@ public class StorageDirList<T> extends MovableStorage {
         defaultEntry = get(defaultId);
     }
 
-    public StorageDirList(IEntryIO<T> entryIO) {
-        super(null);
+    public StorageDirList(MovableStorageContainer parent, String subDir, IEntryIO<T> entryIO) {
+        super(parent, subDir);
         this.entryIO = entryIO;
+
+        load();
     }
 
     public StorageDirList(IOStorageDir storageDir, IEntryIO<T> entryIO) {

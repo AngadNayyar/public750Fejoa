@@ -120,16 +120,26 @@ public class CryptoHelper {
         return convertToPEM("PRIVATE KEY", key);
     }
 
-    static public PrivateKey privateKeyFromRaw(byte[] key, String keyType) throws Exception {
+    static public PrivateKey privateKeyFromRaw(byte[] key, String keyType) throws CryptoException {
         PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(key);
-        KeyFactory keyFactory = KeyFactory.getInstance(keyType);
-        return keyFactory.generatePrivate(spec);
+        KeyFactory keyFactory;
+        try {
+            keyFactory = KeyFactory.getInstance(keyType);
+            return keyFactory.generatePrivate(spec);
+        } catch (Exception e) {
+            throw new CryptoException(e);
+        }
     }
 
-    static public PublicKey publicKeyFromRaw(byte[] key, String keyType) throws Exception {
+    static public PublicKey publicKeyFromRaw(byte[] key, String keyType) throws CryptoException {
         X509EncodedKeySpec spec = new X509EncodedKeySpec(key);
-        KeyFactory keyFactory = KeyFactory.getInstance(keyType);
-        return keyFactory.generatePublic(spec);
+        KeyFactory keyFactory;
+        try {
+            keyFactory = KeyFactory.getInstance(keyType);
+            return keyFactory.generatePublic(spec);
+        } catch (Exception e) {
+            throw new CryptoException(e);
+        }
     }
 
     static public PublicKey publicKeyFromPem(String pemKey) {

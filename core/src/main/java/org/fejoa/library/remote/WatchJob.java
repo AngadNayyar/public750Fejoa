@@ -42,14 +42,15 @@ public class WatchJob extends SimpleJsonRemoteJob<WatchJob.Result> {
 
     final private FejoaContext context;
     final private String serverUser;
-    final private Collection<BranchInfo> branchInfoList;
+    final private Collection<BranchInfo.Location> branchInfoList;
     final private boolean peek;
 
-    public WatchJob(FejoaContext context, String serverUser, Collection<BranchInfo> branchInfoList) {
+    public WatchJob(FejoaContext context, String serverUser, Collection<BranchInfo.Location> branchInfoList) {
         this(context, serverUser, branchInfoList, false);
     }
 
-    public WatchJob(FejoaContext context, String serverUser, Collection<BranchInfo> branchInfoList, boolean peek) {
+    public WatchJob(FejoaContext context, String serverUser, Collection<BranchInfo.Location> branchInfoList,
+                    boolean peek) {
         super(false);
 
         this.context = context;
@@ -63,10 +64,11 @@ public class WatchJob extends SimpleJsonRemoteJob<WatchJob.Result> {
         JsonRPC.Argument serverUserArg = new JsonRPC.Argument(Constants.SERVER_USER_KEY, serverUser);
 
         List<JsonRPC.ArgumentSet> branches = new ArrayList<>();
-        for (BranchInfo branchInfo : branchInfoList) {
-            HashValue tip = context.getStorageLogTip(branchInfo.getBranch());
+        for (BranchInfo.Location branchInfo : branchInfoList) {
+            String branch = branchInfo.getBranchInfo().getBranch();
+            HashValue tip = context.getStorageLogTip(branch);
             JsonRPC.ArgumentSet argumentSet = new JsonRPC.ArgumentSet(
-                    new JsonRPC.Argument(BRANCH_KEY, branchInfo.getBranch()),
+                    new JsonRPC.Argument(BRANCH_KEY, branch),
                     new JsonRPC.Argument(BRANCH_TIP_KEY, tip.toHex())
             );
             branches.add(argumentSet);

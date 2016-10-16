@@ -28,7 +28,7 @@ public class SyncManager {
 
     final private Remote remote;
     private Task watchFunction;
-    private Collection<BranchInfo> watchedBranches;
+    private Collection<BranchInfo.Location> watchedBranches;
     final private Map<String, Task<Void, ChunkStorePullJob.Result>> ongoingSyncJobs = new HashMap<>();
 
     public SyncManager(FejoaContext context, UserData userData, ConnectionManager connectionManager, Remote remote) {
@@ -49,25 +49,35 @@ public class SyncManager {
         }
 
         for (String id : storageIdList) {
-            for (BranchInfo branchInfo : watchedBranches) {
-                if (branchInfo.getBranch().equals(id))
-                    sync(branchInfo, storageIdList.size(), observer);
+            for (BranchInfo.Location branchLocation : watchedBranches) {
+                if (branchLocation.getBranchInfo().getBranch().equals(id))
+                    sync(branchLocation, storageIdList.size(), observer);
             }
         }
     }
 
-    private void watch(Collection<BranchInfo> branchInfoList, Task.IObserver<Void, WatchJob.Result> observer) {
+    private void watch(Collection<BranchInfo.Location> branchInfoList, Task.IObserver<Void, WatchJob.Result> observer) {
         watchedBranches = branchInfoList;
+
+        Map<String, AuthInfo> authInfos = new HashMap<>();
+        for (BranchInfo.Location location : branchInfoList) {
+            try {
+                AuthInfo authInfo = location.getAuthInfo(remote, context);
+                authInfos.put(authInfo.getId(), authInfo);
+            } catch (Exception e) {
+                observer.onException(e);
+            }
+        }
+
         watchFunction = connectionManager.submit(new WatchJob(context, remote.getUser(), branchInfoList),
-                remote, context.getRootAuthInfo(remote.getUser(), remote.getServer()),
-                observer);
+                remote, authInfos.values(), observer);
     }
 
     private boolean isWatching() {
         return watchFunction != null;
     }
 
-    public void startWatching(final Collection<BranchInfo> branchInfoList, final Task.IObserver<TaskUpdate, Void> observer) {
+    public void startWatching(final Collection<BranchInfo.Location> branchInfoList, final Task.IObserver<TaskUpdate, Void> observer) {
         if (isWatching())
             stopWatching();
 
@@ -138,67 +148,6 @@ public class SyncManager {
             watchFunction.cancel();
             watchFunction = null;
         }
-    }
-
-    private Task<Void, GitPullJob.Result> gitSync(final JGitInterface gitInterface, final StorageDir dir, final int nJobs,
-                                                  final Task.IObserver<TaskUpdate, Void> observer,
-                                                  final Remote remote,
-                                                  final AuthInfo authInfo) {
-        final String id = dir.getBranch();
-        return connectionManager.submit(new GitPullJob(gitInterface.getRepository(),
-                        this.remote.getUser(), dir.getBranch()),
-                remote, authInfo,
-                new Task.IObserver<Void, GitPullJob.Result>() {
-                    @Override
-                    public void onProgress(Void aVoid) {
-                        //observer.onProgress(aVoid);
-                    }
-
-                    @Override
-                    public void onResult(GitPullJob.Result result) {
-                        try {
-                            HashValue pullRevHash = HashValue.fromHex(result.pulledRev);
-                            dir.commit();
-                            HashValue base = gitInterface.getTip();
-                            gitInterface.merge(pullRevHash);
-                            dir.onTipUpdated(base, pullRevHash);
-                            HashValue tip = dir.getTip();
-                            if (tip.equals(pullRevHash)) {
-                                jobFinished(id, observer, nJobs, "sync after pull: " + id);
-                                return;
-                            }
-                        } catch (IOException e) {
-                            observer.onException(e);
-                        }
-
-                        // push
-                        connectionManager.submit(new GitPushJob(gitInterface.getRepository(), SyncManager.this.remote.getUser(),
-                                        gitInterface.getBranch()), remote, authInfo,
-                                new Task.IObserver<Void, RemoteJob.Result>() {
-                                    @Override
-                                    public void onProgress(Void aVoid) {
-                                        //observer.onProgress(aVoid);
-                                    }
-
-                                    @Override
-                                    public void onResult(RemoteJob.Result result) {
-                                        jobFinished(id, observer, nJobs, "sync after push: " + id);
-                                    }
-
-                                    @Override
-                                    public void onException(Exception exception) {
-                                        observer.onException(exception);
-                                        jobFinished(id, observer, nJobs, "exception");
-                                    }
-                                });
-                    }
-
-                    @Override
-                    public void onException(Exception exception) {
-                        observer.onException(exception);
-                        jobFinished(id, observer, nJobs, "exception");
-                    }
-                });
     }
 
     static public Task<Void, ChunkStorePullJob.Result> sync(ConnectionManager connectionManager, StorageDir storageDir,
@@ -304,11 +253,14 @@ public class SyncManager {
                 });
     }
 
-    private void sync(final BranchInfo branchInfo, final int nJobs, final Task.IObserver<TaskUpdate, Void> observer) {
+    private void sync(final BranchInfo.Location branchLocation, final int nJobs, final Task.IObserver<TaskUpdate, Void> observer) {
+        final BranchInfo branchInfo = branchLocation.getBranchInfo();
         final String branch = branchInfo.getBranch();
         final StorageDir dir;
+        final AuthInfo authInfo;
         try {
             dir = userData.getStorageDir(branchInfo);
+            authInfo = branchLocation.getAuthInfo(remote, context);
         } catch (Exception e) {
             e.printStackTrace();
             observer.onException(e);
@@ -316,7 +268,6 @@ public class SyncManager {
             return;
         }
 
-        final AuthInfo authInfo = context.getRootAuthInfo(remote.getUser(), remote.getServer());
         Task<Void, ChunkStorePullJob.Result> job = sync(connectionManager, dir, remote, authInfo,
                     new Task.IObserver<TaskUpdate, String>() {
                 @Override

@@ -48,8 +48,8 @@ public class AccessRequestJob extends SimpleJsonRemoteJob {
             String entrySignature = DatatypeConverter.printBase64Binary(accessTokenContact.getAccessEntrySignature());
 
             return jsonRPC.call(METHOD, new JsonRPC.Argument(REQUEST_KEY, AUTH_REQUEST),
-                    new JsonRPC.Argument(ACCESS_TOKEN_ID_KEY, accessTokenContact.getId()),
                     new JsonRPC.Argument(Constants.SERVER_USER_KEY, serverName),
+                    new JsonRPC.Argument(ACCESS_TOKEN_ID_KEY, accessTokenContact.getId()),
                     new JsonRPC.Argument(AUTH_TOKEN_SIGNATURE_KEY, authSignature),
                     new JsonRPC.Argument(ACCESS_ENTRY_KEY, accessTokenContact.getAccessEntry()),
                     new JsonRPC.Argument(ACCESS_ENTRY_SIGNATURE_KEY, entrySignature));

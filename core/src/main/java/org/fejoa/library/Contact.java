@@ -1,5 +1,5 @@
 /*
- * Copyright 2015.
+ * Copyright 2016.
  * Distributed under the terms of the GPLv3 License.
  *
  * Authors:
@@ -11,29 +11,13 @@ import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.crypto.CryptoSettings;
 import org.fejoa.library.crypto.ICryptoInterface;
 import org.fejoa.library.database.IOStorageDir;
-import org.fejoa.library.database.MemoryIODatabase;
+import org.fejoa.library.database.MovableStorageContainer;
 
 import java.io.IOException;
 import java.security.PublicKey;
 
 
-class MovableStorage {
-    protected IOStorageDir storageDir;
-
-    public MovableStorage(IOStorageDir storageDir) {
-        if (storageDir == null)
-            this.storageDir = new IOStorageDir(new MemoryIODatabase(), "");
-        else
-            this.storageDir = storageDir;
-    }
-
-    public void setStorageDir(IOStorageDir target) throws IOException, CryptoException {
-        storageDir.copyTo(target);
-        this.storageDir = target;
-    }
-}
-
-abstract class Contact<SignKey, EncKey> extends MovableStorage implements IContactPublic {
+abstract class Contact<SignKey, EncKey> extends MovableStorageContainer implements IContactPublic {
     final static private String SIGNATURE_KEYS_DIR = "signatureKeys";
     final static private String ENCRYPTION_KEYS_DIR = "encryptionKeys";
 

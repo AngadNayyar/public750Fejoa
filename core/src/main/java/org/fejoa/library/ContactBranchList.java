@@ -9,6 +9,7 @@ package org.fejoa.library;
 
 import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.crypto.CryptoException;
+import org.fejoa.library.database.MovableStorageContainer;
 
 import java.io.IOException;
 
@@ -17,8 +18,8 @@ public class ContactBranchList extends StorageDirList<ContactBranch> {
     static final private String ACCESS_TOKEN_KEY = "accessToken";
     static final private String KEY_DATA_DIR = "keyData";
 
-    public ContactBranchList(final FejoaContext context, IOStorageDir storageDir) {
-        super(storageDir, new IEntryIO<ContactBranch>() {
+    public ContactBranchList(final FejoaContext context, MovableStorageContainer parent, String subDir) {
+        super(parent, subDir, new IEntryIO<ContactBranch>() {
             @Override
             public String getId(ContactBranch entry) {
                 return entry.getBranch();

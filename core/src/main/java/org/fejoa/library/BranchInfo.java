@@ -8,19 +8,57 @@
 package org.fejoa.library;
 
 import org.fejoa.chunkstore.HashValue;
+import org.fejoa.library.database.MovableStorage;
+import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.database.IOStorageDir;
+import org.fejoa.library.database.MovableStorageContainer;
+import org.fejoa.library.database.MovableStorageList;
 import org.fejoa.library.remote.AuthInfo;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
 
 
-public class BranchInfo implements IStorageDirBundle {
-    public class CryptoInfo {
+public class BranchInfo extends MovableStorageContainer {
+    public class Location extends MovableStorage {
+        private AuthInfo authInfo;
+
+        final static private String REMOTE_ID_KEY = "remoteId";
+
+        private Location(IOStorageDir dir, String remoteId) throws IOException {
+            super(dir);
+
+            setRemoteId(remoteId);
+        }
+
+        public Location(IOStorageDir dir, String remoteId, AuthInfo authInfo) throws IOException {
+            this(dir, remoteId);
+
+            setAuthInfo(authInfo);
+        }
+
+        public BranchInfo getBranchInfo() {
+            return BranchInfo.this;
+        }
+
+        public void setRemoteId(String remoteId) throws IOException {
+            storageDir.writeString(REMOTE_ID_KEY, remoteId);
+        }
+
+        public String getRemoteId() throws IOException {
+            return storageDir.readString(REMOTE_ID_KEY);
+        }
+
+        public void setAuthInfo(AuthInfo authInfo) throws IOException {
+            authInfo.write(storageDir);
+        }
+
+        public AuthInfo getAuthInfo(Remote remote, FejoaContext context) throws IOException, CryptoException {
+            return AuthInfo.read(storageDir, remote, context);
+        }
+    }
+
+    static public class CryptoInfo {
         private HashValue encKey;
         private String keyStoreId = "";
         private boolean signBranch;
@@ -44,37 +82,65 @@ public class BranchInfo implements IStorageDirBundle {
 
     final static private String DESCRIPTION_KEY = "description";
     final static private String ENCRYPTION_KEY = "encKey";
-    final static private String REMOTE_IDS_KEY = "remotes";
+    final static private String LOCATIONS_KEY = "locations";
 
     final private String branch;
-    final private List<String> remotes = new ArrayList<>();
-    private AuthInfo authInfo;
-
     private String description = "";
     private CryptoInfo cryptoInfo = new CryptoInfo();
+    final private MovableStorageList<Location> locations;
 
-    static public BranchInfo read(String id, IOStorageDir dir) throws IOException {
-        BranchInfo entry = new BranchInfo(id);
-        entry.read(dir);
-        return entry;
+    private void load() throws IOException {
+        description = storageDir.readString(DESCRIPTION_KEY);
+        cryptoInfo.read(storageDir);
     }
 
-    public BranchInfo(String branch) {
+    public BranchInfo(IOStorageDir dir, String branch) throws IOException, CryptoException {
+        super(dir);
+
         this.branch = branch;
+        locations = new MovableStorageList<Location>(this, LOCATIONS_KEY) {
+            @Override
+            protected Location createObject(IOStorageDir storageDir, String id) throws IOException, CryptoException {
+                return new Location(storageDir, id);
+            }
+        };
+        try {
+            load();
+        } catch (IOException e) {
+        }
     }
 
-    public BranchInfo(String branch, String description) {
-        this.branch = branch;
-        this.description = description;
+    public Collection<Location> getLocationEntries() {
+        return locations.getEntries();
     }
 
-    public BranchInfo(String branch, String description, HashValue encKey, KeyStore keyStore, boolean sign) {
+    public Location addLocation(String remoteId, AuthInfo authInfo) throws IOException, CryptoException {
+        Location location = new Location(null, remoteId, authInfo);
+        locations.add(remoteId, location);
+        return location;
+    }
+
+    public MovableStorageList<Location> getLocations() {
+        return locations;
+    }
+
+    public BranchInfo(String branch) throws IOException, CryptoException {
+        this(branch, "");
+    }
+
+    public BranchInfo(String branch, String description) throws IOException, CryptoException {
+        this((IOStorageDir)null, branch);
+        setDescription(description);
+    }
+
+    public BranchInfo(String branch, String description, HashValue encKey, KeyStore keyStore, boolean sign) throws IOException, CryptoException {
         this(branch, description);
 
         cryptoInfo.encKey = encKey;
         if (keyStore != null)
             cryptoInfo.keyStoreId = keyStore.getId();
         cryptoInfo.signBranch = sign;
+        setCryptoInfo(cryptoInfo);
     }
 
     public String getBranch() {
@@ -83,6 +149,16 @@ public class BranchInfo implements IStorageDirBundle {
 
     public String getDescription() {
         return description;
+    }
+
+    public void setDescription(String description) throws IOException {
+        this.description = description;
+        storageDir.writeString(DESCRIPTION_KEY, description);
+    }
+
+    public void setCryptoInfo(CryptoInfo cryptoInfo) throws IOException {
+        this.cryptoInfo = cryptoInfo;
+        cryptoInfo.write(storageDir);
     }
 
     public HashValue getKeyId() {
@@ -96,45 +172,4 @@ public class BranchInfo implements IStorageDirBundle {
     public boolean signBranch() {
         return cryptoInfo.signBranch;
     }
-
-    @Override
-    public void write(IOStorageDir dir) throws IOException {
-        dir.writeString(DESCRIPTION_KEY, description);
-        cryptoInfo.write(dir);
-
-        writeRemotes(dir);
-    }
-
-    @Override
-    public void read(IOStorageDir dir) throws IOException {
-        description = dir.readString(DESCRIPTION_KEY);
-        cryptoInfo.read(dir);
-
-        readRemotes(dir);
-    }
-
-    private void writeRemotes(IOStorageDir dir) throws IOException {
-        if (remotes.size() > 0) {
-            JSONObject remotes = new JSONObject();
-            try {
-                remotes.put("ids", remotes);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-            dir.writeString(REMOTE_IDS_KEY, remotes.toString());
-        }
-    }
-
-    private void readRemotes(IOStorageDir dir) {
-        try {
-            JSONObject jsonObject = new JSONObject(dir.readString(REMOTE_IDS_KEY));
-            JSONArray array = jsonObject.getJSONArray(REMOTE_IDS_KEY);
-            remotes.clear();
-            for (int i = 0; i < array.length(); i++)
-                remotes.add(array.getString(i));
-        } catch (Exception e) {
-
-        }
-    }
-
 }

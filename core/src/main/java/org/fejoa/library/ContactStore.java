@@ -40,17 +40,8 @@ public class ContactStore extends StorageDirObject {
     protected ContactStore(final FejoaContext context, StorageDir dir) {
         super(context, dir);
 
-
         contactList = new StorageDirList<>(storageDir, entryIO);
         requestedContacts = new StorageDirList<>(new StorageDir(storageDir, REQUESTED_CONTACTS_DIR), entryIO);
-    }
-
-    public ContactPublic addContact(String id) throws IOException, CryptoException {
-        ContactPublic contact = new ContactPublic(context, contactList.getStorageDirForId(id));
-        contact.setId(id);
-        // contact needs an id before added to the contact list
-        contactList.add(contact);
-        return contact;
     }
 
     public void addContact(ContactPublic contact) throws IOException, CryptoException {

@@ -7,15 +7,15 @@
  */
 package org.fejoa.library;
 
-
 import org.fejoa.library.database.IOStorageDir;
+import org.fejoa.library.database.MovableStorageContainer;
 
 import java.io.IOException;
 
 
 public class RemoteList extends StorageDirList<Remote> {
-    public RemoteList(IOStorageDir storageDir) {
-        super(storageDir, new AbstractEntryIO<Remote>() {
+    static private AbstractEntryIO<Remote> createEntryIO() {
+        return new AbstractEntryIO<Remote>() {
             @Override
             public String getId(Remote entry) {
                 return entry.getId();
@@ -27,6 +27,14 @@ public class RemoteList extends StorageDirList<Remote> {
                 remote.read(dir);
                 return remote;
             }
-        });
+        };
+    }
+
+    public RemoteList(IOStorageDir storageDir) {
+        super(storageDir, createEntryIO());
+    }
+
+    public RemoteList(MovableStorageContainer parent, String subDir) {
+        super(parent, subDir, createEntryIO());
     }
 }

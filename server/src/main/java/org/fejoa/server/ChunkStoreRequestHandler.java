@@ -33,6 +33,11 @@ public class ChunkStoreRequestHandler extends JsonRequestHandler {
         AccessControl accessControl = new AccessControl(session, user);
         int branchAccessRights = accessControl.getBranchAccessRights(branch);
         ChunkStore chunkStore = accessControl.getChunkStore(branch, branchAccessRights);
+        if (chunkStore == null) {
+            responseHandler.setResponseHeader(jsonRPCHandler.makeResult(Errors.ACCESS_DENIED,
+                    "branch access denied"));
+            return;
+        }
         final ChunkStoreBranchLog branchLog = accessControl.getChunkStoreBranchLog(branch, BranchAccessRight.PUSH);
 
         ChunkStore.Transaction transaction = chunkStore.openTransaction();

@@ -127,9 +127,12 @@ public class FejoaContext {
         return bufferedReader.readLine();
     }
 
-    public AuthInfo getTokenAuthInfo(Remote remote, String branch, int rights) {
-        // TODO implement
-        return getRootAuthInfo(remote.getUser(), remote.getServer());
+    private String makeName(String serverUser, String server) {
+        return serverUser + "@" + server;
+    }
+
+    public String getRootPassword(String serverUser, String server) {
+        return rootPasswords.get(makeName(serverUser, server));
     }
 
     public AuthInfo getRootAuthInfo(Remote remote) {
@@ -141,14 +144,6 @@ public class FejoaContext {
         if (password == null)
             password = "";
         return new AuthInfo.Password(password);
-    }
-
-    private String makeName(String serverUser, String server) {
-        return serverUser + "@" + server;
-    }
-
-    private String getRootPassword(String serverUser, String server) {
-        return rootPasswords.get(makeName(serverUser, server));
     }
 
     public void registerRootPassword(String serverUser, String server, String password) {

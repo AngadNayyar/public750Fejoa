@@ -143,7 +143,8 @@ public class UserData extends StorageDirObject {
         StorageDir inQueueBranch = context.getStorage(
                 CryptoHelper.sha1HashHex(context.getCrypto().generateInitializationVector(32)), null, null);
         IncomingCommandQueue incomingCommandQueue = new IncomingCommandQueue(inQueueBranch);
-        userData.addBranch(new BranchInfo(incomingCommandQueue.getStorageDir().getBranch(), "In Queue", null, null, false));
+        userData.addBranch(new BranchInfo(incomingCommandQueue.getStorageDir().getBranch(), "In Queue", null, null,
+                false));
         userData.getStorageDir().writeString(IN_QUEUE_PATH, incomingCommandQueue.getStorageDir().getBranch());
         incomingCommandQueue.commit();
 

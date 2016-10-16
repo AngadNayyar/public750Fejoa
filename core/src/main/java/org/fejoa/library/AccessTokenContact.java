@@ -15,6 +15,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import javax.xml.bind.DatatypeConverter;
+import java.io.IOException;
 import java.security.PrivateKey;
 
 /**
@@ -32,23 +33,28 @@ public class AccessTokenContact {
 
     final private BranchAccessRight accessRights;
 
-    public AccessTokenContact(FejoaContext context, String rawAccessToken) throws Exception {
+    public AccessTokenContact(FejoaContext context, String rawAccessToken) throws CryptoException, IOException {
         this.context = context;
         this.rawAccessToken = rawAccessToken;
 
-        JSONObject jsonObject = new JSONObject(rawAccessToken);
-        id = jsonObject.getString(Constants.ID_KEY);
-        accessEntrySignature = DatatypeConverter.parseBase64Binary(jsonObject.getString(
-                AccessToken.ACCESS_ENTRY_SIGNATURE_KEY));
-        accessEntry = jsonObject.getString(AccessToken.ACCESS_ENTRY_KEY);
-        contactAuthKeySettings = JsonCryptoSettings.signatureFromJson(jsonObject.getJSONObject(
-                AccessToken.CONTACT_AUTH_KEY_SETTINGS_JSON_KEY));
-        byte[] rawKey = DatatypeConverter.parseBase64Binary(
-                jsonObject.getString(AccessToken.CONTACT_AUTH_PRIVATE_KEY_KEY));
-        contactAuthKey = CryptoHelper.privateKeyFromRaw(rawKey, contactAuthKeySettings.keyType);
+        byte[] rawKey;
+        try {
+            JSONObject jsonObject = new JSONObject(rawAccessToken);
+            id = jsonObject.getString(Constants.ID_KEY);
+            accessEntrySignature = DatatypeConverter.parseBase64Binary(jsonObject.getString(
+                    AccessToken.ACCESS_ENTRY_SIGNATURE_KEY));
+            accessEntry = jsonObject.getString(AccessToken.ACCESS_ENTRY_KEY);
+            contactAuthKeySettings = JsonCryptoSettings.signatureFromJson(jsonObject.getJSONObject(
+                    AccessToken.CONTACT_AUTH_KEY_SETTINGS_JSON_KEY));
+            rawKey = DatatypeConverter.parseBase64Binary(
+                    jsonObject.getString(AccessToken.CONTACT_AUTH_PRIVATE_KEY_KEY));
+            contactAuthKey = CryptoHelper.privateKeyFromRaw(rawKey, contactAuthKeySettings.keyType);
 
-        // access rights
-        accessRights = new BranchAccessRight(new JSONObject(accessEntry));
+            // access rights
+            accessRights = new BranchAccessRight(new JSONObject(accessEntry));
+        } catch (JSONException e) {
+            throw new IOException(e);
+        }
     }
 
     public String getId() {
