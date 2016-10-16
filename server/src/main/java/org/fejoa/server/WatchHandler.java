@@ -35,23 +35,35 @@ public class WatchHandler extends JsonRequestHandler {
         ACCESS_DENIED
     }
 
+    static private class WatchEntry {
+        final public String user;
+        final public String branch;
+        final public String branchTip;
+
+        public WatchEntry(String user, String branch, String branchTip) {
+            this.user = user;
+            this.branch = branch;
+            this.branchTip = branchTip;
+        }
+    }
+
     @Override
     public void handle(Portal.ResponseHandler responseHandler, JsonRPCHandler jsonRPCHandler, InputStream data,
                        Session session) throws Exception {
         JSONObject params = jsonRPCHandler.getParams();
-        String user = params.getString(Constants.SERVER_USER_KEY);
         Boolean peek = false;
         if (params.has(WatchJob.PEEK_KEY))
             peek = params.getBoolean(WatchJob.PEEK_KEY);
         JSONArray branches = params.getJSONArray(WatchJob.BRANCHES_KEY);
 
-        Map<String, String> branchMap = new HashMap<>();
+        List<WatchEntry> branchList = new ArrayList<>();
         for (int i = 0; i < branches.length(); i++) {
             JSONObject branch = branches.getJSONObject(i);
-            branchMap.put(branch.getString(WatchJob.BRANCH_KEY), branch.getString(WatchJob.BRANCH_TIP_KEY));
+            branchList.add(new WatchEntry(branch.getString(Constants.SERVER_USER_KEY),
+                    branch.getString(WatchJob.BRANCH_KEY), branch.getString(WatchJob.BRANCH_TIP_KEY)));
         }
 
-        Map<String, Status> statusMap = watch(session, user, peek, branchMap);
+        Map<String, Status> statusMap = watch(session, peek, branchList);
 
         if (statusMap.isEmpty() && !peek) {
             // timeout
@@ -87,17 +99,17 @@ public class WatchHandler extends JsonRequestHandler {
         responseHandler.setResponseHeader(response);
     }
 
-    private Map<String, Status> watch(Session session, String user, boolean peek, Map<String, String> branches) {
+    private Map<String, Status> watch(Session session, boolean peek, List<WatchEntry> branches) {
         Map<String, Status> status = new HashMap<>();
 
-        AccessControl accessControl = new AccessControl(session, user);
         //TODO: use a file monitor instead of polling
-        final long TIME_OUT = 6 * 1000;
+        final long TIME_OUT = 60 * 1000;
         long time = System.currentTimeMillis();
         while (status.isEmpty()) {
-            for (Map.Entry<String, String> entry : branches.entrySet()) {
-                String branch = entry.getKey();
-                String remoteMessageHashString = entry.getValue();
+            for (WatchEntry entry : branches) {
+                AccessControl accessControl = new AccessControl(session, entry.user);
+                String branch = entry.branch;
+                String remoteMessageHashString = entry.branchTip;
                 HashValue remoteMessageHash = Config.newDataHash();
                 if (!remoteMessageHashString.equals(""))
                     remoteMessageHash = HashValue.fromHex(remoteMessageHashString);
