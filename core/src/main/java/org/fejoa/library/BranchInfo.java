@@ -51,17 +51,25 @@ public class BranchInfo extends MovableStorageContainer {
 
         public void setAuthInfo(AuthInfo authInfo) throws IOException {
             authInfo.write(storageDir);
+            this.authInfo = authInfo;
         }
 
-        public AuthInfo getAuthInfo(Remote remote, FejoaContext context) throws IOException, CryptoException {
-            return AuthInfo.read(storageDir, remote, context);
+        public Remote getRemote() throws IOException {
+            return remoteList.get(getRemoteId());
+        }
+
+        public AuthInfo getAuthInfo(FejoaContext context) throws IOException, CryptoException {
+            if (authInfo != null)
+                return authInfo;
+            authInfo = AuthInfo.read(storageDir, getRemote(), context);
+            return authInfo;
         }
     }
 
     static public class CryptoInfo {
         private HashValue encKey;
         private String keyStoreId = "";
-        private boolean signBranch;
+        private boolean signBranch = false;
 
         public void write(IOStorageDir dir) throws IOException {
             if (encKey != null && !encKey.isZero()) {
@@ -88,16 +96,18 @@ public class BranchInfo extends MovableStorageContainer {
     private String description = "";
     private CryptoInfo cryptoInfo = new CryptoInfo();
     final private MovableStorageList<Location> locations;
+    final private RemoteList remoteList;
 
     private void load() throws IOException {
         description = storageDir.readString(DESCRIPTION_KEY);
         cryptoInfo.read(storageDir);
     }
 
-    public BranchInfo(IOStorageDir dir, String branch) throws IOException, CryptoException {
+    public BranchInfo(IOStorageDir dir, RemoteList remoteList, String branch) throws IOException, CryptoException {
         super(dir);
 
         this.branch = branch;
+        this.remoteList = remoteList;
         locations = new MovableStorageList<Location>(this, LOCATIONS_KEY) {
             @Override
             protected Location createObject(IOStorageDir storageDir, String id) throws IOException, CryptoException {
@@ -108,6 +118,13 @@ public class BranchInfo extends MovableStorageContainer {
             load();
         } catch (IOException e) {
         }
+    }
+
+    public BranchInfo(RemoteList remoteList, String branch, String description)
+            throws IOException, CryptoException {
+        this(null, remoteList, branch);
+
+        setDescription(description);
     }
 
     public Collection<Location> getLocationEntries() {
@@ -124,18 +141,7 @@ public class BranchInfo extends MovableStorageContainer {
         return locations;
     }
 
-    public BranchInfo(String branch) throws IOException, CryptoException {
-        this(branch, "");
-    }
-
-    public BranchInfo(String branch, String description) throws IOException, CryptoException {
-        this((IOStorageDir)null, branch);
-        setDescription(description);
-    }
-
-    public BranchInfo(String branch, String description, HashValue encKey, KeyStore keyStore, boolean sign) throws IOException, CryptoException {
-        this(branch, description);
-
+    public void setCryptoInfo(HashValue encKey, KeyStore keyStore, boolean sign) throws IOException, CryptoException {
         cryptoInfo.encKey = encKey;
         if (keyStore != null)
             cryptoInfo.keyStoreId = keyStore.getId();

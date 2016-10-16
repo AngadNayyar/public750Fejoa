@@ -15,13 +15,16 @@ import java.io.IOException;
 
 
 public class BranchList extends MovableStorageList<BranchInfo> {
-    public BranchList(IOStorageDir storageDir) throws IOException, CryptoException {
+    final private RemoteList remoteList;
+
+    public BranchList(IOStorageDir storageDir, RemoteList remoteList) throws IOException, CryptoException {
         super(storageDir);
+        this.remoteList = remoteList;
     }
 
     @Override
     protected BranchInfo createObject(IOStorageDir storageDir, String id) throws IOException, CryptoException {
-        return new BranchInfo(storageDir, id);
+        return new BranchInfo(storageDir, remoteList, id);
     }
 
 

@@ -62,15 +62,15 @@ public class SyncManager {
         Map<String, AuthInfo> authInfos = new HashMap<>();
         for (BranchInfo.Location location : branchInfoList) {
             try {
-                AuthInfo authInfo = location.getAuthInfo(remote, context);
+                AuthInfo authInfo = location.getAuthInfo(context);
                 authInfos.put(authInfo.getId(), authInfo);
             } catch (Exception e) {
                 observer.onException(e);
             }
         }
 
-        watchFunction = connectionManager.submit(new WatchJob(context, remote.getUser(), branchInfoList),
-                remote, authInfos.values(), observer);
+        watchFunction = connectionManager.submit(new WatchJob(context, branchInfoList), remote, authInfos.values(),
+                observer);
     }
 
     private boolean isWatching() {
@@ -258,9 +258,11 @@ public class SyncManager {
         final String branch = branchInfo.getBranch();
         final StorageDir dir;
         final AuthInfo authInfo;
+        final Remote remote;
         try {
             dir = userData.getStorageDir(branchInfo);
-            authInfo = branchLocation.getAuthInfo(remote, context);
+            authInfo = branchLocation.getAuthInfo(context);
+            remote = branchLocation.getRemote();
         } catch (Exception e) {
             e.printStackTrace();
             observer.onException(e);
