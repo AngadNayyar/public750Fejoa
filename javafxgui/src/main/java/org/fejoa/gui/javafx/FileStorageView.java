@@ -228,9 +228,10 @@ public class FileStorageView extends VBox {
             SigningKeyPair signingKeyPair = userData.getMyself().getSignatureKeys().getDefault();
             StorageDir storageDir = context.getStorage(branch, keyData,
                     new DefaultCommitSignature(context, signingKeyPair));
-            BranchInfo branchInfo = new BranchInfo(storageDir.getBranch(), "File Storage", keyData.keyId(),
-                    userData.getKeyStore(),
-                    true);
+            BranchInfo branchInfo = new BranchInfo(userData.getRemoteStore(), storageDir.getBranch(), "File Storage");
+            branchInfo.setCryptoInfo(keyData.keyId(), userData.getKeyStore(), true);
+            Remote remote = userData.getGateway();
+            branchInfo.addLocation(remote.getId(), context.getRootAuthInfo(remote));
             userData.addBranch(branchInfo);
 
             storageList.add(new FileStorageEntry(file, branchInfo));
