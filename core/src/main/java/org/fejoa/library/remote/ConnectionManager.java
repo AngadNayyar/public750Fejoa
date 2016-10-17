@@ -13,10 +13,21 @@ import org.fejoa.library.support.Task;
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
+import java.net.URL;
 import java.util.*;
 
 
 public class ConnectionManager {
+    static public class UserAuthInfo {
+        final public String userName;
+        final public AuthInfo authInfo;
+
+        public UserAuthInfo(String userName, AuthInfo authInfo) {
+            this.userName = userName;
+            this.authInfo = authInfo;
+        }
+    }
+
     /**
      * Maintains the access tokens gained for different target users.
      *
@@ -50,29 +61,32 @@ public class ConnectionManager {
             }
         }
 
-        public void addToken(String targetUser, String token) {
+        public void addToken(String targetUser, String server, String token) {
+            String key = makeKey(targetUser, server);
             synchronized (this) {
-                HashSet<String> tokenMap = authMap.get(targetUser);
+                HashSet<String> tokenMap = authMap.get(key);
                 if (tokenMap == null) {
                     tokenMap = new HashSet<>();
-                    authMap.put(targetUser, tokenMap);
+                    authMap.put(key, tokenMap);
                 }
                 tokenMap.add(token);
             }
         }
 
-        public boolean removeToken(String targetUser, String token) {
+        public boolean removeToken(String targetUser, String server, String token) {
+            String key = makeKey(targetUser, server);
             synchronized (this) {
-                HashSet<String> tokenMap = authMap.get(targetUser);
+                HashSet<String> tokenMap = authMap.get(key);
                 if (tokenMap == null)
                     return false;
-                return tokenMap.remove(token);
+                return tokenMap.remove(key);
             }
         }
 
-        public boolean hasToken(String targetUser, String token) {
+        public boolean hasToken(String targetUser, String server, String token) {
+            String key = makeKey(targetUser, server);
             synchronized (this) {
-                HashSet<String> tokenMap = authMap.get(targetUser);
+                HashSet<String> tokenMap = authMap.get(key);
                 if (tokenMap == null)
                     return false;
                 return tokenMap.contains(token);
@@ -102,14 +116,14 @@ public class ConnectionManager {
                                                                     Remote remote,
                                                                     final AuthInfo authInfo,
                                                                     final Task.IObserver<Progress, T> observer) {
-        return submit(job, remote, Collections.singletonList(authInfo), observer);
+        return submit(job, remote.getServer(), Collections.singletonList(new UserAuthInfo(remote.getUser(), authInfo)), observer);
     }
 
     public <Progress, T extends RemoteJob.Result> Task<Progress, T> submit(final JsonRemoteJob<T> job,
-                                                                           Remote remote,
-                                                                           final Collection<AuthInfo> authInfos,
+                                                                           String url,
+                                                                           final Collection<UserAuthInfo> authInfos,
                                                                            final Task.IObserver<Progress, T> observer) {
-        JobTask<Progress, T> jobTask = new JobTask<>(tokenManager, job, remote, authInfos);
+        JobTask<Progress, T> jobTask = new JobTask<>(tokenManager, job, url, authInfos);
         jobTask.setStartScheduler(startScheduler).setObserverScheduler(observerScheduler).start(observer);
         return jobTask;
     }
@@ -117,18 +131,18 @@ public class ConnectionManager {
     static private class JobTask<Progress, T extends RemoteJob.Result> extends Task<Progress, T>{
         final private TokenManager tokenManager;
         final private JsonRemoteJob<T> job;
-        final private Remote remote;
-        final private Collection<AuthInfo> authInfos;
+        final private String url;
+        final private Collection<UserAuthInfo> authInfos;
 
         private IRemoteRequest remoteRequest;
 
-        public JobTask(TokenManager tokenManager, final JsonRemoteJob<T> job, Remote remote,
-                       final Collection<AuthInfo> authInfos) {
+        public JobTask(TokenManager tokenManager, final JsonRemoteJob<T> job, String url,
+                       final Collection<UserAuthInfo> authInfos) {
             super();
 
             this.tokenManager = tokenManager;
             this.job = job;
-            this.remote = remote;
+            this.url = url;
             this.authInfos = authInfos;
 
             setTaskFunction(new ITaskFunction<Progress, T>() {
@@ -148,23 +162,25 @@ public class ConnectionManager {
         private void run(int retryCount) throws Exception {
             if (retryCount > MAX_RETRIES)
                 throw new Exception("too many retries");
-            IRemoteRequest remoteRequest = getRemoteRequest(remote);
+            IRemoteRequest remoteRequest = getRemoteRequest(url);
             setCurrentRemoteRequest(remoteRequest);
 
-            Collection<AuthInfo> missingAccess = getMissingAccess(remote, authInfos);
+            Collection<UserAuthInfo> missingAccess = getMissingAccess(url, authInfos);
             if (missingAccess.size() > 0) {
-                remoteRequest = getAuthRequest(remoteRequest, remote, missingAccess);
+                remoteRequest = getAuthRequest(remoteRequest, url, missingAccess);
                 setCurrentRemoteRequest(remoteRequest);
             }
 
             T result = runJob(remoteRequest, job);
             if (result.status == Errors.ACCESS_DENIED) {
-                for (AuthInfo authInfo : authInfos) {
+                for (UserAuthInfo userAuthInfo : authInfos) {
+                    AuthInfo authInfo = userAuthInfo.authInfo;
                     // TODO: be more selective and only remove failed auth infos
                     if (authInfo.authType == AuthInfo.PASSWORD)
-                        tokenManager.removeRootAccess(remote.getUser(), remote.getServer());
+                        tokenManager.removeRootAccess(userAuthInfo.userName, url);
                     if (authInfo.authType == AuthInfo.TOKEN) {
-                        tokenManager.removeToken(remote.getUser(), ((AuthInfo.Token) authInfo).token.getId());
+                        tokenManager.removeToken(userAuthInfo.userName, url,
+                                ((AuthInfo.Token) authInfo).token.getId());
                     }
                 }
                 if (missingAccess.size() < authInfos.size()) {
@@ -203,37 +219,39 @@ public class ConnectionManager {
             }
         }
 
-        private boolean hasAccess(Remote remote, AuthInfo authInfo) {
+        private boolean hasAccess(String url, UserAuthInfo userAuthInfo) {
+            AuthInfo authInfo = userAuthInfo.authInfo;
             if (authInfo.authType == AuthInfo.PLAIN)
                 return true;
             if (authInfo.authType == AuthInfo.PASSWORD)
-                return tokenManager.hasRootAccess(remote.getUser(), remote.getServer());
+                return tokenManager.hasRootAccess(userAuthInfo.userName, url);
             if (authInfo.authType == AuthInfo.TOKEN)
-                return tokenManager.hasToken(remote.getUser(), ((AuthInfo.Token)authInfo).token.getId());
+                return tokenManager.hasToken(userAuthInfo.userName, url, ((AuthInfo.Token)authInfo).token.getId());
             return false;
         }
 
-        private Collection<AuthInfo> getMissingAccess(Remote remote, Collection<AuthInfo> authInfos) {
-            List<AuthInfo> missingAccess = new ArrayList<>();
-            for (AuthInfo authInfo : authInfos) {
-                if (!hasAccess(remote, authInfo))
+        private Collection<UserAuthInfo> getMissingAccess(String url, Collection<UserAuthInfo> authInfos) {
+            List<UserAuthInfo> missingAccess = new ArrayList<>();
+            for (UserAuthInfo authInfo : authInfos) {
+                if (!hasAccess(url, authInfo))
                     missingAccess.add(authInfo);
             }
             return missingAccess;
         }
 
-        private IRemoteRequest getAuthRequest(final IRemoteRequest remoteRequest, final Remote remote,
-                                              final Collection<AuthInfo> authInfos) throws Exception {
-            for (AuthInfo authInfo : authInfos) {
+        private IRemoteRequest getAuthRequest(final IRemoteRequest remoteRequest, final String url,
+                                              final Collection<UserAuthInfo> authInfos) throws Exception {
+            for (UserAuthInfo userAuthInfo : authInfos) {
+                AuthInfo authInfo = userAuthInfo.authInfo;
                 RemoteJob.Result result;
                 if (authInfo.authType == AuthInfo.PASSWORD) {
                     AuthInfo.Password passwordAuth = (AuthInfo.Password) authInfo;
-                    result = runJob(remoteRequest, new RootLoginJob(remote.getUser(), passwordAuth.password));
-                    tokenManager.addRootAccess(remote.getUser(), remote.getServer());
+                    result = runJob(remoteRequest, new RootLoginJob(userAuthInfo.userName, passwordAuth.password));
+                    tokenManager.addRootAccess(userAuthInfo.userName, url);
                 } else if (authInfo.authType == AuthInfo.TOKEN) {
                     AuthInfo.Token tokenAuth = (AuthInfo.Token) authInfo;
-                    result = runJob(remoteRequest, new AccessRequestJob(remote.getUser(), tokenAuth.token));
-                    tokenManager.addToken(remote.getUser(), tokenAuth.token.getId());
+                    result = runJob(remoteRequest, new AccessRequestJob(userAuthInfo.userName, tokenAuth.token));
+                    tokenManager.addToken(userAuthInfo.userName, url, tokenAuth.token.getId());
                 } else
                     throw new Exception("unknown auth type");
 
@@ -241,11 +259,11 @@ public class ConnectionManager {
                     throw new Exception(result.message);
             }
 
-            return getRemoteRequest(remote);
+            return getRemoteRequest(url);
         }
 
-        private IRemoteRequest getRemoteRequest(Remote remote) {
-            return new HTMLRequest(remote.getServer());
+        private IRemoteRequest getRemoteRequest(String url) {
+            return new HTMLRequest(url);
         }
     }
 }

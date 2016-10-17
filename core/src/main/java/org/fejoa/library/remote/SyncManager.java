@@ -59,18 +59,21 @@ public class SyncManager {
     private void watch(Collection<BranchInfo.Location> branchInfoList, Task.IObserver<Void, WatchJob.Result> observer) {
         watchedBranches = branchInfoList;
 
-        Map<String, AuthInfo> authInfos = new HashMap<>();
+        Map<String, ConnectionManager.UserAuthInfo> authInfos = new HashMap<>();
         for (BranchInfo.Location location : branchInfoList) {
             try {
                 AuthInfo authInfo = location.getAuthInfo(context);
-                authInfos.put(authInfo.getId(), authInfo);
+                Remote remote = location.getRemote();
+                ConnectionManager.UserAuthInfo userAuthInfo = new ConnectionManager.UserAuthInfo(remote.getUser(),
+                        authInfo);
+                authInfos.put(authInfo.getId(), userAuthInfo);
             } catch (Exception e) {
                 observer.onException(e);
             }
         }
 
-        watchFunction = connectionManager.submit(new WatchJob(context, branchInfoList), remote, authInfos.values(),
-                observer);
+        watchFunction = connectionManager.submit(new WatchJob(context, branchInfoList), remote.getServer(),
+                authInfos.values(), observer);
     }
 
     private boolean isWatching() {
