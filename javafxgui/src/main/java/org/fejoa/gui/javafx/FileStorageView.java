@@ -186,7 +186,8 @@ public class FileStorageView extends VBox {
             Index index = new Index(indexStorage);
             UserData userData = client.getUserData();
             BranchInfo branchInfo = userData.findBranchInfo(entry.getBranch());
-            CheckoutDir checkoutDir = new CheckoutDir(userData.getStorageDir(branchInfo), index, destination);
+            final StorageDir branchStorage = userData.getStorageDir(branchInfo);
+            CheckoutDir checkoutDir = new CheckoutDir(branchStorage, index, destination);
             Task<CheckoutDir.Update, CheckoutDir.Result> checkIn = checkoutDir.checkIn();
             checkIn.setStartScheduler(new Task.CurrentThreadScheduler());
             checkIn.start(new Task.IObserver<CheckoutDir.Update, CheckoutDir.Result>() {
@@ -228,7 +229,7 @@ public class FileStorageView extends VBox {
             SigningKeyPair signingKeyPair = userData.getMyself().getSignatureKeys().getDefault();
             StorageDir storageDir = context.getStorage(branch, keyData,
                     new DefaultCommitSignature(context, signingKeyPair));
-            BranchInfo branchInfo = new BranchInfo(userData.getRemoteStore(), storageDir.getBranch(), "File Storage");
+            BranchInfo branchInfo = new BranchInfo(storageDir.getBranch(), "File Storage");
             branchInfo.setCryptoInfo(keyData.keyId(), userData.getKeyStore(), true);
             Remote remote = userData.getGateway();
             branchInfo.addLocation(remote.getId(), context.getRootAuthInfo(remote));

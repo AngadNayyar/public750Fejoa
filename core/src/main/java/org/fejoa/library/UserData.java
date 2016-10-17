@@ -51,7 +51,7 @@ public class UserData extends StorageDirObject {
 
         branchList = new BranchList(new StorageDir(storageDir, BRANCHES_PATH), remoteStore);
         if (findBranchInfo(keyStore.getStorageDir().getBranch()) == null)
-            branchList.add(new BranchInfo(remoteStore, keyStore.getStorageDir().getBranch(), "KeyStore"));
+            branchList.add(new BranchInfo(keyStore.getStorageDir().getBranch(), "KeyStore"));
 
         myself = new ContactPrivate(context, new StorageDir(storageDir, MYSELF_PATH));
         contactStore = new ContactStore(context, new StorageDir(storageDir, CONTACT_PATH));
@@ -119,7 +119,7 @@ public class UserData extends StorageDirObject {
                 new DefaultCommitSignature(context, signingKeyPair));
 
         UserData userData = new UserData(context, userDataDir, keyStore);
-        userData.addBranch(new BranchInfo(userData.getRemoteStore(), userData.getBranch(), "User Data (this)"));
+        userData.addBranch(new BranchInfo(userData.getBranch(), "User Data (this)"));
         keyStore.setUserData(userData);
         keyStore.addSymmetricKey(userDataDir.getBranch(), userDataKeyData);
 
@@ -136,8 +136,7 @@ public class UserData extends StorageDirObject {
         StorageDir accessControlBranch = context.getStorage(
                 CryptoHelper.sha1HashHex(context.getCrypto().generateInitializationVector(32)), null, null);
         AccessStore accessStore = new AccessStore(context, accessControlBranch);
-        userData.addBranch(new BranchInfo(userData.getRemoteStore(), accessStore.getStorageDir().getBranch(),
-                "Access Store"));
+        userData.addBranch(new BranchInfo(accessStore.getStorageDir().getBranch(), "Access Store"));
         userData.getStorageDir().writeString(ACCESS_STORE_PATH, accessStore.getStorageDir().getBranch());
         accessStore.commit();
 
@@ -145,8 +144,7 @@ public class UserData extends StorageDirObject {
         StorageDir inQueueBranch = context.getStorage(
                 CryptoHelper.sha1HashHex(context.getCrypto().generateInitializationVector(32)), null, null);
         IncomingCommandQueue incomingCommandQueue = new IncomingCommandQueue(inQueueBranch);
-        userData.addBranch(new BranchInfo(userData.getRemoteStore(), incomingCommandQueue.getStorageDir().getBranch(),
-                 "In Queue"));
+        userData.addBranch(new BranchInfo(incomingCommandQueue.getStorageDir().getBranch(), "In Queue"));
         userData.getStorageDir().writeString(IN_QUEUE_PATH, incomingCommandQueue.getStorageDir().getBranch());
         incomingCommandQueue.commit();
 
@@ -154,8 +152,7 @@ public class UserData extends StorageDirObject {
         StorageDir outQueueBranch = context.getStorage(
                 CryptoHelper.sha1HashHex(context.getCrypto().generateInitializationVector(32)), null, null);
         OutgoingCommandQueue outgoingCommandQueue = new OutgoingCommandQueue(outQueueBranch);
-        userData.addBranch(new BranchInfo(userData.getRemoteStore(), outgoingCommandQueue.getStorageDir().getBranch(),
-                "Out Queue"));
+        userData.addBranch(new BranchInfo(outgoingCommandQueue.getStorageDir().getBranch(), "Out Queue"));
         userData.getStorageDir().writeString(OUT_QUEUE_PATH, outgoingCommandQueue.getStorageDir().getBranch());
         outgoingCommandQueue.commit();
 

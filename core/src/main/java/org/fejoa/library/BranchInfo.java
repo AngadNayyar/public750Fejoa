@@ -73,6 +73,7 @@ public class BranchInfo extends MovableStorageContainer {
         }
 
         public Remote getRemote() throws IOException {
+            assert remoteList != null;
             return remoteList.get(getRemoteId());
         }
 
@@ -115,7 +116,7 @@ public class BranchInfo extends MovableStorageContainer {
     private String description = "";
     private CryptoInfo cryptoInfo = new CryptoInfo();
     final private MovableStorageList<Location> locations;
-    final private RemoteList remoteList;
+    private RemoteList remoteList;
     final private ContactAccessList contactAccessList;
 
     private void load() throws IOException {
@@ -123,11 +124,10 @@ public class BranchInfo extends MovableStorageContainer {
         cryptoInfo.read(storageDir);
     }
 
-    public BranchInfo(IOStorageDir dir, RemoteList remoteList, String branch) throws IOException, CryptoException {
+    public BranchInfo(IOStorageDir dir, String branch) throws IOException, CryptoException {
         super(dir);
 
         this.branch = branch;
-        this.remoteList = remoteList;
         locations = new MovableStorageList<Location>(this, LOCATIONS_KEY) {
             @Override
             protected Location createObject(IOStorageDir storageDir, String id) throws IOException, CryptoException {
@@ -142,11 +142,15 @@ public class BranchInfo extends MovableStorageContainer {
         }
     }
 
-    public BranchInfo(RemoteList remoteList, String branch, String description)
+    public BranchInfo(String branch, String description)
             throws IOException, CryptoException {
-        this(null, remoteList, branch);
+        this((IOStorageDir)null, branch);
 
         setDescription(description);
+    }
+
+    public void setRemoteList(RemoteList remoteList) {
+        this.remoteList = remoteList;
     }
 
     public Collection<Location> getLocationEntries() {

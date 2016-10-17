@@ -20,15 +20,19 @@ public class BranchList extends MovableStorageList<BranchInfo> {
     public BranchList(IOStorageDir storageDir, RemoteList remoteList) throws IOException, CryptoException {
         super(storageDir);
         this.remoteList = remoteList;
+
+        for (BranchInfo branchInfo : getEntries())
+            branchInfo.setRemoteList(remoteList);
     }
 
     @Override
     protected BranchInfo createObject(IOStorageDir storageDir, String id) throws IOException, CryptoException {
-        return new BranchInfo(storageDir, remoteList, id);
+        return new BranchInfo(storageDir, id);
     }
 
 
     public void add(BranchInfo branchInfo) throws IOException, CryptoException {
+        branchInfo.setRemoteList(remoteList);
         super.add(branchInfo.getBranch(), branchInfo);
     }
 }
