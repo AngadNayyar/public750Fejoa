@@ -10,6 +10,8 @@ package org.fejoa.library.remote;
 import org.fejoa.chunkstore.HashValue;
 import org.fejoa.library.Remote;
 import org.fejoa.library.UserData;
+import org.fejoa.library.crypto.CryptoException;
+import org.fejoa.library.database.DatabaseDiff;
 import org.fejoa.library.database.JGitInterface;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.chunkstore.Repository;
@@ -28,7 +30,9 @@ public class SyncManager {
 
     final private Remote remote;
     private Task watchFunction;
+    private StorageDir.IListener storageDirListener;
     private Collection<BranchInfo.Location> watchedBranches;
+    private Task.IObserver<TaskUpdate, Void> watchObserver;
     final private Map<String, Task<Void, ChunkStorePullJob.Result>> ongoingSyncJobs = new HashMap<>();
 
     public SyncManager(FejoaContext context, UserData userData, ConnectionManager connectionManager, Remote remote) {
@@ -59,6 +63,16 @@ public class SyncManager {
     private void watch(Collection<BranchInfo.Location> branchInfoList, Task.IObserver<Void, WatchJob.Result> observer) {
         watchedBranches = branchInfoList;
 
+        storageDirListener = createStorageWatchListener(watchObserver);
+        for (BranchInfo.Location location : branchInfoList) {
+            try {
+                StorageDir storageDir = userData.getStorageDir(location.getBranchInfo());
+                storageDir.addListener(storageDirListener);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
         Map<String, ConnectionManager.UserAuthInfo> authInfos = new HashMap<>();
         for (BranchInfo.Location location : branchInfoList) {
             try {
@@ -80,10 +94,22 @@ public class SyncManager {
         return watchFunction != null;
     }
 
-    public void startWatching(final Collection<BranchInfo.Location> branchInfoList, final Task.IObserver<TaskUpdate, Void> observer) {
+    private StorageDir.IListener createStorageWatchListener(final Task.IObserver<TaskUpdate, Void> observer) {
+        return new StorageDir.IListener() {
+            @Override
+            public void onTipChanged(DatabaseDiff diff, String base, String tip) {
+                if (isWatching())
+                    startWatching(watchedBranches, observer);
+            }
+        };
+    }
+
+    public void startWatching(Collection<BranchInfo.Location> branchInfoList,
+                              final Task.IObserver<TaskUpdate, Void> observer) {
         if (isWatching())
             stopWatching();
 
+        this.watchObserver = observer;
         final Task.IObserver<Void, WatchJob.Result> watchObserver = new Task.IObserver<Void, WatchJob.Result>() {
             private TaskUpdate makeUpdate(String message) {
                 return new TaskUpdate("Watching", -1, -1, message);
@@ -98,7 +124,7 @@ public class SyncManager {
             public void onResult(WatchJob.Result result) {
                 // timeout?
                 if (result.updated == null || result.updated.size() == 0) {
-                    watch(branchInfoList, this);
+                    watch(watchedBranches, this);
                     observer.onProgress(makeUpdate("timeout"));
                     return;
                 }
@@ -115,7 +141,7 @@ public class SyncManager {
                     public void onResult(Void result) {
                         // still watching?
                         if (isWatching())
-                            watch(branchInfoList, that);
+                            watch(watchedBranches, that);
                         else
                             observer.onResult(null);
                     }
@@ -150,6 +176,7 @@ public class SyncManager {
         if (watchFunction != null) {
             watchFunction.cancel();
             watchFunction = null;
+            storageDirListener = null;
         }
     }
 
