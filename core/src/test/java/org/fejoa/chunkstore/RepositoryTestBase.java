@@ -98,10 +98,18 @@ public class RepositoryTestBase extends TestCase {
         }
     };
 
-    protected void add(Repository database, List<DatabaseStingEntry> content, DatabaseStingEntry entry)
+    protected void add(Repository database, Map<String, DatabaseStingEntry> content, DatabaseStingEntry entry)
             throws Exception {
-        content.add(entry);
+        content.put(entry.path, entry);
         database.writeBytes(entry.path, entry.content.getBytes());
+    }
+
+    protected void remove(Repository database, Map<String, DatabaseStingEntry> content, String path)
+            throws Exception {
+        if (content.containsKey(path)) {
+            content.remove(path);
+            database.remove(path);
+        }
     }
 
     private int countFiles(Repository database, String dirPath) throws IOException {
@@ -111,9 +119,9 @@ public class RepositoryTestBase extends TestCase {
         return fileCount;
     }
 
-    protected void containsContent(Repository database, List<DatabaseStingEntry> content) throws IOException,
+    protected void containsContent(Repository database, Map<String, DatabaseStingEntry> content) throws IOException,
             CryptoException {
-        for (DatabaseStingEntry entry : content) {
+        for (DatabaseStingEntry entry : content.values()) {
             byte bytes[] = database.readBytes(entry.path);
             assertNotNull(bytes);
             assertTrue(entry.content.equals(new String(bytes)));

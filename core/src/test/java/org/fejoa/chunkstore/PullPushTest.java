@@ -18,7 +18,9 @@ import org.fejoa.library.support.StorageLib;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 public class PullPushTest extends RepositoryTestBase {
@@ -139,7 +141,7 @@ public class PullPushTest extends RepositoryTestBase {
         assertTrue(pulledTip.getBoxHash().isZero());
 
         // change the remote repo
-        List<DatabaseStingEntry> remoteContent = new ArrayList<>();
+        Map<String, DatabaseStingEntry> remoteContent = new HashMap();
         add(remoteRepo, remoteContent, new DatabaseStingEntry("testFile", "Hello World"));
         BoxPointer boxPointer = remoteRepo.commitInternal("", null);
 
@@ -178,7 +180,7 @@ public class PullPushTest extends RepositoryTestBase {
         Repository targetRepo = new Repository(directory2, branch, targetAccessor, simpleCommitCallback);
 
         // fill source repo
-        List<DatabaseStingEntry> sourceContent = new ArrayList<>();
+        Map<String, DatabaseStingEntry> sourceContent = new HashMap<>();
         add(sourceRepo, sourceContent, new DatabaseStingEntry("testFile", "Hello World"));
         add(sourceRepo, sourceContent, new DatabaseStingEntry("sub/testFile", "Hello World2"));
         add(sourceRepo, sourceContent, new DatabaseStingEntry("sub/testFile2", "Hello World3"));
@@ -235,7 +237,7 @@ public class PullPushTest extends RepositoryTestBase {
         final IRemotePipe senderPipe = connect(handler);
 
         // change the local repo
-        List<DatabaseStingEntry> localContent = new ArrayList<>();
+        Map<String, DatabaseStingEntry> localContent = new HashMap<>();
         add(localRepo, localContent, new DatabaseStingEntry("testFile", "Hello World!"));
         localRepo.commit(null);
 

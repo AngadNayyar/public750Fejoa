@@ -156,6 +156,10 @@ public class DirectoryBox extends TypedBlob {
             this.isFile = isFile;
         }
 
+        public void markModified() {
+            setDataPointer(null);
+        }
+
         public boolean isFile() {
             return isFile;
         }

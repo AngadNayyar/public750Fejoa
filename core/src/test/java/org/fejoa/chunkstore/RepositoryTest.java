@@ -7,8 +7,6 @@
  */
 package org.fejoa.chunkstore;
 
-import org.fejoa.library.FejoaContext;
-import org.fejoa.library.SymmetricKeyData;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.support.StreamHelper;
 
@@ -226,17 +224,39 @@ public class RepositoryTest extends RepositoryTestBase {
         IRepoChunkAccessors accessors = getRepoChunkAccessors(chunkStore);
         Repository repository = new Repository(directory, branch, accessors, simpleCommitCallback);
 
-        List<DatabaseStingEntry> content = new ArrayList<>();
+        Map<String, DatabaseStingEntry> content = new HashMap<>();
         add(repository, content, new DatabaseStingEntry("file1", "file1"));
         add(repository, content, new DatabaseStingEntry("dir1/file2", "file2"));
         add(repository, content, new DatabaseStingEntry("dir1/file3", "file3"));
         add(repository, content, new DatabaseStingEntry("dir2/file4", "file4"));
         add(repository, content, new DatabaseStingEntry("dir1/sub1/file5", "file5"));
+        add(repository, content, new DatabaseStingEntry("dir1/sub1/sub2/file6", "file6"));
 
         repository.commit(null);
         HashValue tip = repository.getTip();
         assertEquals(tip, repository.getHeadCommit().dataHash());
 
+        repository = new Repository(directory, branch, accessors, simpleCommitCallback);
+        containsContent(repository, content);
+
+        // test add to existing dir
+        add(repository, content, new DatabaseStingEntry("dir1/file6", "file6"));
+        repository.commit(null);
+        repository = new Repository(directory, branch, accessors, simpleCommitCallback);
+        containsContent(repository, content);
+
+        // test update
+        add(repository, content, new DatabaseStingEntry("dir1/file3", "file3Update"));
+        add(repository, content, new DatabaseStingEntry("dir1/sub1/file5", "file5Update"));
+        add(repository, content, new DatabaseStingEntry("dir1/sub1/sub2/file6", "file6Update"));
+        repository.commit(null);
+        repository = new Repository(directory, branch, accessors, simpleCommitCallback);
+        containsContent(repository, content);
+
+        // test remove
+        remove(repository, content, "dir1/sub1/file5");
+        repository.commit(null);
+        repository = new Repository(directory, branch, accessors, simpleCommitCallback);
         containsContent(repository, content);
 
         assertEquals(0, repository.listFiles("notThere").size());

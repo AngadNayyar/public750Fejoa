@@ -47,7 +47,7 @@ public class TreeAccessor {
         path = checkPath(path);
         String[] parts = path.split("/");
         String entryName = parts[parts.length - 1];
-        DirectoryBox.Entry currentDir = get(parts, parts.length - 1);
+        DirectoryBox.Entry currentDir = get(parts, parts.length - 1, false);
         if (currentDir == null)
             return null;
         if (entryName.equals(""))
@@ -62,7 +62,8 @@ public class TreeAccessor {
      * @throws IOException
      * @throws CryptoException
      */
-    public DirectoryBox.Entry get(String[] parts, int nDirs) throws IOException, CryptoException {
+    public DirectoryBox.Entry get(String[] parts, int nDirs, boolean invalidTouchedDirs)
+            throws IOException, CryptoException {
         if (root == null)
             return null;
         DirectoryBox.Entry entry = null;
@@ -75,15 +76,19 @@ public class TreeAccessor {
 
             if (entry.getObject() != null) {
                 currentDir = (DirectoryBox)entry.getObject();
-                continue;
+            } else {
+                IChunkAccessor accessor = transaction.getTreeAccessor();
+                currentDir = DirectoryBox.read(accessor, entry.getDataPointer());
+                entry.setObject(currentDir);
             }
-            IChunkAccessor accessor = transaction.getTreeAccessor();
-            currentDir = DirectoryBox.read(accessor, entry.getDataPointer());
-            entry.setObject(currentDir);
+            if (invalidTouchedDirs)
+                entry.markModified();
         }
         if (currentDir == root) {
             entry = new DirectoryBox.Entry("", null, false);
             entry.setObject(root);
+            if (invalidTouchedDirs)
+                entry.markModified();
         }
         return entry;
     }
@@ -126,16 +131,20 @@ public class TreeAccessor {
             DirectoryBox.Entry currentEntry = currentDir.getEntry(subDir);
             if (currentEntry == null) {
                 DirectoryBox subDirBox = DirectoryBox.create();
-                DirectoryBox.Entry dirEntry = currentDir.addDir(subDir, null);
-                dirEntry.setObject(subDirBox);
+                currentEntry = currentDir.addDir(subDir, null);
+                currentEntry.setObject(subDirBox);
                 currentDir = subDirBox;
             } else {
+                if (currentEntry.isFile())
+                    throw new IOException("Invalid insert path: " + path);
                 if (currentEntry.getObject() != null) {
                     currentDir = (DirectoryBox)currentEntry.getObject();
-                    continue;
+                } else {
+                    IChunkAccessor accessor = transaction.getTreeAccessor();
+                    currentDir = DirectoryBox.read(accessor, currentEntry.getDataPointer());
+                    currentEntry.setObject(currentDir);
                 }
-                IChunkAccessor accessor = transaction.getTreeAccessor();
-                currentDir = DirectoryBox.read(accessor, currentEntry.getDataPointer());
+                currentEntry.markModified();
             }
         }
         entry.setName(fileName);
@@ -148,14 +157,15 @@ public class TreeAccessor {
     }
 
     public DirectoryBox.Entry remove(String path) throws IOException, CryptoException {
+        this.modified = true;
         path = checkPath(path);
         String[] parts = path.split("/");
         String entryName = parts[parts.length - 1];
-        DirectoryBox.Entry currentDir = get(parts, parts.length - 1);
+        DirectoryBox.Entry currentDir = get(parts, parts.length - 1, true);
         if (currentDir == null)
             return null;
         // invalidate entry
-        currentDir.setDataPointer(null);
+        currentDir.markModified();
         DirectoryBox directoryBox = (DirectoryBox)currentDir.getObject();
         return directoryBox.remove(entryName);
     }

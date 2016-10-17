@@ -137,8 +137,12 @@ public class Repository implements IDatabaseInterface {
             DirectoryBox.Entry entry = treeAccessor.get(path);
             if (entry == null || entry.isFile())
                 return null;
-            if (entry.getObject() == null)
-                entry.setObject(DirectoryBox.read(transaction.getTreeAccessor(), entry.getDataPointer()));
+            if (entry.getObject() == null) {
+                BoxPointer dataPointer = entry.getDataPointer();
+                if (dataPointer == null)
+                    throw new IOException("Unexpected null data pointer");
+                entry.setObject(DirectoryBox.read(transaction.getTreeAccessor(), dataPointer));
+            }
 
             return (DirectoryBox)entry.getObject();
         } catch (CryptoException e) {
