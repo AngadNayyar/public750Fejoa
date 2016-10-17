@@ -35,6 +35,7 @@ public abstract class MovableStorageList<T extends MovableStorage> extends Movab
     public void add(String name, T entry) throws IOException, CryptoException {
         IOStorageDir subDir = getStorageDir(name);
         entry.setStorageDir(subDir);
+        attach(entry, name);
         entries.put(name, entry);
     }
 
