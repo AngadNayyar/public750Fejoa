@@ -173,15 +173,18 @@ public class Client {
         AccessToken accessToken = AccessToken.create(context);
         accessToken.setAccessEntry(accessRight.toJson().toString());
         AccessStore accessStore = userData.getAccessStore();
-        accessStore.addAccessToken(accessToken);
+        accessStore.addAccessToken(accessToken.toServerToken());
 
-        // todo: record in ContactPublic that we share this branch
+        // record with whom we share the branch
         BranchInfo branchInfo = userData.getBranchList().get(branch);
+        branchInfo.getContactAccessList().add(contact, accessToken);
+        userData.commit();
+
         // send command to contact
         AccessCommand accessCommand = new AccessCommand(context, userData.getMyself(), contact,
                 branchInfo, userData.getKeyData(branchInfo), accessToken);
         accessStore.commit();
-        OutgoingCommandQueue queue =userData.getOutgoingCommandQueue();
+        OutgoingCommandQueue queue = userData.getOutgoingCommandQueue();
         queue.post(accessCommand, contact.getRemotes().getDefault(), true);
     }
 

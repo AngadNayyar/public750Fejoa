@@ -41,8 +41,6 @@ public class AccessToken implements IStorageDirBundle {
     private KeyPair accessSignatureKey;
     private String accessEntry;
 
-    final private List<AccessContact> contacts = new ArrayList<>();
-
     static public AccessToken create(FejoaContext context) throws CryptoException {
         return new AccessToken(context);
     }
@@ -114,8 +112,6 @@ public class AccessToken implements IStorageDirBundle {
 
     @Override
     public void write(IOStorageDir dir) throws IOException, CryptoException {
-        // the public keys must be readable by the server
-
         CryptoSettingsIO.write(contactAuthKeySettings, dir, CONTACT_AUTH_KEY_SETTINGS_KEY);
         dir.writeBytes(CONTACT_AUTH_PUBLIC_KEY_KEY, contactAuthKey.getPublic().getEncoded());
         dir.writeBytes(CONTACT_AUTH_PRIVATE_KEY_KEY, contactAuthKey.getPrivate().getEncoded());
@@ -125,13 +121,6 @@ public class AccessToken implements IStorageDirBundle {
         dir.writeBytes(ACCESS_SIGNING_KEY_KEY, accessSignatureKey.getPrivate().getEncoded());
 
         dir.writeString(ACCESS_ENTRY_KEY, accessEntry);
-
-        // write contacts
-        IOStorageDir contactBaseDir = new IOStorageDir(dir, "contacts");
-        for (AccessContact contact : contacts) {
-            IOStorageDir contactDir = new IOStorageDir(contactBaseDir, contact.getContact());
-            contact.write(contactDir);
-        }
     }
 
     @Override
@@ -161,14 +150,5 @@ public class AccessToken implements IStorageDirBundle {
         accessSignatureKey = new KeyPair(publicKey, privateKey);
 
         accessEntry = dir.readString(ACCESS_ENTRY_KEY);
-
-        // read contacts
-        Collection<String> dirs = dir.listDirectories("contacts");
-        for (String subDir : dirs) {
-            IOStorageDir contactDir = new IOStorageDir(dir, "contacts/" + subDir);
-            AccessContact accessContact = new AccessContact();
-            accessContact.read(contactDir);
-            contacts.add(accessContact);
-        }
     }
 }

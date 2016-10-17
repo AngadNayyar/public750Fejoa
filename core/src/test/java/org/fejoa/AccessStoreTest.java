@@ -64,7 +64,7 @@ public class AccessStoreTest extends TestCase {
         assertEquals(accessRight.toJson().toString(), accessTokenContact.getAccessEntry());
 
         // let the server verify the access
-        AccessTokenServer accessTokenServer = new AccessTokenServer(context, serverDir);
+        AccessTokenServer accessTokenServer = AccessTokenServer.open(context, serverDir);
         final String authToken = "testToken";
         byte[] authSignature = accessTokenContact.signAuthToken(authToken);
         assertTrue(accessTokenServer.auth(authToken, authSignature));

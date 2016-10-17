@@ -127,7 +127,7 @@ public class Session {
         UserDataSettings userDataSettings = getUserDataSettings(serverUser);
         StorageDir tokenDir = new StorageDir(context.getStorage(userDataSettings.accessStore, null, null), tokenId);
         try {
-            return new AccessTokenServer(context, tokenDir);
+            return AccessTokenServer.open(context, tokenDir);
         } catch (IOException e) {
             // try to read token for the migration process
             JSONObject migrationToken = StartMigrationHandler.readMigrationAccessToken(this, serverUser);

@@ -9,6 +9,7 @@ package org.fejoa.library;
 
 import org.fejoa.library.crypto.CryptoSettings;
 import org.fejoa.library.crypto.JsonCryptoSettings;
+import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.crypto.CryptoHelper;
@@ -20,16 +21,18 @@ import javax.xml.bind.DatatypeConverter;
 import java.io.IOException;
 import java.security.PublicKey;
 
+import static org.fejoa.library.AccessToken.*;
+
 /**
  * Public part of the token that is readable by the server.
  */
-public class AccessTokenServer {
+public class AccessTokenServer implements IStorageDirBundle {
     final private FejoaContext context;
 
-    final private PublicKey contactAuthKey;
-    final private CryptoSettings.Signature contactAuthKeySettings;
-    final private PublicKey accessSignatureKey;
-    final private CryptoSettings.Signature accessSignatureKeySettings;
+    private PublicKey contactAuthKey;
+    private CryptoSettings.Signature contactAuthKeySettings;
+    private PublicKey accessSignatureKey;
+    private CryptoSettings.Signature accessSignatureKeySettings;
 
     AccessTokenServer(FejoaContext context, PublicKey contactAuthKey,
                       CryptoSettings.Signature contactAuthKeySettings,
@@ -41,26 +44,14 @@ public class AccessTokenServer {
         this.accessSignatureKeySettings = accessSignatureKeySettings;
     }
 
-    public AccessTokenServer(FejoaContext context, StorageDir dir) throws IOException {
+    public static AccessTokenServer open(FejoaContext context, IOStorageDir dir) throws IOException, CryptoException {
+        AccessTokenServer accessToken = new AccessTokenServer(context);
+        accessToken.read(dir);
+        return accessToken;
+    }
+
+    private AccessTokenServer(FejoaContext context) {
         this.context = context;
-        contactAuthKeySettings = new CryptoSettings.Signature();
-        accessSignatureKeySettings = new CryptoSettings.Signature();
-
-        CryptoSettingsIO.read(contactAuthKeySettings, dir, AccessToken.CONTACT_AUTH_KEY_SETTINGS_KEY);
-        try {
-            contactAuthKey = CryptoHelper.publicKeyFromRaw(dir.readBytes(AccessToken.CONTACT_AUTH_PUBLIC_KEY_KEY),
-                    contactAuthKeySettings.keyType);
-        } catch (Exception e) {
-            throw new IOException(e.getMessage());
-        }
-
-        CryptoSettingsIO.read(accessSignatureKeySettings, dir, AccessToken.SIGNATURE_KEY_SETTINGS_KEY);
-        try {
-            accessSignatureKey = CryptoHelper.publicKeyFromRaw(dir.readBytes(AccessToken.ACCESS_VERIFICATION_KEY_KEY),
-                    accessSignatureKeySettings.keyType);
-        } catch (Exception e) {
-            throw new IOException(e.getMessage());
-        }
     }
 
     public AccessTokenServer(FejoaContext context, JSONObject jsonObject) throws Exception {
@@ -69,13 +60,13 @@ public class AccessTokenServer {
         contactAuthKeySettings = JsonCryptoSettings.signatureFromJson(jsonObject.getJSONObject(
                 AccessToken.CONTACT_AUTH_KEY_SETTINGS_JSON_KEY));
         byte[] rawKey = DatatypeConverter.parseBase64Binary(
-                jsonObject.getString(AccessToken.CONTACT_AUTH_PUBLIC_KEY_KEY));
+                jsonObject.getString(CONTACT_AUTH_PUBLIC_KEY_KEY));
         contactAuthKey = CryptoHelper.publicKeyFromRaw(rawKey, contactAuthKeySettings.keyType);
 
         accessSignatureKeySettings = JsonCryptoSettings.signatureFromJson(jsonObject.getJSONObject(
                 AccessToken.ACCESS_KEY_SETTINGS_JSON_KEY));
         rawKey = DatatypeConverter.parseBase64Binary(
-                jsonObject.getString(AccessToken.ACCESS_VERIFICATION_KEY_KEY));
+                jsonObject.getString(ACCESS_VERIFICATION_KEY_KEY));
         accessSignatureKey = CryptoHelper.publicKeyFromRaw(rawKey, contactAuthKeySettings.keyType);
     }
 
@@ -95,14 +86,45 @@ public class AccessTokenServer {
 
     public JSONObject toJson() throws JSONException {
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put(AccessToken.CONTACT_AUTH_PUBLIC_KEY_KEY, DatatypeConverter.printBase64Binary(
+        jsonObject.put(CONTACT_AUTH_PUBLIC_KEY_KEY, DatatypeConverter.printBase64Binary(
                 contactAuthKey.getEncoded()));
         jsonObject.put(AccessToken.CONTACT_AUTH_KEY_SETTINGS_JSON_KEY, JsonCryptoSettings.toJson(
                 contactAuthKeySettings));
-        jsonObject.put(AccessToken.ACCESS_VERIFICATION_KEY_KEY, DatatypeConverter.printBase64Binary(
+        jsonObject.put(ACCESS_VERIFICATION_KEY_KEY, DatatypeConverter.printBase64Binary(
                 accessSignatureKey.getEncoded()));
         jsonObject.put(AccessToken.ACCESS_KEY_SETTINGS_JSON_KEY, JsonCryptoSettings.toJson(
                 accessSignatureKeySettings));
         return jsonObject;
+    }
+
+    @Override
+    public void write(IOStorageDir dir) throws IOException, CryptoException {
+        CryptoSettingsIO.write(contactAuthKeySettings, dir, CONTACT_AUTH_KEY_SETTINGS_KEY);
+        dir.writeBytes(CONTACT_AUTH_PUBLIC_KEY_KEY, contactAuthKey.getEncoded());
+
+        CryptoSettingsIO.write(accessSignatureKeySettings, dir, SIGNATURE_KEY_SETTINGS_KEY);
+        dir.writeBytes(ACCESS_VERIFICATION_KEY_KEY, accessSignatureKey.getEncoded());
+    }
+
+    @Override
+    public void read(IOStorageDir dir) throws IOException, CryptoException {
+        contactAuthKeySettings = new CryptoSettings.Signature();
+        accessSignatureKeySettings = new CryptoSettings.Signature();
+
+        CryptoSettingsIO.read(contactAuthKeySettings, dir, CONTACT_AUTH_KEY_SETTINGS_KEY);
+        try {
+            contactAuthKey = CryptoHelper.publicKeyFromRaw(dir.readBytes(CONTACT_AUTH_PUBLIC_KEY_KEY),
+                    contactAuthKeySettings.keyType);
+        } catch (Exception e) {
+            throw new IOException(e.getMessage());
+        }
+
+        CryptoSettingsIO.read(accessSignatureKeySettings, dir, SIGNATURE_KEY_SETTINGS_KEY);
+        try {
+            accessSignatureKey = CryptoHelper.publicKeyFromRaw(dir.readBytes(ACCESS_VERIFICATION_KEY_KEY),
+                    accessSignatureKeySettings.keyType);
+        } catch (Exception e) {
+            throw new IOException(e.getMessage());
+        }
     }
 }

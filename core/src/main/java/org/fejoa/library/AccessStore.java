@@ -15,26 +15,26 @@ import java.io.IOException;
 
 
 public class AccessStore extends StorageDirObject {
-    private StorageDirList<AccessToken> accessTokens;
+    private StorageDirList<AccessTokenServer> accessTokens;
 
     protected AccessStore(final FejoaContext context, StorageDir dir) {
         super(context, dir);
 
         accessTokens = new StorageDirList<>(storageDir,
-                new StorageDirList.AbstractEntryIO<AccessToken>() {
+                new StorageDirList.AbstractEntryIO<AccessTokenServer>() {
                     @Override
-                    public String getId(AccessToken entry) {
+                    public String getId(AccessTokenServer entry) {
                         return entry.getId();
                     }
 
                     @Override
-                    public AccessToken read(IOStorageDir dir) throws IOException, CryptoException {
-                        return AccessToken.open(context, dir);
+                    public AccessTokenServer read(IOStorageDir dir) throws IOException, CryptoException {
+                        return AccessTokenServer.open(context, dir);
                     }
                 });
     }
 
-    public void addAccessToken(AccessToken token) throws IOException, CryptoException {
+    public void addAccessToken(AccessTokenServer token) throws IOException, CryptoException {
         accessTokens.add(token);
     }
 

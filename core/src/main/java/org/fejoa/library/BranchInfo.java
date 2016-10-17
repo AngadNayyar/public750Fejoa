@@ -1,5 +1,5 @@
 /*
- * Copyright 2015.
+ * Copyright 2015-2016.
  * Distributed under the terms of the GPLv3 License.
  *
  * Authors:
@@ -18,6 +18,24 @@ import org.fejoa.library.remote.AuthInfo;
 import java.io.IOException;
 import java.util.Collection;
 
+
+class ContactAccessList extends MovableStorageList<ContactAccess> {
+    public ContactAccessList(MovableStorageContainer parent, String subDir) throws IOException, CryptoException {
+        super(parent, subDir);
+    }
+
+    @Override
+    protected ContactAccess createObject(IOStorageDir storageDir, String id) throws IOException, CryptoException {
+        return new ContactAccess(storageDir);
+    }
+
+    public ContactAccess add(ContactPublic contactPublic, AccessToken accessToken) throws IOException, CryptoException {
+        ContactAccess contactAccess = new ContactAccess(contactPublic);
+        add(contactPublic.getId(), contactAccess);
+        contactAccess.setAccessToken(accessToken);
+        return contactAccess;
+    }
+}
 
 public class BranchInfo extends MovableStorageContainer {
     public class Location extends MovableStorage {
@@ -91,12 +109,14 @@ public class BranchInfo extends MovableStorageContainer {
     final static private String DESCRIPTION_KEY = "description";
     final static private String ENCRYPTION_KEY = "encKey";
     final static private String LOCATIONS_KEY = "locations";
+    final static private String CONTACT_ACCESS_KEY = "contactAccess";
 
     final private String branch;
     private String description = "";
     private CryptoInfo cryptoInfo = new CryptoInfo();
     final private MovableStorageList<Location> locations;
     final private RemoteList remoteList;
+    final private ContactAccessList contactAccessList;
 
     private void load() throws IOException {
         description = storageDir.readString(DESCRIPTION_KEY);
@@ -114,6 +134,8 @@ public class BranchInfo extends MovableStorageContainer {
                 return new Location(storageDir, id);
             }
         };
+        contactAccessList = new ContactAccessList(this, CONTACT_ACCESS_KEY);
+
         try {
             load();
         } catch (IOException e) {
@@ -139,6 +161,10 @@ public class BranchInfo extends MovableStorageContainer {
 
     public MovableStorageList<Location> getLocations() {
         return locations;
+    }
+
+    public ContactAccessList getContactAccessList() {
+        return contactAccessList;
     }
 
     public void setCryptoInfo(HashValue encKey, KeyStore keyStore, boolean sign) throws IOException, CryptoException {
