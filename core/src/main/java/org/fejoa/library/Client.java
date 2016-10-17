@@ -10,6 +10,7 @@ package org.fejoa.library;
 import org.fejoa.library.command.*;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.crypto.CryptoHelper;
+import org.fejoa.library.database.DatabaseDiff;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.remote.*;
 import org.fejoa.library.support.Task;
@@ -29,8 +30,22 @@ public class Client {
     private ConnectionManager connectionManager;
     private UserData userData;
     private SyncManager syncManager;
+    private Task.IObserver<TaskUpdate, Void> syncObserver = null;
     private OutgoingQueueManager outgoingQueueManager;
     private IncomingCommandManager incomingCommandManager;
+
+    final private StorageDir.IListener userDataStorageListener = new StorageDir.IListener() {
+        @Override
+        public void onTipChanged(DatabaseDiff diff, String base, String tip) {
+            if (syncObserver != null) {
+                try {
+                    startSyncing(syncObserver);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    };
 
     private Client(File homeDir) {
         this.context = new FejoaContext(homeDir);
@@ -51,6 +66,7 @@ public class Client {
             branchInfo.addLocation(remoteRemote.getId(), new AuthInfo.Password(password));
 
         client.loadCommandManagers();
+        client.userData.getStorageDir().addListener(client.userDataStorageListener);
 
         UserDataSettings userDataSettings = client.userData.getSettings();
         Writer writer = new BufferedWriter(new OutputStreamWriter(
@@ -70,6 +86,8 @@ public class Client {
         client.context.registerRootPassword(gateway.getUser(), gateway.getServer(), password);
 
         client.loadCommandManagers();
+        client.userData.getStorageDir().addListener(client.userDataStorageListener);
+
         return client;
     }
 
@@ -133,6 +151,9 @@ public class Client {
     }
 
     public void startSyncing(Task.IObserver<TaskUpdate, Void> observer) throws IOException {
+        if (syncManager != null)
+            stopSyncing();
+        this.syncObserver = observer;
         Remote defaultRemote = getUserData().getGateway();
         syncManager = new SyncManager(context, userData, getConnectionManager(), defaultRemote);
         List<BranchInfo.Location> locations = new ArrayList<>();
@@ -148,6 +169,7 @@ public class Client {
             return;
         syncManager.stopWatching();
         syncManager = null;
+        syncObserver = null;
     }
 
     private void loadCommandManagers() throws IOException, CryptoException {
