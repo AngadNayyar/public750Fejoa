@@ -50,6 +50,7 @@ public class CheckoutDir {
             public void run(Task<Update, Result> task) throws Exception {
                 performCheckOut(task, "");
                 index.commit();
+                task.onResult(new Result());
             }
 
             @Override
@@ -67,6 +68,7 @@ public class CheckoutDir {
                 performCheckIn(task, "");
                 storageDir.commit();
                 index.commit();
+                task.onResult(new Result());
             }
 
             @Override
