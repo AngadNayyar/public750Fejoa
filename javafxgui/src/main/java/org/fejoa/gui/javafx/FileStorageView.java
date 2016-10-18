@@ -12,10 +12,7 @@ import javafx.beans.value.ObservableValue;
 import javafx.collections.ListChangeListener;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.scene.control.Button;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.control.cell.TextFieldListCell;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -33,6 +30,7 @@ import org.fejoa.library.database.DefaultCommitSignature;
 import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.support.Task;
+import org.json.JSONException;
 
 import java.io.File;
 import java.io.IOException;
@@ -144,6 +142,7 @@ public class FileStorageView extends VBox {
             }
         });
 
+
         // sync layout
         HBox syncLayout = new HBox();
         final Button syncButton = new Button("Sync");
@@ -155,13 +154,20 @@ public class FileStorageView extends VBox {
                     sync(entry);
             }
         });
+        final MenuButton shareButton = new MenuButton("Share");
+        shareButton.setDisable(true);
+
         syncLayout.getChildren().add(syncButton);
+        syncLayout.getChildren().add(shareButton);
 
         fileStorageListView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<FileStorageEntry>() {
             @Override
             public void changed(ObservableValue<? extends FileStorageEntry> observableValue, FileStorageEntry entry,
                                 FileStorageEntry newEntry) {
                 syncButton.setDisable(newEntry == null);
+                shareButton.setDisable(newEntry == null);
+                if (newEntry != null)
+                    updateShareMenu(shareButton, newEntry);
             }
         });
 
@@ -171,6 +177,26 @@ public class FileStorageView extends VBox {
 
         client.getUserData().getStorageDir().addListener(listener);
         update();
+    }
+
+    private void updateShareMenu(MenuButton shareButton, final FileStorageEntry entry) {
+        shareButton.getItems().clear();
+        for (final ContactPublic contactPublic : client.getUserData().getContactStore().getContactList().getEntries()) {
+            Remote remote = contactPublic.getRemotes().getDefault();
+            String remoteString = remote.getUser() + "@" + remote.getServer();
+            MenuItem item = new MenuItem(remoteString + ": " + contactPublic.getId());
+            shareButton.getItems().add(item);
+            item.setOnAction(new EventHandler<ActionEvent>() {
+                @Override
+                public void handle(ActionEvent actionEvent) {
+                    try {
+                        client.grantAccess(entry.getBranch(), BranchAccessRight.PULL_PUSH, contactPublic);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+        }
     }
 
     private void update() {
