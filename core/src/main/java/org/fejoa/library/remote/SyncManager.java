@@ -167,16 +167,20 @@ public class SyncManager {
     }
 
     public void stopWatching() {
-        for (Map.Entry<String, Task<Void, ChunkStorePullJob.Result>> entry : ongoingSyncJobs.entrySet()) {
-            if (entry.getValue() == null)
-                continue;
-            entry.getValue().cancel();
-        }
         ongoingSyncJobs.clear();
         if (watchFunction != null) {
             watchFunction.cancel();
             watchFunction = null;
             storageDirListener = null;
+        }
+    }
+
+    public void stop() {
+        stopWatching();
+        for (Map.Entry<String, Task<Void, ChunkStorePullJob.Result>> entry : ongoingSyncJobs.entrySet()) {
+            if (entry.getValue() == null)
+                continue;
+            entry.getValue().cancel();
         }
     }
 
