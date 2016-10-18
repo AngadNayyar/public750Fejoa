@@ -49,6 +49,10 @@ public class Remote implements IStorageDirBundle {
         return server;
     }
 
+    public String toAddress() {
+        return getUser() + "@" + getServer();
+    }
+
     @Override
     public void write(IOStorageDir dir) throws IOException {
         dir.writeString(Constants.ID_KEY, getId());
