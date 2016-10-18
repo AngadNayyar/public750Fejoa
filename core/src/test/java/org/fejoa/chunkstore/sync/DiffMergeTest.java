@@ -19,7 +19,9 @@ import java.io.File;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 public class DiffMergeTest extends RepositoryTest {
@@ -121,9 +123,9 @@ public class DiffMergeTest extends RepositoryTest {
         repository2.writeBytes("file2", "file2".getBytes());
         repository2.commit(null);
 
-        List<DatabaseStingEntry> mergedContent = new ArrayList<>();
-        mergedContent.add(new DatabaseStingEntry("file1", "file1"));
-        mergedContent.add(new DatabaseStingEntry("file2", "file2"));
+        Map<String, DatabaseStingEntry> mergedContent = new HashMap<>();
+        mergedContent.put("file1", new DatabaseStingEntry("file1", "file1"));
+        mergedContent.put("file2", new DatabaseStingEntry("file2", "file2"));
 
         IRepoChunkAccessors.ITransaction transaction = accessors.startTransaction();
         IChunkAccessor commitAccessor = transaction.getCommitAccessor();
@@ -152,8 +154,8 @@ public class DiffMergeTest extends RepositoryTest {
         repository.commit("merge2", null);
 
         mergedContent.clear();
-        mergedContent.add(new DatabaseStingEntry("file1", "file1"));
-        mergedContent.add(new DatabaseStingEntry("file2", "our file 2"));
+        mergedContent.put("file1", new DatabaseStingEntry("file1", "file1"));
+        mergedContent.put("file2", new DatabaseStingEntry("file2", "our file 2"));
         containsContent(repository, mergedContent);
     }
 }
