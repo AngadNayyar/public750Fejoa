@@ -23,10 +23,10 @@ public class MigrationManager {
         this.client = client;
     }
 
-    public void migrate(final Remote newRemote, String password,
+    public void migrate(final Remote updatedRemote, String password,
                         final Task.IObserver<Void, RemoteJob.Result> observer)
             throws Exception {
-        client.getContext().registerRootPassword(newRemote.getUser(), newRemote.getServer(), password);
+        client.getContext().registerRootPassword(updatedRemote.getUser(), updatedRemote.getServer(), password);
 
         // create access token for the new server
         final AccessToken accessToken = AccessToken.create(client.getContext());
@@ -58,7 +58,7 @@ public class MigrationManager {
                             observer.onException(new Exception(result.message));
                             return;
                         }
-                        copyBranches(currentRemote, branchesToCopy, newRemote, accessTokenContact, observer);
+                        copyBranches(currentRemote, branchesToCopy, updatedRemote, accessTokenContact, observer);
                     }
 
                     @Override
@@ -68,15 +68,16 @@ public class MigrationManager {
                 });
     }
 
-    private void copyBranches(final Remote currentRemote, final List<BranchInfo> branchesToCopy, final Remote newRemote,
+    private void copyBranches(final Remote currentRemote, final List<BranchInfo> branchesToCopy,
+                              final Remote updatedRemote,
                               final AccessTokenContact accessTokenContact,
                               final Task.IObserver<Void, RemoteJob.Result> observer) {
         client.getConnectionManager().submit(
-                new RemotePullJob(newRemote.getUser(), accessTokenContact, branchesToCopy.get(0).getBranch(),
+                new RemotePullJob(updatedRemote.getUser(), accessTokenContact, branchesToCopy.get(0).getBranch(),
                         currentRemote.getUser(),
                         currentRemote.getServer()),
-                newRemote,
-                client.getContext().getRootAuthInfo(newRemote.getUser(), newRemote.getServer()),
+                updatedRemote,
+                client.getContext().getRootAuthInfo(updatedRemote.getUser(), updatedRemote.getServer()),
                 new Task.IObserver<Void, RemoteJob.Result>() {
                     @Override
                     public void onProgress(Void update) {
@@ -91,9 +92,9 @@ public class MigrationManager {
                         }
                         branchesToCopy.remove(0);
                         if (branchesToCopy.size() > 0)
-                            copyBranches(currentRemote, branchesToCopy, newRemote, accessTokenContact, observer);
+                            copyBranches(currentRemote, branchesToCopy, updatedRemote, accessTokenContact, observer);
                         else
-                            notifyContacts(newRemote, observer);
+                            notifyContacts(updatedRemote, observer);
                     }
 
                     @Override
@@ -103,13 +104,13 @@ public class MigrationManager {
                 });
     }
 
-    private void notifyContacts(final Remote newRemote,
+    private void notifyContacts(final Remote updatedRemote,
                                 final Task.IObserver<Void, RemoteJob.Result> observer) {
         ContactPrivate myself = client.getUserData().getMyself();
         for (ContactPublic contactPublic : client.getUserData().getContactStore().getContactList().getEntries()) {
             try {
                 OutgoingCommandQueue queue = client.getUserData().getOutgoingCommandQueue();
-                queue.post(new MigrationCommand(client.getContext(), newRemote, myself, contactPublic),
+                queue.post(new MigrationCommand(client.getContext(), updatedRemote, myself, contactPublic),
                         contactPublic.getRemotes().getDefault(), true);
             } catch (Exception e) {
                 observer.onException(e);

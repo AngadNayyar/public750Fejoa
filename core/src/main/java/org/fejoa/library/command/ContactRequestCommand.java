@@ -25,6 +25,7 @@ public class ContactRequestCommand {
     static final String PUBLIC_KEY_KEY = "publicKey";
     static final String PUBLIC_KEY_SETTINGS_KEY = "publicKeySettings";
     static final String SIGNATURE_KEY = "signature";
+    static final String REMOTE_ID_KEY = "remoteId";
     static final String SIGNATURE_SETTINGS_KEY = "signatureSettings";
     static final String STATE = "state";
 
@@ -44,6 +45,7 @@ public class ContactRequestCommand {
         JSONObject object = new JSONObject();
 
         object.put(Constants.COMMAND_NAME_KEY, COMMAND_NAME);
+        object.put(REMOTE_ID_KEY, myServer.getId());
         object.put(Constants.USER_KEY, myServer.getUser());
         object.put(Constants.SERVER_KEY, myServer.getServer());
         object.put(Constants.SENDER_ID_KEY, myself.getId());

@@ -89,9 +89,9 @@ public class SymmetricKeyData implements IStorageDirBundle {
     }
 
     public void fromJson(JSONObject jsonObject) throws JSONException {
+        settings = JsonCryptoSettings.symFromJson(jsonObject.getJSONObject(SETTINGS_KEY));
         key = CryptoHelper.symmetricKeyFromRaw(Base64.decodeBase64(jsonObject.getString(PATH_SYMMETRIC_KEY)), settings);
         iv = Base64.decodeBase64(jsonObject.getString(PATH_SYMMETRIC_IV));
-        settings = JsonCryptoSettings.symFromJson(jsonObject.getJSONObject(SETTINGS_KEY));
     }
 
 }

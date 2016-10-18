@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import static org.fejoa.library.command.ContactRequestCommand.REMOTE_ID_KEY;
+
 
 public class ContactRequestCommandHandler extends EnvelopeCommandHandler {
     final private ContactStore contactStore;
@@ -118,9 +120,10 @@ public class ContactRequestCommandHandler extends EnvelopeCommandHandler {
         byte[] publicKeyRaw = DatatypeConverter.parseBase64Binary(publicKeyBase64);
         PublicKey publicKey = CryptoHelper.publicKeyFromRaw(publicKeyRaw, publicKeySettings.keyType);
 
+        String remoteId = command.getString(REMOTE_ID_KEY);
         String serverUser = command.getString(Constants.USER_KEY);
         String server = command.getString(Constants.SERVER_KEY);
-        Remote remote = new Remote(serverUser, server);
+        Remote remote = new Remote(remoteId, serverUser, server);
 
         PublicKeyItem signingKeyItem = new PublicKeyItem(signingKey, signingKeySettings);
         PublicKeyItem publicKeyItem = new PublicKeyItem(publicKey, publicKeySettings);

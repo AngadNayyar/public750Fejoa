@@ -188,9 +188,17 @@ public class UserData extends StorageDirObject {
 
     public SymmetricKeyData getKeyData(BranchInfo branchInfo) throws CryptoException, IOException {
         SymmetricKeyData symmetricKeyData = null;
-        HashValue keyId = branchInfo.getKeyId();
+        BranchInfo.CryptoKeyRef keyRef = null;
+        try {
+            keyRef = branchInfo.getCryptoKeyRef();
+        } catch (IOException e) {
+            // try to read the key directly
+            return branchInfo.getCryptoKey();
+        }
+
+        HashValue keyId = keyRef.getKeyId();
         if (keyId != null && !keyId.isZero()) {
-            if (!keyStore.getId().equals(branchInfo.getKeyStoreId()))
+            if (!keyStore.getId().equals(keyRef.getKeyStoreId()))
                 throw new CryptoException("Unknown keystore.");
             symmetricKeyData = keyStore.getSymmetricKey(keyId.toHex());
         }
@@ -199,11 +207,10 @@ public class UserData extends StorageDirObject {
 
     public StorageDir getStorageDir(BranchInfo branchInfo) throws IOException, CryptoException {
         SymmetricKeyData symmetricKeyData = getKeyData(branchInfo);
-        ICommitSignature commitSignature = null;
-        if (branchInfo.signBranch()) {
-            SigningKeyPair keyPair = getMyself().getSignatureKeys().getDefault();
-            commitSignature = new DefaultCommitSignature(context, keyPair);
-        }
+
+        SigningKeyPair keyPair = getMyself().getSignatureKeys().getDefault();
+        ICommitSignature commitSignature = new DefaultCommitSignature(context, keyPair);
+
         return context.getStorage(branchInfo.getBranch(), symmetricKeyData, commitSignature);
     }
 

@@ -61,6 +61,10 @@ abstract public class AuthInfo {
         String getId() {
             return token.getId();
         }
+
+        public AccessTokenContact getToken() {
+            return token;
+        }
     }
 
     final static public String AUTH_TYPE_KEY = "authType";

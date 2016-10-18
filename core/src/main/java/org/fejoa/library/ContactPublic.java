@@ -9,6 +9,7 @@ package org.fejoa.library;
 
 import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.crypto.CryptoException;
+import org.fejoa.library.database.StorageDir;
 
 import java.io.IOException;
 import java.security.PublicKey;
@@ -16,10 +17,7 @@ import java.security.PublicKey;
 
 public class ContactPublic extends Contact<PublicKeyItem, PublicKeyItem> {
     final static private String REMOTES_DIR = "remotes";
-    final static private String ACCESS_DIR = "access";
-
-    private RemoteList remotes;
-    private ContactBranchList contactBranchList;
+    final static private String BRANCHES_PATH = "branches";
 
     static private StorageDirList.AbstractEntryIO<PublicKeyItem> getEntryIO() {
         return new StorageDirList.AbstractEntryIO<PublicKeyItem>() {
@@ -40,9 +38,6 @@ public class ContactPublic extends Contact<PublicKeyItem, PublicKeyItem> {
     public ContactPublic(FejoaContext context, IOStorageDir storageDir) {
         super(context, getEntryIO(), getEntryIO(),
                 storageDir);
-
-        remotes = new RemoteList(this, REMOTES_DIR);
-        contactBranchList = new ContactBranchList(context, this, ACCESS_DIR);
     }
 
     @Override
@@ -54,10 +49,10 @@ public class ContactPublic extends Contact<PublicKeyItem, PublicKeyItem> {
     }
 
     public RemoteList getRemotes() {
-        return remotes;
+        return new RemoteList(this, REMOTES_DIR);
     }
 
-    public ContactBranchList getContactBranchList() {
-        return contactBranchList;
+    public BranchList getBranchList() throws IOException, CryptoException {
+        return new BranchList(new IOStorageDir(storageDir, BRANCHES_PATH), getRemotes());
     }
 }

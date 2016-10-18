@@ -20,11 +20,12 @@ public class AccessCommand extends EncryptedZipSignedCommand {
     static final public String TOKEN_KEY = "token";
     static final public String BRANCH_KEY_KEY = "branchKey";
 
-    static private String makeCommand(ContactPrivate sender, BranchInfo branchInfo, SymmetricKeyData keyData,
-                                      AccessToken token)
+    static private String makeCommand(ContactPrivate sender, Remote sourceRemote, BranchInfo branchInfo,
+                                      SymmetricKeyData keyData, AccessToken token)
             throws JSONException, CryptoException {
         JSONObject command = new JSONObject();
         command.put(Constants.COMMAND_NAME_KEY, COMMAND_NAME);
+        command.put(Constants.REMOTE_ID_KEY, sourceRemote.getId());
         command.put(Constants.SENDER_ID_KEY, sender.getId());
         command.put(Constants.BRANCH_KEY, branchInfo.getBranch());
         if (keyData != null)
@@ -34,9 +35,9 @@ public class AccessCommand extends EncryptedZipSignedCommand {
         return command.toString();
     }
 
-    public AccessCommand(FejoaContext context, ContactPrivate sender, ContactPublic contact, BranchInfo branchInfo,
-                         SymmetricKeyData keyData, AccessToken token)
+    public AccessCommand(FejoaContext context, ContactPrivate sender, ContactPublic contact, Remote sourceRemote,
+                         BranchInfo branchInfo, SymmetricKeyData keyData, AccessToken token)
             throws CryptoException, JSONException, IOException {
-        super(context, makeCommand(sender, branchInfo, keyData, token), sender, contact);
+        super(context, makeCommand(sender, sourceRemote, branchInfo, keyData, token), sender, contact);
     }
 }

@@ -23,6 +23,12 @@ public class Remote implements IStorageDirBundle {
 
     }
 
+    public Remote(String id, String user, String server) {
+        this.id = id;
+        this.user = user;
+        this.server = server;
+    }
+
     public Remote(String user, String server) {
         this.id = null;
         this.user = user;

@@ -85,7 +85,7 @@ public class BranchInfo extends MovableStorageContainer {
         }
     }
 
-    static public class CryptoInfo {
+    static public class CryptoKeyRef {
         private HashValue encKey;
         private String keyStoreId = "";
         private boolean signBranch = false;
@@ -105,6 +105,18 @@ public class BranchInfo extends MovableStorageContainer {
                 // no enc key
             }
         }
+
+        public HashValue getKeyId() {
+            return encKey;
+        }
+
+        public String getKeyStoreId() {
+            return keyStoreId;
+        }
+
+        public boolean signBranch() {
+            return signBranch;
+        }
     }
 
     final static private String DESCRIPTION_KEY = "description";
@@ -114,14 +126,12 @@ public class BranchInfo extends MovableStorageContainer {
 
     final private String branch;
     private String description = "";
-    private CryptoInfo cryptoInfo = new CryptoInfo();
     final private MovableStorageList<Location> locations;
     private RemoteList remoteList;
     final private ContactAccessList contactAccessList;
 
     private void load() throws IOException {
         description = storageDir.readString(DESCRIPTION_KEY);
-        cryptoInfo.read(storageDir);
     }
 
     public BranchInfo(IOStorageDir dir, String branch) throws IOException, CryptoException {
@@ -172,11 +182,12 @@ public class BranchInfo extends MovableStorageContainer {
     }
 
     public void setCryptoInfo(HashValue encKey, KeyStore keyStore, boolean sign) throws IOException, CryptoException {
-        cryptoInfo.encKey = encKey;
+        CryptoKeyRef cryptoKeyRef = new CryptoKeyRef();
+        cryptoKeyRef.encKey = encKey;
         if (keyStore != null)
-            cryptoInfo.keyStoreId = keyStore.getId();
-        cryptoInfo.signBranch = sign;
-        setCryptoInfo(cryptoInfo);
+            cryptoKeyRef.keyStoreId = keyStore.getId();
+        cryptoKeyRef.signBranch = sign;
+        setCryptoKeyRef(cryptoKeyRef);
     }
 
     public String getBranch() {
@@ -192,20 +203,21 @@ public class BranchInfo extends MovableStorageContainer {
         storageDir.writeString(DESCRIPTION_KEY, description);
     }
 
-    public void setCryptoInfo(CryptoInfo cryptoInfo) throws IOException {
-        this.cryptoInfo = cryptoInfo;
-        cryptoInfo.write(storageDir);
+    public void setCryptoKeyRef(CryptoKeyRef cryptoKeyRef) throws IOException {
+        cryptoKeyRef.write(storageDir);
     }
 
-    public HashValue getKeyId() {
-        return cryptoInfo.encKey;
+    public CryptoKeyRef getCryptoKeyRef() throws IOException {
+        CryptoKeyRef keyRef = new CryptoKeyRef();
+        keyRef.read(storageDir);
+        return keyRef;
     }
 
-    public String getKeyStoreId() {
-        return cryptoInfo.keyStoreId;
+    public void setCryptoKey(SymmetricKeyData keyData) throws IOException, CryptoException {
+        keyData.write(storageDir);
     }
 
-    public boolean signBranch() {
-        return cryptoInfo.signBranch;
+    public SymmetricKeyData getCryptoKey() throws IOException, CryptoException {
+        return SymmetricKeyData.open(storageDir);
     }
 }

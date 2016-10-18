@@ -167,7 +167,7 @@ public class Client {
     public void stopSyncing() {
         if (syncManager == null)
             return;
-        syncManager.stopWatching();
+        syncManager.stop();
         syncManager = null;
         syncObserver = null;
     }
@@ -203,7 +203,7 @@ public class Client {
         userData.commit();
 
         // send command to contact
-        AccessCommand accessCommand = new AccessCommand(context, userData.getMyself(), contact,
+        AccessCommand accessCommand = new AccessCommand(context, userData.getMyself(), contact, userData.getGateway(),
                 branchInfo, userData.getKeyData(branchInfo), accessToken);
         accessStore.commit();
         OutgoingCommandQueue queue = userData.getOutgoingCommandQueue();
@@ -219,18 +219,23 @@ public class Client {
                 observer);
     }
 
-    public void pullContactBranch(Remote remote, ContactBranch contactBranch,
+    public void pullContactBranch(Remote remote, BranchInfo.Location location,
                                   final Task.IObserver<Void, ChunkStorePullJob.Result> observer)
             throws IOException, CryptoException {
-        if ((contactBranch.getAccessToken().getAccessRights().getEntries().get(0).getRights()
+        AuthInfo authInfo = location.getAuthInfo(context);
+        if (!(authInfo instanceof AuthInfo.Token))
+            throw new IOException("AuthInfo.Token expected");
+        AccessTokenContact token = ((AuthInfo.Token) authInfo).getToken();
+        if ((token.getAccessRights().getEntries().get(0).getRights()
                 & BranchAccessRight.PULL) == 0)
             throw new IOException("missing rights!");
 
-        final StorageDir contactBranchDir = getContext().getStorage(contactBranch.getBranch(),
-                contactBranch.getBranchKey(), userData.getCommitSignature());
+        BranchInfo branchInfo = location.getBranchInfo();
+        final StorageDir contactBranchDir = getContext().getStorage(branchInfo.getBranch(),
+                branchInfo.getCryptoKey(), userData.getCommitSignature());
 
         SyncManager.pull(getConnectionManager(), contactBranchDir,
-                remote, new AuthInfo.Token(contactBranch.getAccessToken()), observer);
+                remote, authInfo, observer);
     }
 
     public void migrate(String newUserName, String newServer) {
