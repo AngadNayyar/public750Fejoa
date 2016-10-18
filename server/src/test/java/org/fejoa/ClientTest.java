@@ -92,7 +92,7 @@ public class ClientTest extends TestCase {
     private ClientStatus clientStatus2;
 
     private JettyServer serverNew;
-    private LooperThread clientThread = new LooperThread(10);
+    private LooperThread clientThread = new LooperThread(100);
 
     private boolean failure = false;
     private Semaphore finishedSemaphore;
@@ -256,6 +256,8 @@ public class ClientTest extends TestCase {
 
                 @Override
                 public void onException(Exception exception) {
+                    if (exception.getMessage().equals("canceled"))
+                        return;
                     exception.printStackTrace();
                     finishAndFail(exception.getMessage());
                 }
@@ -412,9 +414,10 @@ public class ClientTest extends TestCase {
             ContactPublic client2Contact = contactStore.getContactList().get(
                     client2.getUserData().getMyself().getId());
 
-            final ContactBranch contactBranch = client2Contact.getContactBranchList().getEntries().iterator().next();
+            final BranchInfo contactBranch = client2Contact.getBranchList().getEntries().iterator().next();
+            BranchInfo.Location location = contactBranch.getLocationEntries().iterator().next();
 
-            client1.pullContactBranch(new Remote(USER_NAME_2, SERVER_URL_2), contactBranch,
+            client1.pullContactBranch(new Remote(USER_NAME_2, SERVER_URL_2), location,
                     new SimpleObserver(new Runnable() {
                         @Override
                         public void run() {
@@ -474,7 +477,8 @@ public class ClientTest extends TestCase {
             handler.setListener(listener);
 
             MigrationManager migrationManager = new MigrationManager(client1);
-            migrationManager.migrate(new Remote(USER_NAME_1_NEW, SERVER_URL_1_NEW), PASSWORD,
+            Remote remote = client1.getUserData().getGateway();
+            migrationManager.migrate(new Remote(remote.getId(), USER_NAME_1_NEW, SERVER_URL_1_NEW), PASSWORD,
                     new Task.IObserver<Void, RemoteJob.Result>() {
                 @Override
                 public void onProgress(Void aVoid) {

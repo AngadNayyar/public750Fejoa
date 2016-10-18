@@ -10,6 +10,8 @@ package org.fejoa.library.command;
 import org.fejoa.library.*;
 import org.json.JSONObject;
 
+import static org.fejoa.library.command.MigrationCommand.REMOTE_ID_KEY;
+
 
 public class MigrationCommandHandler extends EnvelopeCommandHandler {
     public interface IListener extends IncomingCommandManager.IListener {
@@ -35,16 +37,16 @@ public class MigrationCommandHandler extends EnvelopeCommandHandler {
     @Override
     protected boolean handle(JSONObject command, IncomingCommandManager.HandlerResponse response) throws Exception {
         String senderId = command.getString(Constants.SENDER_ID_KEY);
+        String remoteId = command.getString(REMOTE_ID_KEY);
         String newUserName = command.getString(MigrationCommand.NEW_USER_KEY);
         String newServer = command.getString(MigrationCommand.NEW_SERVER_KEY);
 
         // update contact entry
         StorageDirList<ContactPublic> contactList = userData.getContactStore().getContactList();
         ContactPublic contact = contactList.get(senderId);
-        Remote oldRemote = contact.getRemotes().getDefault();
-        Remote newRemote = new Remote(newUserName, newServer);
+        Remote oldRemote = contact.getRemotes().get(remoteId);
+        Remote newRemote = new Remote(oldRemote.getId(), newUserName, newServer);
         contact.getRemotes().add(newRemote);
-        contact.getRemotes().setDefault(newRemote);
         userData.getContactStore().commit();
 
         // update outgoing commands

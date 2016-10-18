@@ -18,22 +18,24 @@ import java.io.IOException;
 public class MigrationCommand extends EncryptedZipSignedCommand  {
     static final public String COMMAND_NAME = "migration";
 
+    static final public String REMOTE_ID_KEY = "remoteID";
     static final public String NEW_USER_KEY = "newUser";
     static final public String NEW_SERVER_KEY = "newServer";
 
-    static private String makeCommand(ContactPrivate sender, Remote newRemote)
+    static private String makeCommand(ContactPrivate sender, Remote updatedRemote)
             throws JSONException {
         JSONObject command = new JSONObject();
         command.put(Constants.COMMAND_NAME_KEY, COMMAND_NAME);
         command.put(Constants.SENDER_ID_KEY, sender.getId());
-        command.put(NEW_USER_KEY, newRemote.getUser());
-        command.put(NEW_SERVER_KEY, newRemote.getServer());
+        command.put(REMOTE_ID_KEY, updatedRemote.getId());
+        command.put(NEW_USER_KEY, updatedRemote.getUser());
+        command.put(NEW_SERVER_KEY, updatedRemote.getServer());
         return command.toString();
     }
 
-    public MigrationCommand(FejoaContext context, Remote newRemote, ContactPrivate sender,
+    public MigrationCommand(FejoaContext context, Remote updatedRemote, ContactPrivate sender,
                             ContactPublic receiver)
             throws IOException, CryptoException, JSONException {
-        super(context, makeCommand(sender, newRemote), sender, receiver);
+        super(context, makeCommand(sender, updatedRemote), sender, receiver);
     }
 }
