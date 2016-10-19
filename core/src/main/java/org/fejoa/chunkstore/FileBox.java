@@ -45,6 +45,10 @@ public class FileBox {
         return dataContainer;
     }
 
+    public BoxPointer getBoxPointer() {
+        return dataContainer.getBoxPointer();
+    }
+
     @Override
     public String toString() {
         if (dataContainer == null)
