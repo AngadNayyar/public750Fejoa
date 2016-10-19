@@ -104,7 +104,7 @@ public class JsonRPC {
     }
 
     public String call(String method) {
-        return call(getJsonId(), method, null);
+        return call(getJsonId(), method, (Argument) null);
     }
 
     public String call(String method, Argument ... argumentList) {
