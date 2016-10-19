@@ -77,13 +77,20 @@ public class PullRequest {
         chunkFetcher.enqueueJob(getCommitJob);
         chunkFetcher.fetch();
 
-        boolean merged = requestRepo.merge(transaction, getCommitJob.getCommitBox());
-        if (merged) {
-            requestRepo.commitInternal("Merge after pull.", commitSignature,
-                    Collections.singleton(getCommitJob.getCommitBox().getBoxPointer()));
-        } else {
-            requestRepo.commitInternal("Merge after pull.", commitSignature);
+        Repository.MergeResult merged = requestRepo.merge(transaction, getCommitJob.getCommitBox());
+        switch (merged) {
+            case MERGED:
+                requestRepo.commitInternal("Merge after pull.", commitSignature,
+                        Collections.singleton(getCommitJob.getCommitBox().getBoxPointer()));
+                break;
+            case FAST_FORWARD:
+                requestRepo.commitInternal("Merge after pull.", commitSignature);
+                break;
+
+            case UNCOMMITTED_CHANGES:
+                return null;
         }
+
         return remoteTip;
     }
 }

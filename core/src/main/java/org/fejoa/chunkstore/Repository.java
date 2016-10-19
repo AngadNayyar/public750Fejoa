@@ -97,9 +97,11 @@ public class Repository implements IDatabaseInterface {
 
     @Override
     public HashValue getTip() throws IOException {
-        if (getHeadCommit() == null)
-            return Config.newDataHash();
-        return getHeadCommit().dataHash();
+        synchronized (this) {
+            if (getHeadCommit() == null)
+                return Config.newDataHash();
+            return getHeadCommit().dataHash();
+        }
     }
 
     private Collection<HashValue> getParents() {
@@ -117,11 +119,13 @@ public class Repository implements IDatabaseInterface {
 
     @Override
     public HashValue getHash(String path) throws IOException, CryptoException {
-        DirectoryBox.Entry entry = treeAccessor.get(path);
-        if (!entry.isFile())
-            throw new IOException("Not a file path.");
-        FileBox fileBox = FileBox.read(transaction.getFileAccessor(path), entry.getDataPointer());
-        return fileBox.getDataContainer().hash();
+        synchronized (this) {
+            DirectoryBox.Entry entry = treeAccessor.get(path);
+            if (!entry.isFile())
+                throw new IOException("Not a file path.");
+            FileBox fileBox = FileBox.read(transaction.getFileAccessor(path), entry.getDataPointer());
+            return fileBox.getDataContainer().hash();
+        }
     }
 
     static private File getBranchDir(File dir) {
@@ -152,44 +156,56 @@ public class Repository implements IDatabaseInterface {
 
     @Override
     public List<String> listFiles(String path) throws IOException {
-        DirectoryBox directoryBox = getDirBox(path);
-        if (directoryBox == null)
-            return Collections.emptyList();
-        List<String> entries = new ArrayList<>();
-        for (DirectoryBox.Entry fileEntry : directoryBox.getFiles())
-            entries.add(fileEntry.getName());
-        return entries;
+        synchronized (this) {
+            DirectoryBox directoryBox = getDirBox(path);
+            if (directoryBox == null)
+                return Collections.emptyList();
+            List<String> entries = new ArrayList<>();
+            for (DirectoryBox.Entry fileEntry : directoryBox.getFiles())
+                entries.add(fileEntry.getName());
+            return entries;
+        }
     }
 
     @Override
     public List<String> listDirectories(String path) throws IOException {
-        DirectoryBox directoryBox = getDirBox(path);
-        if (directoryBox == null)
-            return Collections.emptyList();
-        List<String> entries = new ArrayList<>();
-        for (DirectoryBox.Entry dirEntry : directoryBox.getDirs())
-            entries.add(dirEntry.getName());
-        return entries;
+        synchronized (this) {
+            DirectoryBox directoryBox = getDirBox(path);
+            if (directoryBox == null)
+                return Collections.emptyList();
+            List<String> entries = new ArrayList<>();
+            for (DirectoryBox.Entry dirEntry : directoryBox.getDirs())
+                entries.add(dirEntry.getName());
+            return entries;
+        }
     }
 
     @Override
     public boolean hasFile(String path) throws IOException, CryptoException {
-        return treeAccessor.hasFile(path);
+        synchronized (this) {
+            return treeAccessor.hasFile(path);
+        }
     }
 
     @Override
     public byte[] readBytes(String path) throws IOException, CryptoException {
-        return treeAccessor.read(path);
+        synchronized (this) {
+            return treeAccessor.read(path);
+        }
     }
 
     @Override
     public void writeBytes(String path, byte[] bytes) throws IOException, CryptoException {
-        treeAccessor.put(path, writeToFileBox(path, bytes));
+        synchronized (this) {
+            treeAccessor.put(path, writeToFileBox(path, bytes));
+        }
     }
 
     @Override
     public void remove(String path) throws IOException, CryptoException {
-        treeAccessor.remove(path);
+        synchronized (this) {
+            treeAccessor.remove(path);
+        }
     }
 
     private FileBox writeToFileBox(String path, byte[] data) throws IOException {
@@ -233,17 +249,39 @@ public class Repository implements IDatabaseInterface {
         chunkFetcher.fetch();
     }
 
-    public boolean merge(IRepoChunkAccessors.ITransaction otherTransaction, CommitBox otherBranch)
+    public enum MergeResult {
+        MERGED(0),
+        FAST_FORWARD(1),
+        UNCOMMITTED_CHANGES(-1);
+
+        MergeResult(int value) {
+            this.value = value;
+        }
+        private int value;
+    }
+
+    public MergeResult merge(IRepoChunkAccessors.ITransaction otherTransaction, CommitBox otherBranch)
             throws IOException, CryptoException {
         // TODO: check if the transaction is valid, i.e. contains object compatible with otherBranch?
         // TODO: verify commits
-        assert otherBranch != null;
-        assert !treeAccessor.isModified();
 
         // 1) Find common ancestor
         // 2) Pull missing objects into the other transaction
         // 3) Merge head with otherBranch and commit the other transaction
         synchronized (Repository.this) {
+            assert otherBranch != null;
+            if (treeAccessor.isModified()) {
+                if (headCommit != null) {
+                    // do deeper check if data has been changed
+                    BoxPointer boxPointer = headCommit.getTree();
+                    BoxPointer afterBuild = treeAccessor.build();
+                    if (!boxPointer.equals(afterBuild))
+                        return MergeResult.UNCOMMITTED_CHANGES;
+                } else {
+                    return MergeResult.UNCOMMITTED_CHANGES;
+                }
+            }
+
             if (headCommit == null) {
                 // we are empty just use the other branch
                 otherTransaction.finishTransaction();
@@ -254,12 +292,12 @@ public class Repository implements IDatabaseInterface {
                 log.add(commitCallback.commitPointerToLog(headCommit.getBoxPointer()), transaction.getObjectsWritten());
                 treeAccessor = new TreeAccessor(DirectoryBox.read(transaction.getTreeAccessor(), otherBranch.getTree()),
                         transaction);
-                return false;
+                return MergeResult.FAST_FORWARD;
             }
             if (headCommit.dataHash().equals(otherBranch.dataHash()))
-                return false;
+                return MergeResult.FAST_FORWARD;
             if (commitCache.isParent(headCommit.dataHash(), otherBranch.dataHash()))
-                return false;
+                return MergeResult.FAST_FORWARD;
 
             CommonAncestorsFinder.Chains chains = CommonAncestorsFinder.find(transaction.getCommitAccessor(),
                     headCommit, otherTransaction.getCommitAccessor(), otherBranch);
@@ -278,13 +316,13 @@ public class Repository implements IDatabaseInterface {
                 log.add(commitCallback.commitPointerToLog(headCommit.getBoxPointer()), transaction.getObjectsWritten());
                 treeAccessor = new TreeAccessor(DirectoryBox.read(transaction.getTreeAccessor(), otherBranch.getTree()),
                         transaction);
-                return false;
+                return MergeResult.FAST_FORWARD;
             }
 
             // merge branches
             treeAccessor = ThreeWayMerge.merge(transaction, transaction, headCommit, otherTransaction,
                     otherBranch, shortestChain.getOldest(), ThreeWayMerge.ourSolver());
-            return true;
+            return MergeResult.MERGED;
         }
     }
 
@@ -298,10 +336,12 @@ public class Repository implements IDatabaseInterface {
 
     @Override
     public HashValue commit(String message, ICommitSignature commitSignature) throws IOException, CryptoException {
-        commitInternal(message, commitSignature);
-        if (headCommit == null)
-            return null;
-        return headCommit.dataHash();
+        synchronized (this) {
+            commitInternal(message, commitSignature);
+            if (headCommit == null)
+                return null;
+            return headCommit.dataHash();
+        }
     }
 
     public BoxPointer commitInternal(String message, ICommitSignature commitSignature) throws IOException,
@@ -312,10 +352,9 @@ public class Repository implements IDatabaseInterface {
     public BoxPointer commitInternal(String message, ICommitSignature commitSignature,
                                      Collection<BoxPointer> mergeParents) throws IOException,
             CryptoException {
-        if (mergeParents.size() == 0 && !needCommit())
-            return null;
-
-        synchronized (Repository.this) {
+        synchronized (this) {
+            if (mergeParents.size() == 0 && !needCommit())
+                return null;
             BoxPointer rootTree = treeAccessor.build();
             if (mergeParents.size() == 0 && headCommit != null && headCommit.getTree().equals(rootTree))
                 return null;
@@ -348,30 +387,32 @@ public class Repository implements IDatabaseInterface {
 
     @Override
     public DatabaseDiff getDiff(HashValue baseCommitHash, HashValue endCommitHash) throws IOException, CryptoException {
-        CommitBox baseCommit = commitCache.getCommit(baseCommitHash);
-        CommitBox endCommit = commitCache.getCommit(endCommitHash);
+        synchronized (this) {
+            CommitBox baseCommit = commitCache.getCommit(baseCommitHash);
+            CommitBox endCommit = commitCache.getCommit(endCommitHash);
 
-        DatabaseDiff databaseDiff = new DatabaseDiff();
+            DatabaseDiff databaseDiff = new DatabaseDiff();
 
-        IChunkAccessor treeAccessor = transaction.getTreeAccessor();
-        TreeIterator diffIterator = new TreeIterator(treeAccessor, baseCommit, treeAccessor, endCommit);
-        while (diffIterator.hasNext()) {
-            DiffIterator.Change<DirectoryBox.Entry> change = diffIterator.next();
-            switch (change.type) {
-                case MODIFIED:
-                    databaseDiff.modified.addPath(change.path);
-                    break;
+            IChunkAccessor treeAccessor = transaction.getTreeAccessor();
+            TreeIterator diffIterator = new TreeIterator(treeAccessor, baseCommit, treeAccessor, endCommit);
+            while (diffIterator.hasNext()) {
+                DiffIterator.Change<DirectoryBox.Entry> change = diffIterator.next();
+                switch (change.type) {
+                    case MODIFIED:
+                        databaseDiff.modified.addPath(change.path);
+                        break;
 
-                case ADDED:
-                    databaseDiff.added.addPath(change.path);
-                    break;
+                    case ADDED:
+                        databaseDiff.added.addPath(change.path);
+                        break;
 
-                case REMOVED:
-                    databaseDiff.removed.addPath(change.path);
-                    break;
+                    case REMOVED:
+                        databaseDiff.removed.addPath(change.path);
+                        break;
+                }
             }
-        }
 
-        return databaseDiff;
+            return databaseDiff;
+        }
     }
 }

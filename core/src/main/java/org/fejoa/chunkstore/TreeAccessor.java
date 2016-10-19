@@ -11,6 +11,8 @@ import org.fejoa.library.support.StreamHelper;
 import org.fejoa.library.crypto.CryptoException;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class TreeAccessor {
@@ -38,7 +40,7 @@ public class TreeAccessor {
         return path;
     }
 
-    private BoxPointer put(FileBox fileBox) throws IOException, CryptoException {
+    private BoxPointer write(FileBox fileBox) throws IOException, CryptoException {
         fileBox.flush();
         return fileBox.getDataContainer().getBoxPointer();
     }
@@ -113,6 +115,14 @@ public class TreeAccessor {
         return StreamHelper.readAll(inputStream);
     }
 
+    public void put(String path, FileBox file) throws IOException, CryptoException {
+        DirectoryBox.Entry entry = new DirectoryBox.Entry(true);
+        entry.setObject(file);
+        if (!file.getBoxPointer().getBoxHash().isZero())
+            entry.setDataPointer(file.getBoxPointer());
+        put(path, entry);
+    }
+
     public DirectoryBox.Entry put(String path, BoxPointer dataPointer, boolean isFile) throws IOException,
             CryptoException {
         DirectoryBox.Entry entry = new DirectoryBox.Entry("", dataPointer, isFile);
@@ -121,11 +131,12 @@ public class TreeAccessor {
     }
 
     public void put(String path, DirectoryBox.Entry entry) throws IOException, CryptoException {
-        this.modified = true;
         path = checkPath(path);
         String[] parts = path.split("/");
         String fileName = parts[parts.length - 1];
         DirectoryBox currentDir = root;
+        IChunkAccessor treeAccessor = transaction.getTreeAccessor();
+        List<DirectoryBox.Entry> touchedEntries = new ArrayList<>();
         for (int i = 0; i < parts.length - 1; i++) {
             String subDir = parts[i];
             DirectoryBox.Entry currentEntry = currentDir.getEntry(subDir);
@@ -140,20 +151,28 @@ public class TreeAccessor {
                 if (currentEntry.getObject() != null) {
                     currentDir = (DirectoryBox)currentEntry.getObject();
                 } else {
-                    IChunkAccessor accessor = transaction.getTreeAccessor();
-                    currentDir = DirectoryBox.read(accessor, currentEntry.getDataPointer());
+                    currentDir = DirectoryBox.read(treeAccessor, currentEntry.getDataPointer());
                     currentEntry.setObject(currentDir);
                 }
-                currentEntry.markModified();
             }
+            touchedEntries.add(currentEntry);
         }
         entry.setName(fileName);
-        currentDir.put(fileName, entry);
-    }
 
-    public void put(String path, FileBox file) throws IOException, CryptoException {
-        DirectoryBox.Entry entry = put(path, null, true);
-        entry.setObject(file);
+        DirectoryBox.Entry existingEntry = currentDir.getEntry(fileName);
+        if (existingEntry != null) {
+            // check if something has changed
+            if (entry.getDataPointer() != null
+                    && currentDir.getEntry(fileName).getDataPointer().equals(entry.getDataPointer())) {
+                return;
+            }
+        }
+
+        for (DirectoryBox.Entry touched : touchedEntries) {
+            touched.markModified();
+        }
+        this.modified = true;
+        currentDir.put(fileName, entry);
     }
 
     public DirectoryBox.Entry remove(String path) throws IOException, CryptoException {
@@ -187,7 +206,7 @@ public class TreeAccessor {
                 continue;
             assert child.getObject() != null;
             FileBox fileBox = (FileBox)child.getObject();
-            BoxPointer dataPointer = put(fileBox);
+            BoxPointer dataPointer = write(fileBox);
             child.setDataPointer(dataPointer);
         }
         return Repository.put(dir, transaction.getTreeAccessor());

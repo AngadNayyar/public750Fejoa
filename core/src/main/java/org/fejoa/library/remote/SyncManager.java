@@ -8,6 +8,7 @@
 package org.fejoa.library.remote;
 
 import org.fejoa.chunkstore.HashValue;
+import org.fejoa.chunkstore.sync.RequestHandler;
 import org.fejoa.library.Remote;
 import org.fejoa.library.UserData;
 import org.fejoa.library.crypto.CryptoException;
@@ -246,6 +247,10 @@ public class SyncManager {
 
                     @Override
                     public void onResult(ChunkStorePullJob.Result result) {
+                        if (result.status == RequestHandler.Result.ERROR.getValue()) {
+                            observer.onResult("uncommitted changes");
+                            return;
+                        }
                         try {
                             HashValue tip = storageDir.getTip();
                             if (!result.pulledRev.getDataHash().isZero() && !result.oldTip.equals(tip))
