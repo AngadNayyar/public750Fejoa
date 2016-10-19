@@ -16,47 +16,45 @@ import java.util.Map;
 
 
 public abstract class MovableStorageList<T extends MovableStorage> extends MovableStorageContainer {
-    final private Map<String, T> entries = new HashMap<>();
-
-    public MovableStorageList(MovableStorageContainer parent, String subDir) throws IOException, CryptoException {
+    public MovableStorageList(MovableStorageContainer parent, String subDir) {
         super(parent, subDir);
-
-        load();
     }
 
-    public MovableStorageList(IOStorageDir storageDir) throws IOException, CryptoException {
+    public MovableStorageList(IOStorageDir storageDir) {
         super(storageDir);
-
-        load();
     }
 
-    abstract protected T createObject(IOStorageDir storageDir, String id) throws IOException, CryptoException;
+    abstract protected T readObject(IOStorageDir storageDir, String id) throws IOException, CryptoException;
 
     public void add(String name, T entry) throws IOException, CryptoException {
         IOStorageDir subDir = getStorageDir(name);
         entry.setStorageDir(subDir);
         attach(entry, name);
-        entries.put(name, entry);
     }
 
-    public T get(String name) {
-        return entries.get(name);
+    public T get(String name) throws IOException, CryptoException {
+        return readObject(new IOStorageDir(storageDir, name), name);
     }
 
     private IOStorageDir getStorageDir(String name) {
         return new IOStorageDir(storageDir, name);
     }
 
-    private void load() throws IOException, CryptoException {
+    protected Map<String, T> load(IOStorageDir storageDir) throws IOException, CryptoException {
         Collection<String> subDirs = storageDir.listDirectories("");
-        entries.clear();
+        Map<String, T> entries = new HashMap<>();
         for (String dir : subDirs) {
-            T entry = createObject(new IOStorageDir(storageDir, dir), dir);
-            entries.put(dir, entry);
+            try {
+                T entry = readObject(new IOStorageDir(storageDir, dir), dir);
+                entries.put(dir, entry);
+            } catch (Exception e) {
+                continue;
+            }
         }
+        return entries;
     }
 
-    public Collection<T> getEntries() {
-        return entries.values();
+    public Collection<T> getEntries() throws IOException, CryptoException {
+        return load(storageDir).values();
     }
 }

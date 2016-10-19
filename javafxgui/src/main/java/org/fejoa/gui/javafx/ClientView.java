@@ -121,7 +121,7 @@ public class ClientView extends BorderPane {
                     syncStatus.setFailed();
                 }
             });
-        } catch (IOException exception) {
+        } catch (Exception exception) {
             syncStatus.setStatus(exception.getMessage());
             syncStatus.setFailed();
         }

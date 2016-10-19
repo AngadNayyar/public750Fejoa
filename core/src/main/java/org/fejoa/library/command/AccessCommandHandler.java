@@ -11,6 +11,8 @@ import org.fejoa.library.*;
 import org.fejoa.library.remote.AuthInfo;
 import org.json.JSONObject;
 
+import static org.fejoa.library.command.AccessCommand.BRANCH_CONTEXT_KEY;
+
 
 public class AccessCommandHandler extends EnvelopeCommandHandler {
     public interface IListener extends IncomingCommandManager.IListener {
@@ -40,6 +42,7 @@ public class AccessCommandHandler extends EnvelopeCommandHandler {
             return false;
         String senderId = command.getString(Constants.SENDER_ID_KEY);
         String remoteId = command.getString(Constants.REMOTE_ID_KEY);
+        String branchContext = command.getString(BRANCH_CONTEXT_KEY);
 
         String branch = command.getString(Constants.BRANCH_KEY);
         SymmetricKeyData keyData = null;
@@ -53,10 +56,11 @@ public class AccessCommandHandler extends EnvelopeCommandHandler {
         ContactPublic sender = contactStore.getContactList().get(senderId);
 
         BranchList branchList = sender.getBranchList();
-        BranchInfo branchInfo = new BranchInfo(branch, "File Storage");
-        branchInfo.setCryptoKey(keyData);
+        BranchInfo branchInfo = BranchInfo.create(branch, "contact branch");
+        if (keyData != null)
+            branchInfo.setCryptoKey(keyData);
         branchInfo.addLocation(remoteId, new AuthInfo.Token(accessTokenContact));
-        branchList.add(branchInfo);
+        branchList.add(branchInfo, branchContext);
 
         contactStore.commit();
 

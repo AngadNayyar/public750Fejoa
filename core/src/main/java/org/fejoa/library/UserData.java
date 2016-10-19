@@ -34,6 +34,8 @@ public class UserData extends StorageDirObject {
 
     final static private String GATEWAY_PATH = "gateway";
 
+    final static public String USER_DATA_CONTEXT = "userdata";
+
     final private KeyStore keyStore;
     final private BranchList branchList;
     final private ContactPrivate myself;
@@ -50,8 +52,8 @@ public class UserData extends StorageDirObject {
         remoteStore = new RemoteList(new StorageDir(storageDir, REMOTES_PATH));
 
         branchList = new BranchList(new StorageDir(storageDir, BRANCHES_PATH), remoteStore);
-        if (findBranchInfo(keyStore.getStorageDir().getBranch()) == null)
-            branchList.add(new BranchInfo(keyStore.getStorageDir().getBranch(), "KeyStore"));
+        if (findBranchInfo(keyStore.getStorageDir().getBranch(), USER_DATA_CONTEXT) == null)
+            branchList.add(BranchInfo.create(keyStore.getStorageDir().getBranch(), "KeyStore"), USER_DATA_CONTEXT);
 
         myself = new ContactPrivate(context, new StorageDir(storageDir, MYSELF_PATH));
         contactStore = new ContactStore(context, new StorageDir(storageDir, CONTACT_PATH));
@@ -77,16 +79,16 @@ public class UserData extends StorageDirObject {
         return keyStore;
     }
 
-    public void addBranch(BranchInfo branchEntry) throws IOException, CryptoException {
-        branchList.add(branchEntry);
+    public void addBranch(BranchInfo branchEntry, String context) throws IOException, CryptoException {
+        branchList.add(branchEntry, context);
     }
 
     public BranchList getBranchList() {
         return branchList;
     }
 
-    public BranchInfo findBranchInfo(String branch) {
-        for (BranchInfo branchInfo : branchList.getEntries()) {
+    public BranchInfo findBranchInfo(String branch, String context) throws IOException, CryptoException {
+        for (BranchInfo branchInfo : branchList.getEntries(context)) {
             if (branchInfo.getBranch().equals(branch))
                 return branchInfo;
         }
@@ -119,7 +121,7 @@ public class UserData extends StorageDirObject {
                 new DefaultCommitSignature(context, signingKeyPair));
 
         UserData userData = new UserData(context, userDataDir, keyStore);
-        userData.addBranch(new BranchInfo(userData.getBranch(), "User Data (this)"));
+        userData.addBranch(BranchInfo.create(userData.getBranch(), "User Data (this)"), USER_DATA_CONTEXT);
         keyStore.setUserData(userData);
         keyStore.addSymmetricKey(userDataDir.getBranch(), userDataKeyData);
 
@@ -136,7 +138,8 @@ public class UserData extends StorageDirObject {
         StorageDir accessControlBranch = context.getStorage(
                 CryptoHelper.sha1HashHex(context.getCrypto().generateInitializationVector(32)), null, null);
         AccessStore accessStore = new AccessStore(context, accessControlBranch);
-        userData.addBranch(new BranchInfo(accessStore.getStorageDir().getBranch(), "Access Store"));
+        userData.addBranch(BranchInfo.create(accessStore.getStorageDir().getBranch(), "Access Store"),
+                USER_DATA_CONTEXT);
         userData.getStorageDir().writeString(ACCESS_STORE_PATH, accessStore.getStorageDir().getBranch());
         accessStore.commit();
 
@@ -144,7 +147,8 @@ public class UserData extends StorageDirObject {
         StorageDir inQueueBranch = context.getStorage(
                 CryptoHelper.sha1HashHex(context.getCrypto().generateInitializationVector(32)), null, null);
         IncomingCommandQueue incomingCommandQueue = new IncomingCommandQueue(inQueueBranch);
-        userData.addBranch(new BranchInfo(incomingCommandQueue.getStorageDir().getBranch(), "In Queue"));
+        userData.addBranch(BranchInfo.create(incomingCommandQueue.getStorageDir().getBranch(), "In Queue"),
+                USER_DATA_CONTEXT);
         userData.getStorageDir().writeString(IN_QUEUE_PATH, incomingCommandQueue.getStorageDir().getBranch());
         incomingCommandQueue.commit();
 
@@ -152,7 +156,8 @@ public class UserData extends StorageDirObject {
         StorageDir outQueueBranch = context.getStorage(
                 CryptoHelper.sha1HashHex(context.getCrypto().generateInitializationVector(32)), null, null);
         OutgoingCommandQueue outgoingCommandQueue = new OutgoingCommandQueue(outQueueBranch);
-        userData.addBranch(new BranchInfo(outgoingCommandQueue.getStorageDir().getBranch(), "Out Queue"));
+        userData.addBranch(BranchInfo.create(outgoingCommandQueue.getStorageDir().getBranch(), "Out Queue"),
+                USER_DATA_CONTEXT);
         userData.getStorageDir().writeString(OUT_QUEUE_PATH, outgoingCommandQueue.getStorageDir().getBranch());
         outgoingCommandQueue.commit();
 
@@ -177,7 +182,7 @@ public class UserData extends StorageDirObject {
         return userData;
     }
 
-    public UserDataSettings getSettings() throws IOException {
+    public UserDataSettings getSettings() throws IOException, CryptoException {
         return new UserDataSettings(keyStore.getConfig(), getAccessStore().getBranch(),
                 getIncomingCommandQueue().getId(), getOutgoingCommandQueue().getId());
     }
@@ -214,9 +219,9 @@ public class UserData extends StorageDirObject {
         return context.getStorage(branchInfo.getBranch(), symmetricKeyData, commitSignature);
     }
 
-    public IncomingCommandQueue getIncomingCommandQueue() throws IOException {
+    public IncomingCommandQueue getIncomingCommandQueue() throws IOException, CryptoException {
         String id = storageDir.readString(IN_QUEUE_PATH);
-        BranchInfo branchInfo = getBranchList().get(id);
+        BranchInfo branchInfo = getBranchList().get(id, USER_DATA_CONTEXT);
         try {
             return new IncomingCommandQueue(getStorageDir(branchInfo));
         } catch (CryptoException e) {
@@ -226,9 +231,9 @@ public class UserData extends StorageDirObject {
         }
     }
 
-    public OutgoingCommandQueue getOutgoingCommandQueue() throws IOException {
+    public OutgoingCommandQueue getOutgoingCommandQueue() throws IOException, CryptoException {
         String id = storageDir.readString(OUT_QUEUE_PATH);
-        BranchInfo branchInfo = getBranchList().get(id);
+        BranchInfo branchInfo = getBranchList().get(id, USER_DATA_CONTEXT);
         try {
             return new OutgoingCommandQueue(getStorageDir(branchInfo));
         } catch (CryptoException e) {
@@ -238,9 +243,9 @@ public class UserData extends StorageDirObject {
         }
     }
 
-    public AccessStore getAccessStore() throws IOException {
+    public AccessStore getAccessStore() throws IOException, CryptoException {
         String id = storageDir.readString(ACCESS_STORE_PATH);
-        BranchInfo branchInfo = getBranchList().get(id);
+        BranchInfo branchInfo = getBranchList().get(id, USER_DATA_CONTEXT);
         try {
             return new AccessStore(context, getStorageDir(branchInfo));
         } catch (CryptoException e) {

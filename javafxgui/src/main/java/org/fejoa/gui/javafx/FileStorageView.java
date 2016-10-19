@@ -343,7 +343,7 @@ public class FileStorageView extends VBox {
                 @Override
                 public void handle(ActionEvent actionEvent) {
                     try {
-                        client.grantAccess(entry.getBranch(), BranchAccessRight.PULL_PUSH, contactPublic);
+                        client.grantAccess(entry.getBranch(), IDENTIFIER, BranchAccessRight.PULL_PUSH, contactPublic);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -364,7 +364,7 @@ public class FileStorageView extends VBox {
                     entry.getBranch());
             Index index = new Index(indexStorage);
             UserData userData = client.getUserData();
-            BranchInfo branchInfo = userData.findBranchInfo(entry.getBranch());
+            BranchInfo branchInfo = userData.findBranchInfo(entry.getBranch(), IDENTIFIER);
             final StorageDir branchStorage = userData.getStorageDir(branchInfo);
             CheckoutDir checkoutDir = new CheckoutDir(branchStorage, index, destination);
             Task<CheckoutDir.Update, CheckoutDir.Result> checkIn = checkoutDir.checkIn();
@@ -408,11 +408,11 @@ public class FileStorageView extends VBox {
             SigningKeyPair signingKeyPair = userData.getMyself().getSignatureKeys().getDefault();
             StorageDir storageDir = context.getStorage(branch, keyData,
                     new DefaultCommitSignature(context, signingKeyPair));
-            BranchInfo branchInfo = new BranchInfo(storageDir.getBranch(), "File Storage");
+            BranchInfo branchInfo = BranchInfo.create(storageDir.getBranch(), "File Storage");
             branchInfo.setCryptoInfo(keyData.keyId(), userData.getKeyStore(), true);
             Remote remote = userData.getGateway();
             branchInfo.addLocation(remote.getId(), context.getRootAuthInfo(remote));
-            userData.addBranch(branchInfo);
+            userData.addBranch(branchInfo, IDENTIFIER);
 
             storageList.add(new FileStorageEntry(file, branchInfo));
             userData.commit(true);

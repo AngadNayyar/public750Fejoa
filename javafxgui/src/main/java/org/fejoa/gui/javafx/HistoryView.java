@@ -65,12 +65,12 @@ class BranchList extends ListView<BranchInfo> {
     private void update(UserData userData) {
         getItems().clear();
 
-        for (BranchInfo branchInfo : userData.getBranchList().getEntries()) {
-            try {
+        try {
+            for (BranchInfo branchInfo : userData.getBranchList().getEntries()) {
                 getItems().add(branchInfo);
-            } catch (Exception e) {
-                e.printStackTrace();
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }

@@ -40,7 +40,7 @@ public class Client {
             if (syncObserver != null) {
                 try {
                     startSyncing(syncObserver);
-                } catch (IOException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
@@ -62,7 +62,7 @@ public class Client {
         //userData.getRemoteStore().setDefault(remoteRemote);
         client.userData.setGateway(remoteRemote);
         // connect branches
-        for (BranchInfo branchInfo : client.getUserData().getBranchList().getEntries())
+        for (BranchInfo branchInfo : client.getUserData().getBranchList().getEntries(UserData.USER_DATA_CONTEXT, true))
             branchInfo.addLocation(remoteRemote.getId(), new AuthInfo.Password(password));
 
         client.loadCommandManagers();
@@ -139,18 +139,18 @@ public class Client {
     }
 
     public void createAccount(Remote remote, String password,
-                              Task.IObserver<Void, RemoteJob.Result> observer) throws IOException {
+                              Task.IObserver<Void, RemoteJob.Result> observer) throws IOException, CryptoException {
         connectionManager.submit(new CreateAccountJob(remote.getUser(), password, userData.getSettings()),
                 remote, new AuthInfo.Plain(), observer);
     }
 
     public void createAccount(Remote remote, String password, UserData userData,
-                              Task.IObserver<Void, RemoteJob.Result> observer) throws IOException {
+                              Task.IObserver<Void, RemoteJob.Result> observer) throws IOException, CryptoException {
         connectionManager.submit(new CreateAccountJob(remote.getUser(), password, userData.getSettings()),
                 remote, new AuthInfo.Plain(), observer);
     }
 
-    public void startSyncing(Task.IObserver<TaskUpdate, Void> observer) throws IOException {
+    public void startSyncing(Task.IObserver<TaskUpdate, Void> observer) throws IOException, CryptoException {
         if (syncManager != null)
             stopSyncing();
         this.syncObserver = observer;
@@ -187,7 +187,8 @@ public class Client {
         return incomingCommandManager;
     }
 
-    public void grantAccess(String branch, int rights, ContactPublic contact) throws CryptoException, JSONException,
+    public void grantAccess(String branch, String branchContext, int rights, ContactPublic contact)
+            throws CryptoException, JSONException,
             IOException {
         // create and add new access token
         BranchAccessRight accessRight = new BranchAccessRight(BranchAccessRight.CONTACT_ACCESS);
@@ -198,13 +199,13 @@ public class Client {
         accessStore.addAccessToken(accessToken.toServerToken());
 
         // record with whom we share the branch
-        BranchInfo branchInfo = userData.getBranchList().get(branch);
+        BranchInfo branchInfo = userData.getBranchList().get(branch, branchContext);
         branchInfo.getContactAccessList().add(contact, accessToken);
         userData.commit();
 
         // send command to contact
         AccessCommand accessCommand = new AccessCommand(context, userData.getMyself(), contact, userData.getGateway(),
-                branchInfo, userData.getKeyData(branchInfo), accessToken);
+                branchInfo, branchContext, userData.getKeyData(branchInfo), accessToken);
         accessStore.commit();
         OutgoingCommandQueue queue = userData.getOutgoingCommandQueue();
         queue.post(accessCommand, contact.getRemotes().getDefault(), true);

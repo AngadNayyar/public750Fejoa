@@ -29,6 +29,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 
+import static org.fejoa.library.UserData.USER_DATA_CONTEXT;
+
 
 public class ClientTest extends TestCase {
     abstract class TestTask {
@@ -174,6 +176,11 @@ public class ClientTest extends TestCase {
             StorageLib.recursiveDeleteFile(new File(dir));
     }
 
+    private void finishAndFail(Exception exception) {
+        exception.printStackTrace();
+        finishAndFail(exception.getMessage());
+    }
+
     private void finishAndFail(String message) {
         failure = true;
         finishedSemaphore.release();
@@ -225,7 +232,7 @@ public class ClientTest extends TestCase {
                     try {
                         onAccountCreated(client, status);
                     } catch (Exception e) {
-                        finishAndFail(e.getMessage());
+                        finishAndFail(e);
                     }
                 }
             }));
@@ -259,7 +266,7 @@ public class ClientTest extends TestCase {
                     if (exception.getMessage().equals("canceled"))
                         return;
                     exception.printStackTrace();
-                    finishAndFail(exception.getMessage());
+                    finishAndFail(exception);
                 }
             });
         }
@@ -287,7 +294,7 @@ public class ClientTest extends TestCase {
                 @Override
                 public void onError(Exception exception) {
                     exception.printStackTrace();
-                    finishAndFail(exception.getMessage());
+                    finishAndFail(exception);
                 }
             });
         }
@@ -308,7 +315,7 @@ public class ClientTest extends TestCase {
                 @Override
                 public void onError(Exception exception) {
                     exception.printStackTrace();
-                    finishAndFail(exception.getMessage());
+                    finishAndFail(exception);
                 }
             });
             client1.contactRequest(USER_NAME_2, SERVER_URL_2);
@@ -319,7 +326,7 @@ public class ClientTest extends TestCase {
         private AccessCommandHandler.IListener listener = new AccessCommandHandler.IListener() {
             @Override
             public void onError(Exception e) {
-                finishAndFail(e.getMessage());
+                finishAndFail(e);
             }
 
             @Override
@@ -350,7 +357,7 @@ public class ClientTest extends TestCase {
             // grant access to the access branch
             String branch = clientUserData.getAccessStore().getId();
             System.out.println("Client2 grant access for:" + branch);
-            client2.grantAccess(branch, BranchAccessRight.PULL, client2Contact);
+            client2.grantAccess(branch, USER_DATA_CONTEXT, BranchAccessRight.PULL, client2Contact);
         }
 
         @Override
@@ -362,7 +369,7 @@ public class ClientTest extends TestCase {
 
         private void waitTillClient2UploadedTheAccessStore(final int retryCount) throws IOException, CryptoException {
             UserData userData = client2.getUserData();
-            BranchInfo accessBranchInfo = userData.findBranchInfo(userData.getAccessStore().getId());
+            BranchInfo accessBranchInfo = userData.findBranchInfo(userData.getAccessStore().getId(), USER_DATA_CONTEXT);
             client2.peekRemoteStatus(accessBranchInfo.getLocationEntries().iterator().next(),
                     new Task.IObserver<Void, WatchJob.Result>() {
                 @Override
@@ -424,7 +431,7 @@ public class ClientTest extends TestCase {
                             try {
                                 TestCase.assertFalse(client1.getContext().getStorage(contactBranch.getBranch()).getTip().equals(""));
                             } catch (IOException e) {
-                                finishAndFail(e.getMessage());
+                                finishAndFail(e);
                             }
                             onTaskPerformed();
                         }
@@ -436,7 +443,7 @@ public class ClientTest extends TestCase {
         private MigrationCommandHandler.IListener listener = new MigrationCommandHandler.IListener() {
             @Override
             public void onError(Exception e) {
-                finishAndFail(e.getMessage());
+                finishAndFail(e);
             }
 
             @Override
@@ -465,7 +472,7 @@ public class ClientTest extends TestCase {
                     try {
                         migrate();
                     } catch (Exception e) {
-                        finishAndFail(e.getMessage());
+                        finishAndFail(e);
                     }
                 }
             }));
@@ -495,7 +502,7 @@ public class ClientTest extends TestCase {
                     MigrationCommandHandler handler = (MigrationCommandHandler)client2.getIncomingCommandManager()
                             .getHandler(MigrationCommand.COMMAND_NAME);
                     handler.setListener(null);
-                    finishAndFail(exception.getMessage());
+                    finishAndFail(exception);
                 }
             });
         }

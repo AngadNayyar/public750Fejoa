@@ -105,14 +105,13 @@ public class UserDataStorageView extends SplitPane {
         getItems().add(treeView);
         getItems().add(textArea);
 
-        for (BranchInfo branchInfo : userData.getBranchList().getEntries()) {
-            StorageDir branchStorage;
-            try {
-                branchStorage = userData.getStorageDir(branchInfo);
+        try {
+            for (BranchInfo branchInfo : userData.getBranchList().getEntries(true)) {
+                StorageDir branchStorage = userData.getStorageDir(branchInfo);
                 addStorageDirToTree(branchStorage, rootItem, branchInfo.getDescription(), treeView, textArea);
-            } catch (Exception e) {
-                e.printStackTrace();
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

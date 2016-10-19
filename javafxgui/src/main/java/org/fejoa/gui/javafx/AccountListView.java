@@ -135,7 +135,7 @@ public class AccountListView extends HBox {
                     onFail(exception, guiJob, client);
                 }
             });
-        } catch (IOException e) {
+        } catch (Exception e) {
             onFail(e, guiJob, client);
         }
     }
