@@ -111,6 +111,7 @@ public class CheckoutDirTest extends TestCase {
         assertFalse(storageDir.listFiles("").contains("test1"));
 
         new File(destination, "dir/test1").delete();
+        new File(destination, "dir").delete();
         checkIn.start(createObserver(updates));
         assertEquals(0, storageDir.listDirectories("").size());
     }

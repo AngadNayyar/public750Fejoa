@@ -166,7 +166,7 @@ public class CheckoutDir {
     private boolean isBlackListed(String dirName) {
         if (dirName.equals(".index"))
             return true;
-        return true;
+        return false;
     }
 
     private boolean checkoutFileChanged(File outFile, Index.Entry entry) throws IOException {
