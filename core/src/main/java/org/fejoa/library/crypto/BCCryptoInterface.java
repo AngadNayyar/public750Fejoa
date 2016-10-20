@@ -40,7 +40,7 @@ public class BCCryptoInterface implements ICryptoInterface {
         KeyPairGenerator keyGen;
         try {
             keyGen = KeyPairGenerator.getInstance(settings.keyType);
-            keyGen.initialize(settings.keySize);
+            keyGen.initialize(settings.keySize, new SecureRandom());
         } catch (Exception e) {
             throw new CryptoException(e.getMessage());
         }
@@ -81,7 +81,7 @@ public class BCCryptoInterface implements ICryptoInterface {
         } catch (Exception e) {
             throw new CryptoException(e.getMessage());
         }
-        keyGenerator.init(settings.keySize);
+        keyGenerator.init(settings.keySize, new SecureRandom());
         return keyGenerator.generateKey();
     }
 
