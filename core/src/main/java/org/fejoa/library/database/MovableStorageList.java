@@ -24,7 +24,7 @@ public abstract class MovableStorageList<T extends MovableStorage> extends Movab
         super(storageDir);
     }
 
-    abstract protected T readObject(IOStorageDir storageDir, String id) throws IOException, CryptoException;
+    abstract protected T readObject(IOStorageDir storageDir) throws IOException, CryptoException;
 
     public void add(String name, T entry) throws IOException, CryptoException {
         IOStorageDir subDir = getStorageDir(name);
@@ -33,7 +33,7 @@ public abstract class MovableStorageList<T extends MovableStorage> extends Movab
     }
 
     public T get(String name) throws IOException, CryptoException {
-        return readObject(new IOStorageDir(storageDir, name), name);
+        return readObject(new IOStorageDir(storageDir, name));
     }
 
     private IOStorageDir getStorageDir(String name) {
@@ -45,7 +45,7 @@ public abstract class MovableStorageList<T extends MovableStorage> extends Movab
         Map<String, T> entries = new HashMap<>();
         for (String dir : subDirs) {
             try {
-                T entry = readObject(new IOStorageDir(storageDir, dir), dir);
+                T entry = readObject(new IOStorageDir(storageDir, dir));
                 entries.put(dir, entry);
             } catch (Exception e) {
                 continue;

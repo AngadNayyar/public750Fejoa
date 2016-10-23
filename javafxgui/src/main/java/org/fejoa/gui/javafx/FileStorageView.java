@@ -9,7 +9,6 @@ package org.fejoa.gui.javafx;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import javafx.collections.ListChangeListener;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.control.*;
@@ -31,7 +30,6 @@ import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.remote.ChunkStorePullJob;
 import org.fejoa.library.support.Task;
-import org.json.JSONException;
 
 import java.io.File;
 import java.io.IOException;
@@ -226,7 +224,7 @@ class ContactFileStorageView extends VBox {
 public class FileStorageView extends VBox {
     final private Client client;
     final StatusManagerMessenger statusManager;
-    final static private String IDENTIFIER = "org.fejoa.filestorage";
+    final static private String STORAGE_CONTEXT = "org.fejoa.filestorage";
 
     final private StorageDirList<FileStorageEntry> storageList;
     final private StorageDir.IListener listener = new StorageDir.IListener() {
@@ -243,7 +241,7 @@ public class FileStorageView extends VBox {
         this.client = client;
         this.statusManager = new StatusManagerMessenger(statusManager);
 
-        AppContext appContext = client.getUserData().getConfigStore().getAppContext(IDENTIFIER);
+        AppContext appContext = client.getUserData().getConfigStore().getAppContext(STORAGE_CONTEXT);
         storageList = new StorageDirList<>(appContext.getStorageDir(),
                 new StorageDirList.AbstractEntryIO<FileStorageEntry>() {
             @Override
@@ -343,7 +341,7 @@ public class FileStorageView extends VBox {
                 @Override
                 public void handle(ActionEvent actionEvent) {
                     try {
-                        client.grantAccess(entry.getBranch(), IDENTIFIER, BranchAccessRight.PULL_PUSH, contactPublic);
+                        client.grantAccess(entry.getBranch(), STORAGE_CONTEXT, BranchAccessRight.PULL_PUSH, contactPublic);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -364,7 +362,7 @@ public class FileStorageView extends VBox {
                     entry.getBranch());
             Index index = new Index(indexStorage);
             UserData userData = client.getUserData();
-            BranchInfo branchInfo = userData.findBranchInfo(entry.getBranch(), IDENTIFIER);
+            BranchInfo branchInfo = userData.findBranchInfo(entry.getBranch(), STORAGE_CONTEXT);
             final StorageDir branchStorage = userData.getStorageDir(branchInfo);
             CheckoutDir checkoutDir = new CheckoutDir(branchStorage, index, destination);
             Task<CheckoutDir.Update, CheckoutDir.Result> checkIn = checkoutDir.checkIn();
@@ -404,15 +402,15 @@ public class FileStorageView extends VBox {
             UserData userData = client.getUserData();
             String branch = CryptoHelper.sha1HashHex(context.getCrypto().generateInitializationVector(32));
             SymmetricKeyData keyData = SymmetricKeyData.create(context, context.getCryptoSettings().symmetric);
-            userData.getKeyStore().addSymmetricKey(keyData.keyId().toHex(), keyData);
+            userData.getKeyStore().addSymmetricKey(keyData.keyId().toHex(), keyData, STORAGE_CONTEXT);
             SigningKeyPair signingKeyPair = userData.getMyself().getSignatureKeys().getDefault();
             StorageDir storageDir = context.getStorage(branch, keyData,
                     new DefaultCommitSignature(context, signingKeyPair));
-            BranchInfo branchInfo = BranchInfo.create(storageDir.getBranch(), "File Storage");
+            BranchInfo branchInfo = BranchInfo.create(storageDir.getBranch(), "File Storage", STORAGE_CONTEXT);
             branchInfo.setCryptoInfo(keyData.keyId(), userData.getKeyStore(), true);
             Remote remote = userData.getGateway();
             branchInfo.addLocation(remote.getId(), context.getRootAuthInfo(remote));
-            userData.addBranch(branchInfo, IDENTIFIER);
+            userData.addBranch(branchInfo);
 
             storageList.add(new FileStorageEntry(file, branchInfo));
             userData.commit(true);

@@ -27,21 +27,37 @@ public class BranchList extends MovableStorageList<BranchInfo> {
     }
 
     @Override
-    protected BranchInfo readObject(IOStorageDir storageDir, String id) throws IOException, CryptoException {
-        return BranchInfo.open(storageDir, id);
+    protected BranchInfo readObject(IOStorageDir storageDir) throws IOException, CryptoException {
+        String baseDir = this.storageDir.getBaseDir();
+        String subDir = storageDir.getBaseDir();
+        if (subDir.startsWith(baseDir))
+            subDir = subDir.substring(baseDir.length());
+        if (subDir.startsWith("/"))
+            subDir = subDir.substring(1);
+        if (subDir.endsWith("/"))
+            subDir = subDir.substring(0, subDir.length() - 1);
+        String storageContext = "";
+        String branch = subDir;
+        int lastSlash = subDir.lastIndexOf("/");
+        if (lastSlash > 0) {
+            storageContext = subDir.substring(0, lastSlash);
+            branch = subDir.substring(lastSlash + 1);
+        }
+
+        return BranchInfo.open(storageDir, branch, storageContext);
     }
 
     private String contextToPath(String context) {
         return context.replace('.', '/');
     }
 
-    public void add(BranchInfo branchInfo, String context) throws IOException, CryptoException {
+    public void add(BranchInfo branchInfo) throws IOException, CryptoException {
         branchInfo.setRemoteList(remoteList);
-        super.add(StorageLib.appendDir(contextToPath(context), branchInfo.getBranch()), branchInfo);
+        super.add(StorageLib.appendDir(contextToPath(branchInfo.getStorageContext()), branchInfo.getBranch()), branchInfo);
     }
 
     public BranchInfo get(String id, String context) throws IOException, CryptoException {
-        return readObject(new IOStorageDir(storageDir, StorageLib.appendDir(contextToPath(context), id)), id);
+        return readObject(new IOStorageDir(storageDir, StorageLib.appendDir(contextToPath(context), id)));
     }
 
     @Override
@@ -58,7 +74,7 @@ public class BranchList extends MovableStorageList<BranchInfo> {
             return this.getEntries("");
 
         List<BranchInfo> entries = new ArrayList<>();
-        getEntriesRecursive(new IOStorageDir(storageDir, contextToPath(context)), entries);
+        getEntriesRecursive("", new IOStorageDir(storageDir, contextToPath(context)), entries);
         return entries;
     }
 
@@ -66,17 +82,17 @@ public class BranchList extends MovableStorageList<BranchInfo> {
         return getEntries(context, true);
     }
 
-    private void getEntriesRecursive(IOStorageDir storageDir, List<BranchInfo> out)
+    private void getEntriesRecursive(String path, IOStorageDir storageDir, List<BranchInfo> out)
             throws IOException, CryptoException {
         Collection<String> subDirs = storageDir.listDirectories("");
         for (String dir : subDirs) {
             IOStorageDir subDir = new IOStorageDir(storageDir, dir);
             try {
-                BranchInfo branchInfo = BranchInfo.open(subDir, dir);
+                BranchInfo branchInfo = BranchInfo.open(subDir, dir, path);
                 branchInfo.setRemoteList(remoteList);
                 out.add(branchInfo);
             } catch (Exception e) {
-                getEntriesRecursive(subDir, out);
+                getEntriesRecursive(StorageLib.appendDir(path, dir), subDir, out);
             }
         }
     }

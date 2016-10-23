@@ -53,7 +53,7 @@ public class UserData extends StorageDirObject {
 
         branchList = new BranchList(new StorageDir(storageDir, BRANCHES_PATH), remoteStore);
         if (findBranchInfo(keyStore.getStorageDir().getBranch(), USER_DATA_CONTEXT) == null)
-            branchList.add(BranchInfo.create(keyStore.getStorageDir().getBranch(), "KeyStore"), USER_DATA_CONTEXT);
+            branchList.add(BranchInfo.create(keyStore.getStorageDir().getBranch(), "KeyStore", USER_DATA_CONTEXT));
 
         myself = new ContactPrivate(context, new StorageDir(storageDir, MYSELF_PATH));
         contactStore = new ContactStore(context, new StorageDir(storageDir, CONTACT_PATH));
@@ -79,8 +79,8 @@ public class UserData extends StorageDirObject {
         return keyStore;
     }
 
-    public void addBranch(BranchInfo branchEntry, String context) throws IOException, CryptoException {
-        branchList.add(branchEntry, context);
+    public void addBranch(BranchInfo branchEntry) throws IOException, CryptoException {
+        branchList.add(branchEntry);
     }
 
     public BranchList getBranchList() {
@@ -121,9 +121,9 @@ public class UserData extends StorageDirObject {
                 new DefaultCommitSignature(context, signingKeyPair));
 
         UserData userData = new UserData(context, userDataDir, keyStore);
-        userData.addBranch(BranchInfo.create(userData.getBranch(), "User Data (this)"), USER_DATA_CONTEXT);
+        userData.addBranch(BranchInfo.create(userData.getBranch(), "User Data (this)", USER_DATA_CONTEXT));
         keyStore.setUserData(userData);
-        keyStore.addSymmetricKey(userDataDir.getBranch(), userDataKeyData);
+        keyStore.addSymmetricKey(userDataDir.getBranch(), userDataKeyData, USER_DATA_CONTEXT);
 
         userData.myself.addSignatureKey(signingKeyPair);
         userData.myself.setId(signingKeyPair.getKeyId().getKeyId());
@@ -138,8 +138,8 @@ public class UserData extends StorageDirObject {
         StorageDir accessControlBranch = context.getStorage(
                 CryptoHelper.sha1HashHex(context.getCrypto().generateInitializationVector(32)), null, null);
         AccessStore accessStore = new AccessStore(context, accessControlBranch);
-        userData.addBranch(BranchInfo.create(accessStore.getStorageDir().getBranch(), "Access Store"),
-                USER_DATA_CONTEXT);
+        userData.addBranch(BranchInfo.create(accessStore.getStorageDir().getBranch(), "Access Store",
+                USER_DATA_CONTEXT));
         userData.getStorageDir().writeString(ACCESS_STORE_PATH, accessStore.getStorageDir().getBranch());
         accessStore.commit();
 
@@ -147,8 +147,8 @@ public class UserData extends StorageDirObject {
         StorageDir inQueueBranch = context.getStorage(
                 CryptoHelper.sha1HashHex(context.getCrypto().generateInitializationVector(32)), null, null);
         IncomingCommandQueue incomingCommandQueue = new IncomingCommandQueue(inQueueBranch);
-        userData.addBranch(BranchInfo.create(incomingCommandQueue.getStorageDir().getBranch(), "In Queue"),
-                USER_DATA_CONTEXT);
+        userData.addBranch(BranchInfo.create(incomingCommandQueue.getStorageDir().getBranch(), "In Queue",
+                USER_DATA_CONTEXT));
         userData.getStorageDir().writeString(IN_QUEUE_PATH, incomingCommandQueue.getStorageDir().getBranch());
         incomingCommandQueue.commit();
 
@@ -156,8 +156,8 @@ public class UserData extends StorageDirObject {
         StorageDir outQueueBranch = context.getStorage(
                 CryptoHelper.sha1HashHex(context.getCrypto().generateInitializationVector(32)), null, null);
         OutgoingCommandQueue outgoingCommandQueue = new OutgoingCommandQueue(outQueueBranch);
-        userData.addBranch(BranchInfo.create(outgoingCommandQueue.getStorageDir().getBranch(), "Out Queue"),
-                USER_DATA_CONTEXT);
+        userData.addBranch(BranchInfo.create(outgoingCommandQueue.getStorageDir().getBranch(), "Out Queue",
+                USER_DATA_CONTEXT));
         userData.getStorageDir().writeString(OUT_QUEUE_PATH, outgoingCommandQueue.getStorageDir().getBranch());
         outgoingCommandQueue.commit();
 
@@ -168,7 +168,7 @@ public class UserData extends StorageDirObject {
             throws JSONException, CryptoException, IOException {
         KeyStore keyStore = KeyStore.open(context, settings.keyStoreSettings, password);
         String userDataBranch = keyStore.getUserDataBranch();
-        SymmetricKeyData userDataKeyData = keyStore.getSymmetricKey(userDataBranch);
+        SymmetricKeyData userDataKeyData = keyStore.getSymmetricKey(userDataBranch, USER_DATA_CONTEXT);
 
         StorageDir userDataDir = context.getStorage(userDataBranch, userDataKeyData, null);
         UserData userData = new UserData(context, userDataDir, keyStore);
@@ -205,7 +205,7 @@ public class UserData extends StorageDirObject {
         if (keyId != null && !keyId.isZero()) {
             if (!keyStore.getId().equals(keyRef.getKeyStoreId()))
                 throw new CryptoException("Unknown keystore.");
-            symmetricKeyData = keyStore.getSymmetricKey(keyId.toHex());
+            symmetricKeyData = keyStore.getSymmetricKey(keyId.toHex(), branchInfo.getStorageContext());
         }
         return symmetricKeyData;
     }

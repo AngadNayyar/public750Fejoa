@@ -56,11 +56,11 @@ public class AccessCommandHandler extends EnvelopeCommandHandler {
         ContactPublic sender = contactStore.getContactList().get(senderId);
 
         BranchList branchList = sender.getBranchList();
-        BranchInfo branchInfo = BranchInfo.create(branch, "contact branch");
+        BranchInfo branchInfo = BranchInfo.create(branch, "contact branch", branchContext);
         if (keyData != null)
             branchInfo.setCryptoKey(keyData);
         branchInfo.addLocation(remoteId, new AuthInfo.Token(accessTokenContact));
-        branchList.add(branchInfo, branchContext);
+        branchList.add(branchInfo);
 
         contactStore.commit();
 

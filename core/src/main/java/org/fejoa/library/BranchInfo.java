@@ -25,7 +25,7 @@ class ContactAccessList extends MovableStorageList<ContactAccess> {
     }
 
     @Override
-    protected ContactAccess readObject(IOStorageDir storageDir, String id) throws IOException, CryptoException {
+    protected ContactAccess readObject(IOStorageDir storageDir) throws IOException, CryptoException {
         return new ContactAccess(storageDir);
     }
 
@@ -121,6 +121,7 @@ public class BranchInfo extends MovableStorageContainer {
     final static private String CONTACT_ACCESS_KEY = "contactAccess";
 
     final private String branch;
+    final private String storageContext;
     private String description = "";
     final private MovableStorageList<Location> locations;
     private RemoteList remoteList;
@@ -130,34 +131,44 @@ public class BranchInfo extends MovableStorageContainer {
         description = storageDir.readString(DESCRIPTION_KEY);
     }
 
-    static public BranchInfo open(IOStorageDir dir, String branch) throws IOException, CryptoException {
-        BranchInfo branchInfo = new BranchInfo(dir, branch);
+    static public BranchInfo open(IOStorageDir dir, String branch, String storageContext) throws IOException, CryptoException {
+        BranchInfo branchInfo = new BranchInfo(dir, branch, storageContext);
         branchInfo.load();
         return branchInfo;
     }
 
-    static public BranchInfo create(String branch, String description) throws IOException {
-        return new BranchInfo(branch, description);
+    static public BranchInfo create(String branch, String description, String storageContext) throws IOException {
+        return new BranchInfo(branch, description, storageContext);
     }
 
-    private BranchInfo(IOStorageDir dir, String branch)  {
+    private BranchInfo(IOStorageDir dir, String branch, String storageContext)  {
         super(dir);
 
         this.branch = branch;
+        this.storageContext = storageContext;
+
         locations = new MovableStorageList<Location>(this, LOCATIONS_KEY) {
             @Override
-            protected Location readObject(IOStorageDir storageDir, String id) throws IOException, CryptoException {
+            protected Location readObject(IOStorageDir storageDir) throws IOException, CryptoException {
+                String id = "";
+                int index = storageDir.getBaseDir().lastIndexOf("/");
+                if (index > 0)
+                    id = storageDir.getBaseDir().substring(index + 1);
                 return new Location(storageDir, id);
             }
         };
         contactAccessList = new ContactAccessList(this, CONTACT_ACCESS_KEY);
     }
 
-    private BranchInfo(String branch, String description)
+    private BranchInfo(String branch, String description, String storageContext)
             throws IOException {
-        this((IOStorageDir)null, branch);
+        this((IOStorageDir)null, branch, storageContext);
 
         setDescription(description);
+    }
+
+    public String getStorageContext() {
+        return storageContext;
     }
 
     public void setRemoteList(RemoteList remoteList) {

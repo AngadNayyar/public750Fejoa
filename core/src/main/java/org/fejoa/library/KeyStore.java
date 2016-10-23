@@ -194,12 +194,20 @@ public class KeyStore extends StorageDirObject {
         return storageDir.readString(USER_DATA_BRANCH_KEY);
     }
 
-    public void addSymmetricKey(String id, SymmetricKeyData keyData) throws IOException, CryptoException {
-        keyData.write(new IOStorageDir(storageDir, StorageLib.appendDir(SYM_KEY_PATH, id)));
+    private String getKeyIdPath(String id, String context) {
+        String contextPath = context.replace('.', '/');
+        return StorageLib.appendDir(contextPath, id);
     }
 
-    public SymmetricKeyData getSymmetricKey(String id) throws IOException, CryptoException {
-        StorageDir dir = new StorageDir(storageDir, StorageLib.appendDir(SYM_KEY_PATH, id));
+    public void addSymmetricKey(String id, SymmetricKeyData keyData, String context)
+            throws IOException, CryptoException {
+        String keyIdPath = getKeyIdPath(id, context);
+        keyData.write(new IOStorageDir(storageDir, StorageLib.appendDir(SYM_KEY_PATH, keyIdPath)));
+    }
+
+    public SymmetricKeyData getSymmetricKey(String id, String context) throws IOException, CryptoException {
+        String keyIdPath = getKeyIdPath(id, context);
+        StorageDir dir = new StorageDir(storageDir, StorageLib.appendDir(SYM_KEY_PATH, keyIdPath));
         return SymmetricKeyData.open(dir);
     }
 }
