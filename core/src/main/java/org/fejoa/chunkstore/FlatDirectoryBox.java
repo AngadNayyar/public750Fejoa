@@ -141,9 +141,9 @@ abstract class DirectoryEntry {
         DirectoryEntry others = (DirectoryEntry)o;
         if (!name.equals(others.name))
             return false;
-        if (!dataPointer.equals(others.dataPointer))
+        if (dataPointer != null && !dataPointer.equals(others.dataPointer))
             return false;
-        if (!attrsDir.equals(others.attrsDir))
+        if (attrsDir != null && !attrsDir.equals(others.attrsDir))
             return false;
         return true;
     }
