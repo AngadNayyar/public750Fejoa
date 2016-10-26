@@ -247,6 +247,8 @@ public class SyncManager {
 
                     @Override
                     public void onResult(ChunkStorePullJob.Result result) {
+                        if (repository.getHeadCommit() == null)
+                            return;
                         if (result.status == RequestHandler.Result.ERROR.getValue()) {
                             observer.onResult("uncommitted changes");
                             return;
