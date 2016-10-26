@@ -27,7 +27,8 @@ import java.util.Scanner;
 public class Client {
     final static private String USER_SETTINGS_FILE = "user.settings";
     final private FejoaContext context;
-    private ConnectionManager connectionManager;
+    final private ConnectionManager connectionManager;
+    final private MigrationManager migrationManager;
     private UserData userData;
     private SyncManager syncManager;
     private Task.IObserver<TaskUpdate, Void> syncObserver = null;
@@ -50,6 +51,7 @@ public class Client {
     private Client(File homeDir) {
         this.context = new FejoaContext(homeDir);
         this.connectionManager = new ConnectionManager();
+        this.migrationManager = new MigrationManager(this);
     }
 
     static public Client create(File homeDir, String userName, String server, String password)
@@ -239,7 +241,7 @@ public class Client {
                 remote, authInfo, observer);
     }
 
-    public void migrate(String newUserName, String newServer) {
-
+    public MigrationManager getMigrationManager() {
+        return migrationManager;
     }
 }

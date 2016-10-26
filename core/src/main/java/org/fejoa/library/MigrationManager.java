@@ -9,9 +9,11 @@ package org.fejoa.library;
 
 import org.fejoa.library.command.MigrationCommand;
 import org.fejoa.library.command.OutgoingCommandQueue;
+import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.support.Task;
 import org.fejoa.library.remote.*;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -93,8 +95,17 @@ public class MigrationManager {
                         branchesToCopy.remove(0);
                         if (branchesToCopy.size() > 0)
                             copyBranches(currentRemote, branchesToCopy, updatedRemote, accessTokenContact, observer);
-                        else
+                        else {
+                            // update own remote
+                            try {
+                                UserData userData = client.getUserData();
+                                userData.getRemoteStore().add(updatedRemote);
+                                userData.commit();
+                            } catch (Exception e) {
+                                onException(e);
+                            }
                             notifyContacts(updatedRemote, observer);
+                        }
                     }
 
                     @Override

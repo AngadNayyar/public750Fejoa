@@ -483,8 +483,8 @@ public class ClientTest extends TestCase {
                     .getHandler(MigrationCommand.COMMAND_NAME);
             handler.setListener(listener);
 
-            MigrationManager migrationManager = new MigrationManager(client1);
-            Remote remote = client1.getUserData().getGateway();
+            MigrationManager migrationManager = client1.getMigrationManager();
+            final Remote remote = client1.getUserData().getGateway();
             migrationManager.migrate(new Remote(remote.getId(), USER_NAME_1_NEW, SERVER_URL_1_NEW), PASSWORD,
                     new Task.IObserver<Void, RemoteJob.Result>() {
                 @Override
@@ -494,7 +494,14 @@ public class ClientTest extends TestCase {
 
                 @Override
                 public void onResult(RemoteJob.Result result) {
-
+                    try {
+                        Remote newGateway = client1.getUserData().getGateway();
+                        assertEquals(remote.getId(), newGateway.getId());
+                        assertEquals(USER_NAME_1_NEW, newGateway.getUser());
+                        assertEquals(SERVER_URL_1_NEW, newGateway.getServer());
+                    } catch (IOException e) {
+                        finishAndFail(e);
+                    }
                 }
 
                 @Override
