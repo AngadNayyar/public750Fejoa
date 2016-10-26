@@ -74,7 +74,8 @@ public class BranchList extends MovableStorageList<BranchInfo> {
             return this.getEntries("");
 
         List<BranchInfo> entries = new ArrayList<>();
-        getEntriesRecursive("", new IOStorageDir(storageDir, contextToPath(context)), entries);
+        String path = contextToPath(context);
+        getEntriesRecursive(path, new IOStorageDir(storageDir, path), entries);
         return entries;
     }
 
