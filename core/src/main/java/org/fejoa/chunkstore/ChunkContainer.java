@@ -342,7 +342,7 @@ public class ChunkContainer extends ChunkContainerNode {
         return string;
     }
 
-    static final public byte FIXED_BLOCK_SPLITTER = 0;
+    static final public byte FIXED_BLOCK_SPLITTER_DETAILED = 0;
     static final public byte RABIN_SPLITTER_DETAILED = 1;
 
     private void readHeader(DataInputStream inputStream) throws IOException {
@@ -350,7 +350,7 @@ public class ChunkContainer extends ChunkContainerNode {
 
         byte nodeSplitterType = inputStream.readByte();
         switch (nodeSplitterType) {
-            case FIXED_BLOCK_SPLITTER:
+            case FIXED_BLOCK_SPLITTER_DETAILED:
                 int blockSize = inputStream.readInt();
                 setNodeSplitter(new FixedBlockSplitter(blockSize));
                 break;
@@ -376,7 +376,7 @@ public class ChunkContainer extends ChunkContainerNode {
             outputStream.writeInt(rabinSplitter.getMaxChunkSize());
         } else if (nodeSplitter instanceof  FixedBlockSplitter) {
             FixedBlockSplitter fixedBlockSplitter = (FixedBlockSplitter) nodeSplitter;
-            outputStream.writeByte(FIXED_BLOCK_SPLITTER);
+            outputStream.writeByte(FIXED_BLOCK_SPLITTER_DETAILED);
             outputStream.writeInt(fixedBlockSplitter.getBlockSize());
         } else {
             throw new IOException("Unsupported node splitter.");
