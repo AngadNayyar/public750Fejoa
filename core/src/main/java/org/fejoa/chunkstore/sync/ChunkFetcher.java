@@ -164,10 +164,10 @@ class GetDirJob extends GetChunkContainerJob {
         if (doneCount > 0)
             return;
         doneCount++;
-        DirectoryBox directoryBox = DirectoryBox.read(chunkContainer);
+        FlatDirectoryBox directoryBox = FlatDirectoryBox.read(chunkContainer);
 
         ChunkStore.Transaction rawTransaction = transaction.getRawAccessor();
-        for (DirectoryBox.Entry entry : directoryBox.getEntries()) {
+        for (FlatDirectoryBox.Entry entry : directoryBox.getEntries()) {
             if (rawTransaction.contains(entry.getDataPointer().getBoxHash()))
                 continue;
             if (entry.isFile()) {

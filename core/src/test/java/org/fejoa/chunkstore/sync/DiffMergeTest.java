@@ -8,9 +8,6 @@
 package org.fejoa.chunkstore.sync;
 
 import org.fejoa.chunkstore.*;
-import org.fejoa.chunkstore.sync.CommonAncestorsFinder;
-import org.fejoa.chunkstore.sync.DiffIterator;
-import org.fejoa.chunkstore.sync.DirBoxDiffIterator;
 import org.fejoa.library.crypto.Crypto;
 import org.fejoa.library.crypto.CryptoHelper;
 import org.fejoa.library.support.StorageLib;
@@ -18,9 +15,7 @@ import org.fejoa.library.support.StorageLib;
 import java.io.File;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 
@@ -31,7 +26,7 @@ public class DiffMergeTest extends RepositoryTest {
          messageDigest = CryptoHelper.sha256Hash();
     }
 
-    private BoxPointer addFile(DirectoryBox box, String name) {
+    private BoxPointer addFile(FlatDirectoryBox box, String name) {
         HashValue dataHash = new HashValue(CryptoHelper.sha256Hash(Crypto.get().generateSalt()));
         BoxPointer fakeFilePointer = new BoxPointer(dataHash,
                 new HashValue(CryptoHelper.sha256Hash(Crypto.get().generateSalt())), dataHash);
@@ -40,8 +35,8 @@ public class DiffMergeTest extends RepositoryTest {
     }
 
     public void testDiff() {
-        DirectoryBox ours = DirectoryBox.create();
-        DirectoryBox theirs = DirectoryBox.create();
+        FlatDirectoryBox ours = FlatDirectoryBox.create();
+        FlatDirectoryBox theirs = FlatDirectoryBox.create();
 
         BoxPointer file1 = addFile(ours, "test1");
         DirBoxDiffIterator iterator = new DirBoxDiffIterator("", ours, theirs);

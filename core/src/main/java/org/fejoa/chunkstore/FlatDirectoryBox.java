@@ -19,11 +19,86 @@ import java.util.*;
 
 
 abstract class DirectoryEntry {
+    enum TYPE {
+        NONE(0x00),
+        DATA(0x01),
+        ENC_ATTRS_DIR(0x02),
+        ATTRS_DIR(0x04),
+        BASIC_FILE_ATTRS(0x08);
+
+        final private int value;
+
+        TYPE(int value) {
+            this.value = (byte)value;
+        }
+
+        public int getValue() {
+            return value;
+        }
+    }
+
+    interface AttrIO {
+        void read(DataInputStream inputStream) throws IOException;
+        void write(DataOutputStream outputStream) throws IOException;
+    }
+
+    class BasicFileAttrsIO implements AttrIO {
+        @Override
+        public void read(DataInputStream inputStream) {
+
+        }
+
+        @Override
+        public void write(DataOutputStream outputStream) {
+
+        }
+    }
+
+    class DataIO implements AttrIO {
+        @Override
+        public void read(DataInputStream inputStream) throws IOException {
+            dataPointer = new BoxPointer();
+            dataPointer.read(inputStream);
+        }
+
+        @Override
+        public void write(DataOutputStream outputStream) throws IOException {
+            dataPointer.write(outputStream);
+        }
+    }
+
+    class EncAttrsIO implements AttrIO {
+        @Override
+        public void read(DataInputStream inputStream) throws IOException {
+            encAttrsDir = new BoxPointer();
+            encAttrsDir.read(inputStream);
+        }
+
+        @Override
+        public void write(DataOutputStream outputStream) throws IOException {
+            encAttrsDir.write(outputStream);
+        }
+    }
+
+    class AttrsDirIO implements AttrIO {
+        @Override
+        public void read(DataInputStream inputStream) throws IOException {
+            attrsDir = new BoxPointer();
+            attrsDir.read(inputStream);
+        }
+
+        @Override
+        public void write(DataOutputStream outputStream) throws IOException {
+            attrsDir.write(outputStream);
+        }
+    }
+
     static public int MAX_NAME_LENGTH = 1024 * 5;
 
     private String name;
     private BoxPointer dataPointer;
-    private BoxPointer attrsDir = new BoxPointer();
+    private BoxPointer encAttrsDir;
+    private BoxPointer attrsDir;
     private Object object;
 
     public DirectoryEntry(String name, BoxPointer dataPointer) {
@@ -33,6 +108,30 @@ abstract class DirectoryEntry {
 
     public DirectoryEntry() {
 
+    }
+
+    private List<AttrIO> getAttrIOs(int value) {
+        List<AttrIO> list = new ArrayList<>();
+        if ((value & TYPE.DATA.value) != 0)
+            list.add(new DataIO());
+        if ((value & TYPE.ENC_ATTRS_DIR.value) != 0)
+            list.add(new EncAttrsIO());
+        if ((value & TYPE.ATTRS_DIR.value) != 0)
+            list.add(new AttrsDirIO());
+        if ((value & TYPE.BASIC_FILE_ATTRS.value) != 0)
+            list.add(new BasicFileAttrsIO());
+        return list;
+    }
+
+    private byte getAttrIOs() {
+        int value = 0;
+        if (dataPointer != null)
+            value |= TYPE.DATA.value;
+        if (encAttrsDir != null)
+            value |= TYPE.ENC_ATTRS_DIR.value;
+        if (attrsDir != null)
+            value |= TYPE.ATTRS_DIR.value;
+        return (byte)value;
     }
 
     @Override
@@ -81,9 +180,6 @@ abstract class DirectoryEntry {
         this.attrsDir = attrsDir;
     }
 
-    abstract void writeShortAttrs(DataOutputStream outputStream) throws IOException;
-    abstract void readShortAttrs(DataInputStream inputStream) throws IOException;
-
     /**
      * Write the entry to a MessageDigest.
      *
@@ -106,44 +202,26 @@ abstract class DirectoryEntry {
 
     private void writePlainData(DataOutputStream outputStream) throws IOException {
         StreamHelper.writeString(outputStream, name);
-        writeShortAttrs(outputStream);
-        outputStream.write(dataPointer.getDataHash().getBytes());
-        byte hasAttrsDir = 0x0;
-        if (attrsDir != null)
-            hasAttrsDir = 0x1;
-        outputStream.writeByte(hasAttrsDir);
-        if (attrsDir != null)
-            outputStream.write(attrsDir.getDataHash().getBytes());
+
+        byte attrs = getAttrIOs();
+        outputStream.writeByte(attrs);
+        for (AttrIO attrIO : getAttrIOs(attrs))
+            attrIO.write(outputStream);
     }
 
     public void write(DataOutputStream outputStream) throws IOException {
-        StreamHelper.writeString(outputStream, name);
-        writeShortAttrs(outputStream);
-        dataPointer.write(outputStream);
-        byte hasAttrsDir = 0x0;
-        if (attrsDir != null)
-            hasAttrsDir = 0x1;
-        outputStream.writeByte(hasAttrsDir);
-        if (attrsDir != null)
-            attrsDir.write(outputStream);
+        writePlainData(outputStream);
     }
 
     public void read(DataInputStream inputStream) throws IOException {
         name = StreamHelper.readString(inputStream, MAX_NAME_LENGTH);
-        readShortAttrs(inputStream);
-        if (dataPointer == null)
-            dataPointer = new BoxPointer();
-        dataPointer.read(inputStream);
-        byte hasAttrsDir = inputStream.readByte();
-        if (hasAttrsDir == 0x1) {
-            if (attrsDir == null)
-                attrsDir = new BoxPointer();
-            attrsDir.read(inputStream);
-        }
+        byte attrs = inputStream.readByte();
+        for (AttrIO attrIO : getAttrIOs(attrs))
+            attrIO.read(inputStream);
     }
 }
 
-public class DirectoryBox extends TypedBlob {
+public class FlatDirectoryBox extends TypedBlob {
     public static class Entry extends DirectoryEntry {
         boolean isFile;
 
@@ -172,42 +250,32 @@ public class DirectoryBox extends TypedBlob {
                 return false;
             return super.equals(o);
         }
-
-        @Override
-        void writeShortAttrs(DataOutputStream outputStream) throws IOException {
-
-        }
-
-        @Override
-        void readShortAttrs(DataInputStream inputStream) throws IOException {
-
-        }
     }
 
     final private Map<String, Entry> entries = new HashMap<>();
 
-    private DirectoryBox() {
-        super(BlobTypes.DIRECTORY);
+    private FlatDirectoryBox() {
+        super(BlobTypes.FLAT_DIRECTORY);
     }
 
-    static public DirectoryBox create() {
-        return new DirectoryBox();
+    static public FlatDirectoryBox create() {
+        return new FlatDirectoryBox();
     }
 
-    static public DirectoryBox read(IChunkAccessor accessor, BoxPointer boxPointer)
+    static public FlatDirectoryBox read(IChunkAccessor accessor, BoxPointer boxPointer)
             throws IOException, CryptoException {
         ChunkContainer chunkContainer = ChunkContainer.read(accessor, boxPointer);
         return read(chunkContainer);
     }
 
-    static public DirectoryBox read(ChunkContainer chunkContainer)
+    static public FlatDirectoryBox read(ChunkContainer chunkContainer)
             throws IOException, CryptoException {
-        return read(BlobTypes.DIRECTORY, new DataInputStream(new ChunkContainerInputStream(chunkContainer)));
+        return read(BlobTypes.FLAT_DIRECTORY, new DataInputStream(new ChunkContainerInputStream(chunkContainer)));
     }
 
-    static private DirectoryBox read(short type, DataInputStream inputStream) throws IOException {
-        assert type == BlobTypes.DIRECTORY;
-        DirectoryBox directoryBox = new DirectoryBox();
+    static private FlatDirectoryBox read(short type, DataInputStream inputStream) throws IOException {
+        assert type == BlobTypes.FLAT_DIRECTORY;
+        FlatDirectoryBox directoryBox = new FlatDirectoryBox();
         directoryBox.read(inputStream);
         return directoryBox;
     }

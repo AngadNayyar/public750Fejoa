@@ -7,15 +7,15 @@
  */
 package org.fejoa.chunkstore.sync;
 
-import org.fejoa.chunkstore.DirectoryBox;
+import org.fejoa.chunkstore.FlatDirectoryBox;
 
 
-public class DirBoxDiffIterator extends DiffIterator<DirectoryBox.Entry> {
-    public DirBoxDiffIterator(String basePath, DirectoryBox ours, DirectoryBox theirs) {
+public class DirBoxDiffIterator extends DiffIterator<FlatDirectoryBox.Entry> {
+    public DirBoxDiffIterator(String basePath, FlatDirectoryBox ours, FlatDirectoryBox theirs) {
         super(basePath, ours == null ? null : ours.getEntries(), theirs.getEntries(),
-                new NameGetter<DirectoryBox.Entry>() {
+                new NameGetter<FlatDirectoryBox.Entry>() {
             @Override
-            public String getName(DirectoryBox.Entry entry) {
+            public String getName(FlatDirectoryBox.Entry entry) {
                 return entry.getName();
             }
         });

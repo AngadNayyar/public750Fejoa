@@ -56,17 +56,17 @@ public class PushRequest {
         collectChunkContainer(child.getBoxPointer(), commitAccessor, list);
 
         // diff of the commit trees
-        DirectoryBox parentDir = null;
+        FlatDirectoryBox parentDir = null;
         if (parent != null)
-            parentDir = DirectoryBox.read(dirAccessor, parent.getTree());
-        DirectoryBox nextDir = DirectoryBox.read(dirAccessor, child.getTree());
+            parentDir = FlatDirectoryBox.read(dirAccessor, parent.getTree());
+        FlatDirectoryBox nextDir = FlatDirectoryBox.read(dirAccessor, child.getTree());
 
         // add root dir
         collectChunkContainer(child.getTree(), dirAccessor, list);
 
         DirBoxDiffIterator diffIterator = new DirBoxDiffIterator("", parentDir, nextDir);
         while (diffIterator.hasNext()) {
-            DirBoxDiffIterator.Change<DirectoryBox.Entry> change = diffIterator.next();
+            DirBoxDiffIterator.Change<FlatDirectoryBox.Entry> change = diffIterator.next();
             // we are only interesting in modified and added changes
             if (change.type == DiffIterator.Type.REMOVED)
                 continue;
@@ -103,8 +103,8 @@ public class PushRequest {
             throws IOException, CryptoException {
         collectChunkContainer(dirPointer, dirAccessor, list);
 
-        DirectoryBox dir = DirectoryBox.read(dirAccessor, dirPointer);
-        for (DirectoryBox.Entry entry : dir.getEntries()) {
+        FlatDirectoryBox dir = FlatDirectoryBox.read(dirAccessor, dirPointer);
+        for (FlatDirectoryBox.Entry entry : dir.getEntries()) {
             String childPath = StorageLib.appendDir(path, entry.getName());
             if (entry.isFile())
                 collectFile(transaction, entry.getDataPointer(), childPath, list);

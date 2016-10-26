@@ -8,7 +8,7 @@
 package org.fejoa.chunkstore.sync;
 
 import org.fejoa.chunkstore.CommitBox;
-import org.fejoa.chunkstore.DirectoryBox;
+import org.fejoa.chunkstore.FlatDirectoryBox;
 import org.fejoa.chunkstore.IChunkAccessor;
 import org.fejoa.library.crypto.CryptoException;
 
@@ -18,7 +18,7 @@ import java.util.Iterator;
 import java.util.List;
 
 
-public class TreeIterator implements Iterator<DiffIterator.Change<DirectoryBox.Entry>> {
+public class TreeIterator implements Iterator<DiffIterator.Change<FlatDirectoryBox.Entry>> {
     final private IChunkAccessor ourAccessor;
     final private IChunkAccessor theirAccessor;
     final private List<DirBoxDiffIterator> iterators = new ArrayList<>();
@@ -26,12 +26,12 @@ public class TreeIterator implements Iterator<DiffIterator.Change<DirectoryBox.E
 
     public TreeIterator(IChunkAccessor ourAccessor, CommitBox ours, IChunkAccessor theirAccessor,
                         CommitBox theirs) throws IOException, CryptoException {
-        this(ourAccessor, ours == null ? null : DirectoryBox.read(ourAccessor, ours.getTree()),
-                theirAccessor, DirectoryBox.read(theirAccessor, theirs.getTree()));
+        this(ourAccessor, ours == null ? null : FlatDirectoryBox.read(ourAccessor, ours.getTree()),
+                theirAccessor, FlatDirectoryBox.read(theirAccessor, theirs.getTree()));
     }
 
-    public TreeIterator(IChunkAccessor ourAccessor, DirectoryBox ours, IChunkAccessor theirAccessor,
-                        DirectoryBox theirs) {
+    public TreeIterator(IChunkAccessor ourAccessor, FlatDirectoryBox ours, IChunkAccessor theirAccessor,
+                        FlatDirectoryBox theirs) {
         this.ourAccessor = ourAccessor;
         this.theirAccessor = theirAccessor;
         current = new DirBoxDiffIterator("", ours, theirs);
@@ -43,12 +43,12 @@ public class TreeIterator implements Iterator<DiffIterator.Change<DirectoryBox.E
     }
 
     @Override
-    public DiffIterator.Change<DirectoryBox.Entry> next() {
-        DiffIterator.Change<DirectoryBox.Entry> next = current.next();
+    public DiffIterator.Change<FlatDirectoryBox.Entry> next() {
+        DiffIterator.Change<FlatDirectoryBox.Entry> next = current.next();
         if (next.type == DiffIterator.Type.MODIFIED && !next.ours.isFile() && !next.theirs.isFile()) {
             try {
-                iterators.add(new DirBoxDiffIterator(next.path, DirectoryBox.read(ourAccessor, next.ours.getDataPointer()),
-                        DirectoryBox.read(theirAccessor, next.theirs.getDataPointer())));
+                iterators.add(new DirBoxDiffIterator(next.path, FlatDirectoryBox.read(ourAccessor, next.ours.getDataPointer()),
+                        FlatDirectoryBox.read(theirAccessor, next.theirs.getDataPointer())));
             } catch (Exception e) {
                 e.printStackTrace();
             }

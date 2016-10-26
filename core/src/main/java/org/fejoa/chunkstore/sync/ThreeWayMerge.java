@@ -15,13 +15,13 @@ import java.io.IOException;
 
 public class ThreeWayMerge {
     public interface IConflictSolver {
-        DirectoryBox.Entry solve(DirectoryBox.Entry ours, DirectoryBox.Entry theirs);
+        FlatDirectoryBox.Entry solve(FlatDirectoryBox.Entry ours, FlatDirectoryBox.Entry theirs);
     }
 
     static public IConflictSolver ourSolver() {
         return new IConflictSolver() {
             @Override
-            public DirectoryBox.Entry solve(DirectoryBox.Entry ours, DirectoryBox.Entry theirs) {
+            public FlatDirectoryBox.Entry solve(FlatDirectoryBox.Entry ours, FlatDirectoryBox.Entry theirs) {
                 return ours;
             }
         };
@@ -34,37 +34,37 @@ public class ThreeWayMerge {
             throws IOException, CryptoException {
         IChunkAccessor ourAccessor = ourTransaction.getTreeAccessor();
         IChunkAccessor theirAccessor = ourTransaction.getTreeAccessor();
-        DirectoryBox ourRoot = DirectoryBox.read(ourAccessor, ours.getTree());
-        DirectoryBox theirRoot = DirectoryBox.read(theirAccessor, theirs.getTree());
+        FlatDirectoryBox ourRoot = FlatDirectoryBox.read(ourAccessor, ours.getTree());
+        FlatDirectoryBox theirRoot = FlatDirectoryBox.read(theirAccessor, theirs.getTree());
         TreeIterator treeIterator = new TreeIterator(ourAccessor, ourRoot, theirAccessor, theirRoot);
 
-        DirectoryBox parentRoot = DirectoryBox.read(ourAccessor, parent.getTree());
+        FlatDirectoryBox parentRoot = FlatDirectoryBox.read(ourAccessor, parent.getTree());
         TreeAccessor parentTreeAccessor = new TreeAccessor(parentRoot, ourTransaction);
-        TreeAccessor ourTreeAccessor = new TreeAccessor(DirectoryBox.read(ourAccessor, ours.getTree()), ourTransaction);
-        TreeAccessor theirTreeAccessor = new TreeAccessor(DirectoryBox.read(theirAccessor, theirs.getTree()),
+        TreeAccessor ourTreeAccessor = new TreeAccessor(FlatDirectoryBox.read(ourAccessor, ours.getTree()), ourTransaction);
+        TreeAccessor theirTreeAccessor = new TreeAccessor(FlatDirectoryBox.read(theirAccessor, theirs.getTree()),
                 theirTransaction);
 
         TreeAccessor outTree = new TreeAccessor(ourRoot, outTransaction);
 
         while (treeIterator.hasNext()) {
-            DiffIterator.Change<DirectoryBox.Entry> change = treeIterator.next();
+            DiffIterator.Change<FlatDirectoryBox.Entry> change = treeIterator.next();
             if (change.type == DiffIterator.Type.ADDED) {
-                DirectoryBox.Entry parentEntry = parentTreeAccessor.get(change.path);
+                FlatDirectoryBox.Entry parentEntry = parentTreeAccessor.get(change.path);
                 if (parentEntry == null) {
                     // add to ours
                     outTree.put(change.path, change.theirs);
                 }
             } else if (change.type == DiffIterator.Type.REMOVED) {
-                DirectoryBox.Entry parentEntry = parentTreeAccessor.get(change.path);
+                FlatDirectoryBox.Entry parentEntry = parentTreeAccessor.get(change.path);
                 if (parentEntry != null) {
                     // remove from ours
                     outTree.remove(change.path);
                 }
             } else if (change.type == DiffIterator.Type.MODIFIED) {
-                DirectoryBox.Entry ourEntry = ourTreeAccessor.get(change.path);
+                FlatDirectoryBox.Entry ourEntry = ourTreeAccessor.get(change.path);
                 if (!ourEntry.isFile())
                     continue;
-                DirectoryBox.Entry theirEntry = theirTreeAccessor.get(change.path);
+                FlatDirectoryBox.Entry theirEntry = theirTreeAccessor.get(change.path);
                 outTree.put(change.path, conflictSolver.solve(ourEntry, theirEntry));
             }
         }

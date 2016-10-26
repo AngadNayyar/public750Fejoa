@@ -17,10 +17,10 @@ import java.util.List;
 
 public class TreeAccessor {
     private boolean modified = false;
-    private DirectoryBox root;
+    private FlatDirectoryBox root;
     private IRepoChunkAccessors.ITransaction transaction;
 
-    public TreeAccessor(DirectoryBox root, IRepoChunkAccessors.ITransaction transaction) throws IOException {
+    public TreeAccessor(FlatDirectoryBox root, IRepoChunkAccessors.ITransaction transaction) throws IOException {
         this.transaction = transaction;
 
         this.root = root;
@@ -45,16 +45,16 @@ public class TreeAccessor {
         return fileBox.getDataContainer().getBoxPointer();
     }
 
-    public DirectoryBox.Entry get(String path) throws IOException, CryptoException {
+    public FlatDirectoryBox.Entry get(String path) throws IOException, CryptoException {
         path = checkPath(path);
         String[] parts = path.split("/");
         String entryName = parts[parts.length - 1];
-        DirectoryBox.Entry currentDir = get(parts, parts.length - 1, false);
+        FlatDirectoryBox.Entry currentDir = get(parts, parts.length - 1, false);
         if (currentDir == null)
             return null;
         if (entryName.equals(""))
             return currentDir;
-        return ((DirectoryBox)currentDir.getObject()).getEntry(entryName);
+        return ((FlatDirectoryBox)currentDir.getObject()).getEntry(entryName);
     }
 
     /**
@@ -64,12 +64,12 @@ public class TreeAccessor {
      * @throws IOException
      * @throws CryptoException
      */
-    public DirectoryBox.Entry get(String[] parts, int nDirs, boolean invalidTouchedDirs)
+    public FlatDirectoryBox.Entry get(String[] parts, int nDirs, boolean invalidTouchedDirs)
             throws IOException, CryptoException {
         if (root == null)
             return null;
-        DirectoryBox.Entry entry = null;
-        DirectoryBox currentDir = root;
+        FlatDirectoryBox.Entry entry = null;
+        FlatDirectoryBox currentDir = root;
         for (int i = 0; i < nDirs; i++) {
             String subDir = parts[i];
             entry = currentDir.getEntry(subDir);
@@ -77,17 +77,17 @@ public class TreeAccessor {
                 return null;
 
             if (entry.getObject() != null) {
-                currentDir = (DirectoryBox)entry.getObject();
+                currentDir = (FlatDirectoryBox)entry.getObject();
             } else {
                 IChunkAccessor accessor = transaction.getTreeAccessor();
-                currentDir = DirectoryBox.read(accessor, entry.getDataPointer());
+                currentDir = FlatDirectoryBox.read(accessor, entry.getDataPointer());
                 entry.setObject(currentDir);
             }
             if (invalidTouchedDirs)
                 entry.markModified();
         }
         if (currentDir == root) {
-            entry = new DirectoryBox.Entry("", null, false);
+            entry = new FlatDirectoryBox.Entry("", null, false);
             entry.setObject(root);
             if (invalidTouchedDirs)
                 entry.markModified();
@@ -96,14 +96,14 @@ public class TreeAccessor {
     }
 
     public boolean hasFile(String path) throws IOException, CryptoException {
-        DirectoryBox.Entry fileEntry = get(path);
+        FlatDirectoryBox.Entry fileEntry = get(path);
         if (fileEntry == null)
             return false;
         return fileEntry.isFile();
     }
 
     public byte[] read(String path) throws IOException, CryptoException {
-        DirectoryBox.Entry fileEntry = get(path);
+        FlatDirectoryBox.Entry fileEntry = get(path);
         if (fileEntry == null)
             throw new IOException("Entry not found");
         assert fileEntry.isFile();
@@ -116,32 +116,32 @@ public class TreeAccessor {
     }
 
     public void put(String path, FileBox file) throws IOException, CryptoException {
-        DirectoryBox.Entry entry = new DirectoryBox.Entry(true);
+        FlatDirectoryBox.Entry entry = new FlatDirectoryBox.Entry(true);
         entry.setObject(file);
         if (!file.getBoxPointer().getBoxHash().isZero())
             entry.setDataPointer(file.getBoxPointer());
         put(path, entry);
     }
 
-    public DirectoryBox.Entry put(String path, BoxPointer dataPointer, boolean isFile) throws IOException,
+    public FlatDirectoryBox.Entry put(String path, BoxPointer dataPointer, boolean isFile) throws IOException,
             CryptoException {
-        DirectoryBox.Entry entry = new DirectoryBox.Entry("", dataPointer, isFile);
+        FlatDirectoryBox.Entry entry = new FlatDirectoryBox.Entry("", dataPointer, isFile);
         put(path, entry);
         return entry;
     }
 
-    public void put(String path, DirectoryBox.Entry entry) throws IOException, CryptoException {
+    public void put(String path, FlatDirectoryBox.Entry entry) throws IOException, CryptoException {
         path = checkPath(path);
         String[] parts = path.split("/");
         String fileName = parts[parts.length - 1];
-        DirectoryBox currentDir = root;
+        FlatDirectoryBox currentDir = root;
         IChunkAccessor treeAccessor = transaction.getTreeAccessor();
-        List<DirectoryBox.Entry> touchedEntries = new ArrayList<>();
+        List<FlatDirectoryBox.Entry> touchedEntries = new ArrayList<>();
         for (int i = 0; i < parts.length - 1; i++) {
             String subDir = parts[i];
-            DirectoryBox.Entry currentEntry = currentDir.getEntry(subDir);
+            FlatDirectoryBox.Entry currentEntry = currentDir.getEntry(subDir);
             if (currentEntry == null) {
-                DirectoryBox subDirBox = DirectoryBox.create();
+                FlatDirectoryBox subDirBox = FlatDirectoryBox.create();
                 currentEntry = currentDir.addDir(subDir, null);
                 currentEntry.setObject(subDirBox);
                 currentDir = subDirBox;
@@ -149,9 +149,9 @@ public class TreeAccessor {
                 if (currentEntry.isFile())
                     throw new IOException("Invalid insert path: " + path);
                 if (currentEntry.getObject() != null) {
-                    currentDir = (DirectoryBox)currentEntry.getObject();
+                    currentDir = (FlatDirectoryBox)currentEntry.getObject();
                 } else {
-                    currentDir = DirectoryBox.read(treeAccessor, currentEntry.getDataPointer());
+                    currentDir = FlatDirectoryBox.read(treeAccessor, currentEntry.getDataPointer());
                     currentEntry.setObject(currentDir);
                 }
             }
@@ -159,7 +159,7 @@ public class TreeAccessor {
         }
         entry.setName(fileName);
 
-        DirectoryBox.Entry existingEntry = currentDir.getEntry(fileName);
+        FlatDirectoryBox.Entry existingEntry = currentDir.getEntry(fileName);
         if (existingEntry != null) {
             // check if something has changed
             if (entry.getDataPointer() != null
@@ -168,24 +168,24 @@ public class TreeAccessor {
             }
         }
 
-        for (DirectoryBox.Entry touched : touchedEntries) {
+        for (FlatDirectoryBox.Entry touched : touchedEntries) {
             touched.markModified();
         }
         this.modified = true;
         currentDir.put(fileName, entry);
     }
 
-    public DirectoryBox.Entry remove(String path) throws IOException, CryptoException {
+    public FlatDirectoryBox.Entry remove(String path) throws IOException, CryptoException {
         this.modified = true;
         path = checkPath(path);
         String[] parts = path.split("/");
         String entryName = parts[parts.length - 1];
-        DirectoryBox.Entry currentDir = get(parts, parts.length - 1, true);
+        FlatDirectoryBox.Entry currentDir = get(parts, parts.length - 1, true);
         if (currentDir == null)
             return null;
         // invalidate entry
         currentDir.markModified();
-        DirectoryBox directoryBox = (DirectoryBox)currentDir.getObject();
+        FlatDirectoryBox directoryBox = (FlatDirectoryBox)currentDir.getObject();
         return directoryBox.remove(entryName);
     }
 
@@ -194,14 +194,14 @@ public class TreeAccessor {
         return build(root, "");
     }
 
-    private BoxPointer build(DirectoryBox dir, String path) throws IOException, CryptoException {
-        for (DirectoryBox.Entry child : dir.getDirs()) {
+    private BoxPointer build(FlatDirectoryBox dir, String path) throws IOException, CryptoException {
+        for (FlatDirectoryBox.Entry child : dir.getDirs()) {
             if (child.getDataPointer() != null)
                 continue;
             assert child.getObject() != null;
-            child.setDataPointer(build((DirectoryBox)child.getObject(), path + "/" + child.getName()));
+            child.setDataPointer(build((FlatDirectoryBox)child.getObject(), path + "/" + child.getName()));
         }
-        for (DirectoryBox.Entry child : dir.getFiles()) {
+        for (FlatDirectoryBox.Entry child : dir.getFiles()) {
             if (child.getDataPointer() != null)
                 continue;
             assert child.getObject() != null;
@@ -212,7 +212,7 @@ public class TreeAccessor {
         return Repository.put(dir, transaction.getTreeAccessor());
     }
 
-    public DirectoryBox getRoot() {
+    public FlatDirectoryBox getRoot() {
         return root;
     }
 }

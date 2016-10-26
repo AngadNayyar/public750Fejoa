@@ -46,12 +46,12 @@ public class Repository implements IDatabaseInterface {
         BoxPointer headCommitPointer = null;
         if (log.getLatest() != null)
             headCommitPointer = commitCallback.commitPointerFromLog(log.getLatest().getMessage());
-        DirectoryBox root;
+        FlatDirectoryBox root;
         if (headCommitPointer == null) {
-            root = DirectoryBox.create();
+            root = FlatDirectoryBox.create();
         } else {
             headCommit = CommitBox.read(transaction.getCommitAccessor(), headCommitPointer);
-            root = DirectoryBox.read(transaction.getTreeAccessor(), headCommit.getTree());
+            root = FlatDirectoryBox.read(transaction.getTreeAccessor(), headCommit.getTree());
         }
         this.treeAccessor = new TreeAccessor(root, transaction);
         commitCache = new CommitCache(this);
@@ -75,7 +75,7 @@ public class Repository implements IDatabaseInterface {
 
     private void setHeadCommit(CommitBox headCommit) throws IOException, CryptoException {
         this.headCommit = headCommit;
-        DirectoryBox root = DirectoryBox.read(transaction.getTreeAccessor(), headCommit.getTree());
+        FlatDirectoryBox root = FlatDirectoryBox.read(transaction.getTreeAccessor(), headCommit.getTree());
         this.treeAccessor = new TreeAccessor(root, transaction);
     }
 
@@ -120,7 +120,7 @@ public class Repository implements IDatabaseInterface {
     @Override
     public HashValue getHash(String path) throws IOException, CryptoException {
         synchronized (this) {
-            DirectoryBox.Entry entry = treeAccessor.get(path);
+            FlatDirectoryBox.Entry entry = treeAccessor.get(path);
             if (!entry.isFile())
                 throw new IOException("Not a file path.");
             FileBox fileBox = FileBox.read(transaction.getFileAccessor(path), entry.getDataPointer());
@@ -136,19 +136,19 @@ public class Repository implements IDatabaseInterface {
         return commitCallback;
     }
 
-    private DirectoryBox getDirBox(String path) throws IOException {
+    private FlatDirectoryBox getDirBox(String path) throws IOException {
         try {
-            DirectoryBox.Entry entry = treeAccessor.get(path);
+            FlatDirectoryBox.Entry entry = treeAccessor.get(path);
             if (entry == null || entry.isFile())
                 return null;
             if (entry.getObject() == null) {
                 BoxPointer dataPointer = entry.getDataPointer();
                 if (dataPointer == null)
                     throw new IOException("Unexpected null data pointer");
-                entry.setObject(DirectoryBox.read(transaction.getTreeAccessor(), dataPointer));
+                entry.setObject(FlatDirectoryBox.read(transaction.getTreeAccessor(), dataPointer));
             }
 
-            return (DirectoryBox)entry.getObject();
+            return (FlatDirectoryBox)entry.getObject();
         } catch (CryptoException e) {
             throw new IOException(e.getMessage());
         }
@@ -157,11 +157,11 @@ public class Repository implements IDatabaseInterface {
     @Override
     public List<String> listFiles(String path) throws IOException {
         synchronized (this) {
-            DirectoryBox directoryBox = getDirBox(path);
+            FlatDirectoryBox directoryBox = getDirBox(path);
             if (directoryBox == null)
                 return Collections.emptyList();
             List<String> entries = new ArrayList<>();
-            for (DirectoryBox.Entry fileEntry : directoryBox.getFiles())
+            for (FlatDirectoryBox.Entry fileEntry : directoryBox.getFiles())
                 entries.add(fileEntry.getName());
             return entries;
         }
@@ -170,11 +170,11 @@ public class Repository implements IDatabaseInterface {
     @Override
     public List<String> listDirectories(String path) throws IOException {
         synchronized (this) {
-            DirectoryBox directoryBox = getDirBox(path);
+            FlatDirectoryBox directoryBox = getDirBox(path);
             if (directoryBox == null)
                 return Collections.emptyList();
             List<String> entries = new ArrayList<>();
-            for (DirectoryBox.Entry dirEntry : directoryBox.getDirs())
+            for (FlatDirectoryBox.Entry dirEntry : directoryBox.getDirs())
                 entries.add(dirEntry.getName());
             return entries;
         }
@@ -290,7 +290,7 @@ public class Repository implements IDatabaseInterface {
                 transaction.finishTransaction();
                 transaction = new LogRepoTransaction(accessors.startTransaction());
                 log.add(commitCallback.commitPointerToLog(headCommit.getBoxPointer()), transaction.getObjectsWritten());
-                treeAccessor = new TreeAccessor(DirectoryBox.read(transaction.getTreeAccessor(), otherBranch.getTree()),
+                treeAccessor = new TreeAccessor(FlatDirectoryBox.read(transaction.getTreeAccessor(), otherBranch.getTree()),
                         transaction);
                 return MergeResult.FAST_FORWARD;
             }
@@ -314,7 +314,7 @@ public class Repository implements IDatabaseInterface {
                 transaction.finishTransaction();
                 transaction = new LogRepoTransaction(accessors.startTransaction());
                 log.add(commitCallback.commitPointerToLog(headCommit.getBoxPointer()), transaction.getObjectsWritten());
-                treeAccessor = new TreeAccessor(DirectoryBox.read(transaction.getTreeAccessor(), otherBranch.getTree()),
+                treeAccessor = new TreeAccessor(FlatDirectoryBox.read(transaction.getTreeAccessor(), otherBranch.getTree()),
                         transaction);
                 return MergeResult.FAST_FORWARD;
             }
@@ -396,7 +396,7 @@ public class Repository implements IDatabaseInterface {
             IChunkAccessor treeAccessor = transaction.getTreeAccessor();
             TreeIterator diffIterator = new TreeIterator(treeAccessor, baseCommit, treeAccessor, endCommit);
             while (diffIterator.hasNext()) {
-                DiffIterator.Change<DirectoryBox.Entry> change = diffIterator.next();
+                DiffIterator.Change<FlatDirectoryBox.Entry> change = diffIterator.next();
                 switch (change.type) {
                     case MODIFIED:
                         databaseDiff.modified.addPath(change.path);

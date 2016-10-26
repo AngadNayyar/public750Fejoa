@@ -114,7 +114,7 @@ public class RepositoryTest extends RepositoryTestBase {
     private BoxPointer writeDir(IRepoChunkAccessors.ITransaction accessors, TestDirectory dir, String path)
             throws IOException,
             CryptoException {
-        DirectoryBox directoryBox = DirectoryBox.create();
+        FlatDirectoryBox directoryBox = FlatDirectoryBox.create();
         // first write child dirs recursively
         for (Map.Entry<String, TestDirectory> entry : dir.dirs.entrySet()) {
             BoxPointer childPointer = writeDir(accessors, entry.getValue(), path + "/" + entry.getKey());
@@ -145,11 +145,11 @@ public class RepositoryTest extends RepositoryTestBase {
 
     private void verifyDirInRepository(IRepoChunkAccessors.ITransaction accessors, TestDirectory testDir, String path)
             throws IOException, CryptoException {
-        DirectoryBox directoryBox = DirectoryBox.read(accessors.getTreeAccessor(), testDir.boxPointer);
+        FlatDirectoryBox directoryBox = FlatDirectoryBox.read(accessors.getTreeAccessor(), testDir.boxPointer);
         assertEquals(testDir.dirs.size() + testDir.files.size(), directoryBox.getEntries().size());
 
         for (Map.Entry<String, TestDirectory> entry : testDir.dirs.entrySet()) {
-            DirectoryBox.Entry dirEntry = directoryBox.getEntry(entry.getKey());
+            FlatDirectoryBox.Entry dirEntry = directoryBox.getEntry(entry.getKey());
             assertNotNull(dirEntry);
             assertEquals(entry.getValue().boxPointer.getBoxHash(), dirEntry.getDataPointer().getBoxHash());
 
@@ -157,7 +157,7 @@ public class RepositoryTest extends RepositoryTestBase {
         }
         for (Map.Entry<String, TestFile> entry : testDir.files.entrySet()) {
             TestFile testFile = entry.getValue();
-            DirectoryBox.Entry dirEntry = directoryBox.getEntry(entry.getKey());
+            FlatDirectoryBox.Entry dirEntry = directoryBox.getEntry(entry.getKey());
             assertNotNull(dirEntry);
             assertEquals(testFile.boxPointer.getBoxHash(), dirEntry.getDataPointer().getBoxHash());
 

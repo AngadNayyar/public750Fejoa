@@ -10,7 +10,7 @@ package org.fejoa.chunkstore;
 
 public class BlobTypes {
     final public static short COMMIT = 1;
-    final public static short DIRECTORY = 2;
+    final public static short FLAT_DIRECTORY = 2;
 }
 
 
