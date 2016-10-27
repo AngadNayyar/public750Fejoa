@@ -17,6 +17,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 
 
@@ -86,8 +87,11 @@ public class KeyStore extends StorageDirObject {
             byte[] salt = crypto.generateSalt();
             SecretKey passwordKey = crypto.deriveKey(password, salt, kdfSettings.kdfAlgorithm,
                     kdfSettings.kdfIterations, kdfSettings.passwordSize);
+
             // encrypt master key
             CryptoSettings.Symmetric symmetric = context.getCryptoSettings().symmetric;
+            // make sure it is the right key type
+            passwordKey = CryptoHelper.symmetricKeyFromRaw(passwordKey.getEncoded(), symmetric);
             byte[] masterKeyIV = crypto.generateInitializationVector(symmetric.ivSize);
             byte[] encryptedMasterKey = crypto.encryptSymmetric(secretKey.getEncoded(), passwordKey, masterKeyIV,
                     symmetric);
@@ -98,12 +102,13 @@ public class KeyStore extends StorageDirObject {
         static public SecretKey open(FejoaContext context, KDFCrypto config, String password) throws CryptoException {
             // kdf key
             ICryptoInterface crypto = context.getCrypto();
-            SecretKey secretKey = crypto.deriveKey(password, config.kdfSalt, config.kdfSettings.kdfAlgorithm,
+            SecretKey passwordKey = crypto.deriveKey(password, config.kdfSalt, config.kdfSettings.kdfAlgorithm,
                     config.kdfSettings.kdfIterations, config.kdfSettings.passwordSize);
             // decrypt master key
             CryptoSettings.Symmetric settings = CryptoSettings.symmetricSettings(config.symmetricSettings.keyType,
                     config.symmetricSettings.algorithm);
-            byte masterKeyBytes[] = crypto.decryptSymmetric(config.encryptedMasterKey, secretKey, config.masterKeyIV,
+            passwordKey = CryptoHelper.symmetricKeyFromRaw(passwordKey.getEncoded(), settings);
+            byte masterKeyBytes[] = crypto.decryptSymmetric(config.encryptedMasterKey, passwordKey, config.masterKeyIV,
                     settings);
             return CryptoHelper.symmetricKeyFromRaw(masterKeyBytes, settings);
         }
@@ -148,7 +153,7 @@ public class KeyStore extends StorageDirObject {
 
     static public KeyStore create(FejoaContext context, SigningKeyPair signingKeyPair, String password)
             throws CryptoException, IOException {
-        String branch = CryptoHelper.sha1HashHex(context.getCrypto().generateInitializationVector(32));
+        String branch = CryptoHelper.sha1HashHex(context.getCrypto().generateSalt());
         SymmetricKeyData keyData = SymmetricKeyData.create(context, context.getCryptoSettings().symmetric);
         StorageDir storageDir = context.getStorage(branch, keyData,
                 new DefaultCommitSignature(context, signingKeyPair));

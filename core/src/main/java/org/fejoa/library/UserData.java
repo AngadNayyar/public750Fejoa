@@ -115,7 +115,7 @@ public class UserData extends StorageDirObject {
 
         KeyStore keyStore = KeyStore.create(context, signingKeyPair, password);
 
-        String branch = CryptoHelper.sha1HashHex(context.getCrypto().generateInitializationVector(32));
+        String branch = CryptoHelper.sha1HashHex(context.getCrypto().generateSalt());
         SymmetricKeyData userDataKeyData = SymmetricKeyData.create(context, context.getCryptoSettings().symmetric);
         StorageDir userDataDir = context.getStorage(branch, userDataKeyData,
                 new DefaultCommitSignature(context, signingKeyPair));
@@ -136,7 +136,7 @@ public class UserData extends StorageDirObject {
 
         // access control
         StorageDir accessControlBranch = context.getStorage(
-                CryptoHelper.sha1HashHex(context.getCrypto().generateInitializationVector(32)), null, null);
+                CryptoHelper.sha1HashHex(context.getCrypto().generateSalt()), null, null);
         AccessStore accessStore = new AccessStore(context, accessControlBranch);
         userData.addBranch(BranchInfo.create(accessStore.getStorageDir().getBranch(), "Access Store",
                 USER_DATA_CONTEXT));
@@ -145,7 +145,7 @@ public class UserData extends StorageDirObject {
 
         // in queue
         StorageDir inQueueBranch = context.getStorage(
-                CryptoHelper.sha1HashHex(context.getCrypto().generateInitializationVector(32)), null, null);
+                CryptoHelper.sha1HashHex(context.getCrypto().generateSalt()), null, null);
         IncomingCommandQueue incomingCommandQueue = new IncomingCommandQueue(inQueueBranch);
         userData.addBranch(BranchInfo.create(incomingCommandQueue.getStorageDir().getBranch(), "In Queue",
                 USER_DATA_CONTEXT));
@@ -154,7 +154,7 @@ public class UserData extends StorageDirObject {
 
         // out queue
         StorageDir outQueueBranch = context.getStorage(
-                CryptoHelper.sha1HashHex(context.getCrypto().generateInitializationVector(32)), null, null);
+                CryptoHelper.sha1HashHex(context.getCrypto().generateSalt()), null, null);
         OutgoingCommandQueue outgoingCommandQueue = new OutgoingCommandQueue(outQueueBranch);
         userData.addBranch(BranchInfo.create(outgoingCommandQueue.getStorageDir().getBranch(), "Out Queue",
                 USER_DATA_CONTEXT));

@@ -69,7 +69,7 @@ public class BenchmarkTest  extends TestCase {
             ChunkStore.Transaction transaction = chunkStore.openTransaction();
 
             private byte[] getIv(byte[] hashValue) {
-                return Arrays.copyOfRange(hashValue, 0, settings.symmetric.ivSize);
+                return Arrays.copyOfRange(hashValue, 0, settings.symmetric.ivSize / 8);
             }
 
             @Override
@@ -77,7 +77,7 @@ public class BenchmarkTest  extends TestCase {
                 byte[] iv = getIv(hash.getDataHash().getBytes());
                 return new DataInputStream(cryptoInterface.decryptSymmetric(new ByteArrayInputStream(
                                 chunkStore.getChunk(hash.getBoxHash().getBytes())),
-                        secretKey, iv,settings.symmetric));
+                        secretKey, iv, settings.symmetric));
             }
 
             @Override

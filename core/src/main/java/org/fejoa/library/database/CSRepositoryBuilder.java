@@ -152,10 +152,10 @@ public class CSRepositoryBuilder {
             final ICryptoInterface cryptoInterface = context.getCrypto();
 
             private byte[] getIv(byte[] hashValue) {
-                final int ivSize = keyData.settings.ivSize;
-                byte[] iv = Arrays.copyOfRange(hashValue, 0, ivSize);
+                final int ivSizeBytes = keyData.settings.ivSize / 8;
+                byte[] iv = Arrays.copyOfRange(hashValue, 0, ivSizeBytes);
                 // xor with the base IV
-                for (int i = 0; i < ivSize; i++)
+                for (int i = 0; i < ivSizeBytes; i++)
                     iv[i] = (byte)(keyData.iv[i] ^ iv[i]);
                 return iv;
             }

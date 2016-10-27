@@ -2,6 +2,7 @@ package org.fejoa;
 
 import junit.framework.TestCase;
 import org.fejoa.library.crypto.BCCryptoInterface;
+import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.crypto.CryptoHelper;
 import org.fejoa.library.crypto.CryptoSettings;
 
@@ -17,7 +18,14 @@ public class BCCryptoInterfaceTest extends TestCase {
 
     public void testCrypto() throws Exception {
         CryptoSettings settings = CryptoSettings.getDefault();
+        CryptoSettings.setDefaultEC(settings);
+        doTest(settings);
 
+        CryptoSettings.setDefaultRSA(settings);
+        doTest(settings);
+    }
+
+    private void doTest(CryptoSettings settings) throws CryptoException, IOException {
         BCCryptoInterface cryptoInterface = new BCCryptoInterface();
         KeyPair keyPair = cryptoInterface.generateKeyPair(settings.publicKey);
 

@@ -400,7 +400,7 @@ public class FileStorageView extends VBox {
         try {
             FejoaContext context = client.getContext();
             UserData userData = client.getUserData();
-            String branch = CryptoHelper.sha1HashHex(context.getCrypto().generateInitializationVector(32));
+            String branch = CryptoHelper.sha1HashHex(context.getCrypto().generateSalt());
             SymmetricKeyData keyData = SymmetricKeyData.create(context, context.getCryptoSettings().symmetric);
             userData.getKeyStore().addSymmetricKey(keyData.keyId().toHex(), keyData, STORAGE_CONTEXT);
             SigningKeyPair signingKeyPair = userData.getMyself().getSignatureKeys().getDefault();

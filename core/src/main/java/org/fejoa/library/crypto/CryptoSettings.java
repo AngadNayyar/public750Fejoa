@@ -42,21 +42,35 @@ public class CryptoSettings {
 
     }
 
-    static public CryptoSettings getDefault() {
-        CryptoSettings cryptoSettings = new CryptoSettings();
+    static public void setDefaultEC(CryptoSettings cryptoSettings) {
+        cryptoSettings.publicKey.algorithm = "ECIES";
+        cryptoSettings.publicKey.keyType = "ECIES/secp256r1";
+        cryptoSettings.publicKey.keySize = 0;
 
+        cryptoSettings.signature.algorithm = "SHA256withECDSA";
+        cryptoSettings.signature.keyType = "ECIES/secp256r1";
+        cryptoSettings.signature.keySize = 0;
+    }
+
+    static public void setDefaultRSA(CryptoSettings cryptoSettings) {
         cryptoSettings.publicKey.algorithm = "RSA/NONE/PKCS1PADDING";
         cryptoSettings.publicKey.keyType = "RSA";
         cryptoSettings.publicKey.keySize = 2048;
 
         cryptoSettings.signature.algorithm = "SHA1withRSA";
         cryptoSettings.signature.keyType = "RSA";
-        cryptoSettings.signature.keySize = 512;
+        cryptoSettings.signature.keySize = 2048;
+    }
+
+    static public CryptoSettings getDefault() {
+        CryptoSettings cryptoSettings = new CryptoSettings();
+
+        setDefaultEC(cryptoSettings);
 
         cryptoSettings.symmetric.algorithm = "AES/CTR/PKCS5Padding";
         cryptoSettings.symmetric.keyType = "AES";
         cryptoSettings.symmetric.keySize = 256;
-        cryptoSettings.symmetric.ivSize = 16;
+        cryptoSettings.symmetric.ivSize = 16 * 8;
 
         cryptoSettings.masterPassword.kdfAlgorithm = "PBKDF2WithHmacSHA1";
         cryptoSettings.masterPassword.kdfIterations = 20000;
@@ -70,7 +84,7 @@ public class CryptoSettings {
         cryptoSettings.publicKey.keySize = 512;
 
         cryptoSettings.symmetric.keySize = 128;
-        cryptoSettings.symmetric.ivSize = 16;
+        cryptoSettings.symmetric.ivSize = 16 * 8;
 
         cryptoSettings.masterPassword.kdfIterations = 1;
 

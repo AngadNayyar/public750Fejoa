@@ -12,6 +12,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.*;
+import java.security.spec.ECGenParameterSpec;
 import java.security.spec.KeySpec;
 import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
@@ -39,8 +40,14 @@ public class BCCryptoInterface implements ICryptoInterface {
     public KeyPair generateKeyPair(CryptoSettings.KeyTypeSettings settings) throws CryptoException {
         KeyPairGenerator keyGen;
         try {
-            keyGen = KeyPairGenerator.getInstance(settings.keyType);
-            keyGen.initialize(settings.keySize, new SecureRandom());
+            if (settings.keyType.startsWith("ECIES")) {
+                keyGen = KeyPairGenerator.getInstance("ECIES");
+                String curve = settings.keyType.substring("ECIES/".length());
+                keyGen.initialize(new ECGenParameterSpec(curve));
+            } else {
+                keyGen = KeyPairGenerator.getInstance(settings.keyType);
+                keyGen.initialize(settings.keySize, new SecureRandom());
+            }
         } catch (Exception e) {
             throw new CryptoException(e.getMessage());
         }
@@ -86,16 +93,16 @@ public class BCCryptoInterface implements ICryptoInterface {
     }
 
     @Override
-    public byte[] generateInitializationVector(int size) {
+    public byte[] generateInitializationVector(int sizeBits) {
         SecureRandom random = new SecureRandom();
-        byte[] bytes = new byte[size];
+        byte[] bytes = new byte[sizeBits / 8];
         random.nextBytes(bytes);
         return bytes;
     }
 
     @Override
     public byte[] generateSalt() {
-        return generateInitializationVector(32);
+        return generateInitializationVector(32 * 8);
     }
 
     @Override
@@ -168,7 +175,6 @@ public class BCCryptoInterface implements ICryptoInterface {
         Signature signature;
         try {
             signature = java.security.Signature.getInstance(settings.algorithm);
-
             signature.initSign(key);
             signature.update(input);
             return signature.sign();
@@ -184,7 +190,6 @@ public class BCCryptoInterface implements ICryptoInterface {
         Signature sig;
         try {
             sig = java.security.Signature.getInstance(settings.algorithm);
-
             sig.initVerify(key);
             sig.update(message);
             return sig.verify(signature);
