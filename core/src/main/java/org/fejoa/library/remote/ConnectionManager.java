@@ -210,9 +210,9 @@ public class ConnectionManager {
 
         private void setCurrentRemoteRequest(IRemoteRequest remoteRequest) throws Exception {
             synchronized (this) {
-                if (isCanceled()) {
+                if (remoteRequest != null && isCanceled()) {
                     this.remoteRequest = null;
-                    throw new Exception("canceled");
+                    throw new Exception("JobTask canceled");
                 }
 
                 this.remoteRequest = remoteRequest;
