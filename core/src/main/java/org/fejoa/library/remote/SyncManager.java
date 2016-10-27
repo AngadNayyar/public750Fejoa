@@ -31,6 +31,7 @@ public class SyncManager {
 
     final private Remote remote;
     private Task watchFunction;
+    private Task.IObserver<Void, WatchJob.Result> currentWatchObserver;
     private StorageDir.IListener storageDirListener;
     private Collection<BranchInfo.Location> watchedBranches;
     private Task.IObserver<TaskUpdate, Void> watchObserver;
@@ -111,7 +112,7 @@ public class SyncManager {
             stopWatching();
 
         this.watchObserver = observer;
-        final Task.IObserver<Void, WatchJob.Result> watchObserver = new Task.IObserver<Void, WatchJob.Result>() {
+        this.currentWatchObserver = new Task.IObserver<Void, WatchJob.Result>() {
             private TaskUpdate makeUpdate(String message) {
                 return new TaskUpdate("Watching", -1, -1, message);
             }
@@ -141,7 +142,7 @@ public class SyncManager {
                     @Override
                     public void onResult(Void result) {
                         // still watching?
-                        if (isWatching())
+                        if (SyncManager.this.currentWatchObserver == that && isWatching())
                             watch(watchedBranches, that);
                         else
                             observer.onResult(null);
@@ -164,7 +165,7 @@ public class SyncManager {
             }
         };
 
-        watch(branchInfoList, watchObserver);
+        watch(branchInfoList, this.currentWatchObserver);
     }
 
     public void stopWatching() {
