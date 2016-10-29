@@ -156,14 +156,13 @@ public class Client {
         if (syncManager != null)
             stopSyncing();
         this.syncObserver = observer;
-        Remote defaultRemote = getUserData().getGateway();
-        syncManager = new SyncManager(context, userData, getConnectionManager(), defaultRemote);
+        syncManager = new SyncManager(userData, getConnectionManager(), observer);
         List<BranchInfo.Location> locations = new ArrayList<>();
         for (BranchInfo branchInfo : getUserData().getBranchList().getEntries()) {
             for (BranchInfo.Location location : branchInfo.getLocationEntries())
                 locations.add(location);
         }
-        syncManager.startWatching(locations, observer);
+        syncManager.addWatching(locations);
     }
 
     public void stopSyncing() {
@@ -187,6 +186,11 @@ public class Client {
 
     public IncomingCommandManager getIncomingCommandManager() {
         return incomingCommandManager;
+    }
+
+    public void grantAccess(BranchInfo branchInfo, int rights, ContactPublic contact)
+            throws IOException, JSONException, CryptoException {
+        grantAccess(branchInfo.getBranch(), branchInfo.getStorageContext(), rights, contact);
     }
 
     public void grantAccess(String branch, String branchContext, int rights, ContactPublic contact)
