@@ -400,14 +400,7 @@ public class FileStorageView extends VBox {
         try {
             FejoaContext context = client.getContext();
             UserData userData = client.getUserData();
-            String branch = CryptoHelper.sha1HashHex(context.getCrypto().generateSalt());
-            SymmetricKeyData keyData = SymmetricKeyData.create(context, context.getCryptoSettings().symmetric);
-            userData.getKeyStore().addSymmetricKey(keyData.keyId().toHex(), keyData, STORAGE_CONTEXT);
-            SigningKeyPair signingKeyPair = userData.getMyself().getSignatureKeys().getDefault();
-            StorageDir storageDir = context.getStorage(branch, keyData,
-                    new DefaultCommitSignature(context, signingKeyPair));
-            BranchInfo branchInfo = BranchInfo.create(storageDir.getBranch(), "File Storage", STORAGE_CONTEXT);
-            branchInfo.setCryptoInfo(keyData.keyId(), userData.getKeyStore(), true);
+            BranchInfo branchInfo = userData.createNewEncryptedStorage(STORAGE_CONTEXT, "File Storage");
             Remote remote = userData.getGateway();
             branchInfo.addLocation(remote.getId(), context.getRootAuthInfo(remote));
             userData.addBranch(branchInfo);

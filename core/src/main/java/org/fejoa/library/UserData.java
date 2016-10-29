@@ -210,6 +210,18 @@ public class UserData extends StorageDirObject {
         return symmetricKeyData;
     }
 
+    public BranchInfo createNewEncryptedStorage(String storageContext, String description)
+            throws IOException, CryptoException {
+        String branch = CryptoHelper.sha1HashHex(context.getCrypto().generateSalt());
+        SymmetricKeyData keyData = SymmetricKeyData.create(context, context.getCryptoSettings().symmetric);
+        keyStore.addSymmetricKey(keyData.keyId().toHex(), keyData, storageContext);
+        SigningKeyPair signingKeyPair = getMyself().getSignatureKeys().getDefault();
+        StorageDir storageDir = context.getStorage(branch, keyData, new DefaultCommitSignature(context, signingKeyPair));
+        BranchInfo branchInfo = BranchInfo.create(storageDir.getBranch(), description, storageContext);
+        branchInfo.setCryptoInfo(keyData.keyId(), keyStore, true);
+        return branchInfo;
+    }
+
     public StorageDir getStorageDir(BranchInfo branchInfo) throws IOException, CryptoException {
         SymmetricKeyData symmetricKeyData = getKeyData(branchInfo);
 

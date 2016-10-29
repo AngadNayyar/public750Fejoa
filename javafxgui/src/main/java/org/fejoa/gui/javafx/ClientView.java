@@ -184,6 +184,10 @@ public class ClientView extends BorderPane {
         fileStorageTab.setContent(new FileStorageView(client, statusManager));
         tabPane.getTabs().add(fileStorageTab);
 
+        Tab messengerTap = new Tab("Messenger");
+        messengerTap.setContent(new MessengerView(client, statusManager));
+        tabPane.getTabs().add(messengerTap);
+
         setCenter(tabPane);
     }
 
