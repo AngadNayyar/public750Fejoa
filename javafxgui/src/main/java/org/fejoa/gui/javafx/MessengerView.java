@@ -32,6 +32,8 @@ import org.fejoa.messaging.Messenger;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 
@@ -59,7 +61,7 @@ class CreateMessageBranchView extends VBox {
                             participants.add(contactPublic);
                     }
                     MessageBranch messageBranch = messenger.createMessageBranch(participants);
-                    Message message = Message.create(userData.getContext());
+                    Message message = Message.create(userData.getContext(), userData.getMyself());
                     message.setBody(bodyText.getText());
                     messageBranch.addMessage(message);
                     messageBranch.commit();
@@ -108,7 +110,13 @@ class MessageBranchView extends VBox {
                     @Override
                     public String toString(Message message) {
                         try {
-                            return message.getBody();
+                            String senderId = message.getSender();
+                            String user = "Me";
+                            if (!senderId.equals(userData.getMyself().getId())) {
+                                ContactPublic contactPublic = userData.getContactStore().getContactList().get(senderId);
+                                user = contactPublic.getRemotes().getDefault().getUser();
+                            }
+                            return user + ": " + message.getBody();
                         } catch (IOException e) {
                             return "ERROR: Failed to load!";
                         }
@@ -135,7 +143,7 @@ class MessageBranchView extends VBox {
                 if (body.equals(""))
                     return;
                 try {
-                    Message message = Message.create(userData.getContext());
+                    Message message = Message.create(userData.getContext(), userData.getMyself());
                     message.setBody(body);
                     messageBranch.addMessage(message);
                     messageBranch.commit();
@@ -155,7 +163,20 @@ class MessageBranchView extends VBox {
     private void update() {
         messageListView.getItems().clear();
         try {
-            messageListView.getItems().addAll(messageBranch.getMessages().getEntries());
+            List<Message> messages = new ArrayList<>(messageBranch.getMessages().getEntries());
+            Collections.sort(messages, new Comparator<Message>() {
+                @Override
+                public int compare(Message message, Message message2) {
+                    try {
+                        Long time1 = message.getTime();
+                        Long time2 = message2.getTime();
+                        return time1.compareTo(time2);
+                    } catch (IOException e) {
+                        return 0;
+                    }
+                }
+            });
+            messageListView.getItems().addAll(messages);
         } catch (IOException e) {
             e.printStackTrace();
         } catch (CryptoException e) {

@@ -7,7 +7,7 @@
  */
 package org.fejoa.messaging;
 
-import org.fejoa.library.Constants;
+import org.fejoa.library.ContactPrivate;
 import org.fejoa.library.FejoaContext;
 import org.fejoa.library.crypto.CryptoHelper;
 import org.fejoa.library.database.IOStorageDir;
@@ -17,12 +17,16 @@ import java.io.IOException;
 
 
 public class Message extends MovableStorage {
+    final static private String TIME_KEY = "time";
+    final static private String SENDER_KEY = "sender";
     final static private String BODY_KEY = "body";
 
     final private String id;
 
-    static public Message create(FejoaContext context) throws IOException {
+    static public Message create(FejoaContext context, ContactPrivate myself) throws IOException {
         Message message = new Message(null, CryptoHelper.sha1HashHex(context.getCrypto().generateSalt()));
+        message.setTime(System.currentTimeMillis());
+        message.setSender(myself.getId());
         return message;
     }
 
@@ -43,6 +47,22 @@ public class Message extends MovableStorage {
 
     public String getBody() throws IOException {
         return storageDir.readString(BODY_KEY);
+    }
+
+    public void setTime(long time) throws IOException {
+        storageDir.writeLong(TIME_KEY, time);
+    }
+
+    public long getTime() throws IOException {
+        return storageDir.readLong(TIME_KEY);
+    }
+
+    public void setSender(String senderId) throws IOException {
+        storageDir.writeString(SENDER_KEY, senderId);
+    }
+
+    public String getSender() throws IOException {
+        return storageDir.readString(SENDER_KEY);
     }
 
     public String getId() throws IOException {
