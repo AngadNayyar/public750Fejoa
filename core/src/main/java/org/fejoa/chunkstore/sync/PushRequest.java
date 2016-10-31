@@ -179,6 +179,7 @@ public class PushRequest {
         outStream.writeInt(remoteLogTip.getRev());
         // our message
         ChunkStoreBranchLog.Entry localLogTip = repository.getBranchLog().getLatest();
+        StreamHelper.writeString(outStream, localLogTip.getEntryId().toHex());
         StreamHelper.writeString(outStream, localLogTip.getMessage());
         outStream.writeInt(chunks.size());
         for (HashValue chunk : chunks) {

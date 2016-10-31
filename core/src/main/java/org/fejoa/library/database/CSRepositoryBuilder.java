@@ -11,6 +11,7 @@ import org.fejoa.library.Constants;
 import org.fejoa.library.FejoaContext;
 import org.fejoa.library.SymmetricKeyData;
 import org.fejoa.library.crypto.CryptoException;
+import org.fejoa.library.crypto.CryptoHelper;
 import org.fejoa.library.crypto.ICryptoInterface;
 import org.apache.commons.codec.binary.Base64;
 import org.fejoa.chunkstore.*;
@@ -18,6 +19,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.*;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
 
@@ -60,6 +63,18 @@ public class CSRepositoryBuilder {
             byte[] decrypt(byte[] cipher, byte[] iv) throws CryptoException {
                 ICryptoInterface cryptoInterface = context.getCrypto();
                 return cryptoInterface.decryptSymmetric(cipher, keyData.key, iv, keyData.settings);
+            }
+
+            @Override
+            public HashValue logHash(BoxPointer commitPointer) {
+                try {
+                    MessageDigest digest = CryptoHelper.sha256Hash();
+                    digest.update(commitPointer.getBoxHash().getBytes());
+                    digest.update(commitPointer.getIV());
+                    return new HashValue(digest.digest());
+                } catch (NoSuchAlgorithmException e) {
+                    throw new RuntimeException("Missing sha256");
+                }
             }
 
             @Override
@@ -107,6 +122,11 @@ public class CSRepositoryBuilder {
 
     private static Repository.ICommitCallback getSimpleCommitCallback() {
         return new Repository.ICommitCallback() {
+            @Override
+            public HashValue logHash(BoxPointer commitPointer) {
+                return commitPointer.getBoxHash();
+            }
+
             @Override
             public String commitPointerToLog(BoxPointer commitPointer) {
                 JSONObject jsonObject = new JSONObject();

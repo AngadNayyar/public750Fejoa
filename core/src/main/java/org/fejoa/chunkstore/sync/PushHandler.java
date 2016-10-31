@@ -29,6 +29,7 @@ public class PushHandler {
             return;
         }
         final int rev = inputStream.readInt();
+        final HashValue commitPointerLogHash = HashValue.fromHex(StreamHelper.readString(inputStream, 64));
         final String logMessage = StreamHelper.readString(inputStream, LogEntryRequest.MAX_HEADER_SIZE);
         final int nChunks = inputStream.readInt();
         final List<HashValue> added = new ArrayList<>();
@@ -52,7 +53,7 @@ public class PushHandler {
             Request.writeResponseHeader(outputStream, Request.PUT_CHUNKS, Request.PULL_REQUIRED);
             return;
         }
-        branchLog.add(logMessage, added);
+        branchLog.add(commitPointerLogHash, logMessage, added);
 
         Request.writeResponseHeader(outputStream, Request.PUT_CHUNKS, Request.OK);
     }

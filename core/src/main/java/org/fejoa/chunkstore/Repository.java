@@ -30,6 +30,7 @@ public class Repository implements IDatabaseInterface {
     final private ChunkSplitter chunkSplitter = new RabinSplitter();
 
     public interface ICommitCallback {
+        HashValue logHash(BoxPointer commitPointer);
         String commitPointerToLog(BoxPointer commitPointer) throws CryptoException;
         BoxPointer commitPointerFromLog(String logEntry) throws CryptoException;
      }
@@ -289,9 +290,10 @@ public class Repository implements IDatabaseInterface {
 
                 transaction.finishTransaction();
                 transaction = new LogRepoTransaction(accessors.startTransaction());
-                log.add(commitCallback.commitPointerToLog(headCommit.getBoxPointer()), transaction.getObjectsWritten());
-                treeAccessor = new TreeAccessor(FlatDirectoryBox.read(transaction.getTreeAccessor(), otherBranch.getTree()),
-                        transaction);
+                log.add(commitCallback.logHash(headCommit.getBoxPointer()),
+                        commitCallback.commitPointerToLog(headCommit.getBoxPointer()), transaction.getObjectsWritten());
+                treeAccessor = new TreeAccessor(FlatDirectoryBox.read(transaction.getTreeAccessor(),
+                        otherBranch.getTree()), transaction);
                 return MergeResult.FAST_FORWARD;
             }
             if (headCommit.dataHash().equals(otherBranch.dataHash()))
@@ -313,9 +315,10 @@ public class Repository implements IDatabaseInterface {
 
                 transaction.finishTransaction();
                 transaction = new LogRepoTransaction(accessors.startTransaction());
-                log.add(commitCallback.commitPointerToLog(headCommit.getBoxPointer()), transaction.getObjectsWritten());
-                treeAccessor = new TreeAccessor(FlatDirectoryBox.read(transaction.getTreeAccessor(), otherBranch.getTree()),
-                        transaction);
+                log.add(commitCallback.logHash(headCommit.getBoxPointer()),
+                        commitCallback.commitPointerToLog(headCommit.getBoxPointer()), transaction.getObjectsWritten());
+                treeAccessor = new TreeAccessor(FlatDirectoryBox.read(transaction.getTreeAccessor(),
+                        otherBranch.getTree()), transaction);
                 return MergeResult.FAST_FORWARD;
             }
 
@@ -372,7 +375,8 @@ public class Repository implements IDatabaseInterface {
             headCommit = commitBox;
 
             transaction.finishTransaction();
-            log.add(commitCallback.commitPointerToLog(commitPointer), transaction.getObjectsWritten());
+            log.add(commitCallback.logHash(commitPointer), commitCallback.commitPointerToLog(commitPointer),
+                    transaction.getObjectsWritten());
 
             transaction = new LogRepoTransaction(accessors.startTransaction());
             this.treeAccessor.setTransaction(transaction);

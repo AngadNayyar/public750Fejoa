@@ -13,12 +13,15 @@ import org.fejoa.chunkstore.BoxPointer;
 import org.fejoa.chunkstore.HashValue;
 import org.fejoa.chunkstore.Repository;
 import org.fejoa.library.crypto.CryptoException;
+import org.fejoa.library.crypto.CryptoHelper;
 import org.fejoa.library.support.StorageLib;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 
@@ -68,6 +71,18 @@ public class RepositoryTestBase extends TestCase {
         static final String DATA_HASH_KEY = "dataHash";
         static final String BOX_HASH_KEY = "boxHash";
         static final String IV_KEY = "iv";
+
+        @Override
+        public HashValue logHash(BoxPointer commitPointer) {
+            try {
+                MessageDigest digest = CryptoHelper.sha256Hash();
+                digest.update(commitPointer.getBoxHash().getBytes());
+                digest.update(commitPointer.getIV());
+                return new HashValue(digest.digest());
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException("Missing sha256");
+            }
+        }
 
         @Override
         public String commitPointerToLog(BoxPointer commitPointer) {

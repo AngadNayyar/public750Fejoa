@@ -21,11 +21,13 @@ import java.util.List;
 public class ChunkStoreBranchLog {
     static public class Entry {
         int rev;
+        HashValue id = Config.newBoxHash();
         String message = "";
         final List<HashValue> changes = new ArrayList<>();
 
-        public Entry(int rev, String message) {
+        public Entry(int rev, HashValue id, String message) {
             this.rev = rev;
+            this.id = id;
             this.message = message;
         }
 
@@ -42,26 +44,25 @@ public class ChunkStoreBranchLog {
         }
 
         public HashValue getEntryId() {
-            return new HashValue(CryptoHelper.sha256Hash(message.getBytes()));
-            //return entryId;
+            return id;
         }
 
         static public Entry fromHeader(String header) {
             Entry entry = new Entry();
             if (header.equals(""))
                 return entry;
-            int splitIndex1 = header.indexOf(" ");
-            if (splitIndex1 < 0) {
-                entry.rev = Integer.parseInt(header);
-            } else {
-                entry.rev = Integer.parseInt(header.substring(0, splitIndex1));
-                entry.message = header.substring(splitIndex1 + 1);
-            }
+            String[] parts = header.split(" ");
+            if (parts.length != 3)
+                return entry;
+
+            entry.rev = Integer.parseInt(parts[0]);
+            entry.id = HashValue.fromHex(parts[1]);
+            entry.message = parts[2];
             return entry;
         }
 
         public String getHeader() {
-            return "" + rev + " " + message;
+            return "" + rev + " " + id.toHex() + " " + message;
         }
 
         static private Entry read(BufferedReader reader) throws IOException {
@@ -146,8 +147,8 @@ public class ChunkStoreBranchLog {
         return entries.get(entries.size() - 1);
     }
 
-    public void add(String message, List<HashValue> changes) throws IOException {
-        Entry entry = new Entry(nextRevId(), message);
+    public void add(HashValue id, String message, List<HashValue> changes) throws IOException {
+        Entry entry = new Entry(nextRevId(), id, message);
         entry.changes.addAll(changes);
         add(entry);
     }
