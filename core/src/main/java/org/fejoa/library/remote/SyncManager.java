@@ -146,6 +146,7 @@ class Watcher {
 
     public void startWatching(FejoaContext context, ConnectionManager connectionManager, String server,
                               final Task.IObserver<Void, WatchJob.Result> observer) {
+        assert watchFunction == null;
         Map<String, ConnectionManager.UserAuthInfo> authInfos = new HashMap<>();
         for (BranchInfo.Location location : watchedBranches) {
             try {
@@ -161,7 +162,6 @@ class Watcher {
 
         watchFunction = connectionManager.submit(new WatchJob(context, watchedBranches), server,
                 authInfos.values(), observer);
-
     }
 
     public void stopWatching() {
@@ -170,6 +170,10 @@ class Watcher {
 
         watchFunction.cancel();
         watchFunction = null;
+    }
+
+    public Collection<BranchInfo.Location> getWatchedBranches() {
+        return watchedBranches;
     }
 
     public Collection<BranchInfo.Location> getBranchLocations(List<String> storageIdList) {
@@ -271,8 +275,8 @@ class Syncer {
     }
 
     static private Task<Void, ChunkStorePullJob.Result> sync(ConnectionManager connectionManager, StorageDir storageDir,
-                                                            Remote remote, AuthInfo authInfo,
-                                                            final Task.IObserver<TaskUpdate, String> observer) {
+                                                             Remote remote, AuthInfo authInfo,
+                                                             final Task.IObserver<TaskUpdate, String> observer) {
         if (storageDir.getDatabase() instanceof Repository) {
             return csSync(connectionManager, storageDir, remote, authInfo, observer);
         } else {
@@ -338,6 +342,7 @@ class Syncer {
 
                     @Override
                     public void onException(Exception exception) {
+                        exception.printStackTrace();
                         observer.onException(exception);
                     }
                 });
@@ -381,18 +386,18 @@ class LocalBranchMonitor {
 
 class SyncManagerServerWorker {
     final private FejoaContext context;
-    final private UserData userData;
     final private ConnectionManager connectionManager;
 
     final private String server;
 
+    private boolean isWatching = false;
+    final private List<BranchInfo.Location> branchInfoList = new ArrayList<>();
     private Watcher currentWatcher;
     final private LocalBranchMonitor localBranchMonitor;
     final private Syncer syncer;
 
     public SyncManagerServerWorker(UserData userData, ConnectionManager connectionManager, String server) {
         this.context = userData.getContext();
-        this.userData = userData;
         this.connectionManager = connectionManager;
         this.server = server;
 
@@ -409,15 +414,19 @@ class SyncManagerServerWorker {
         return new StorageDir.IListener() {
             @Override
             public void onTipChanged(DatabaseDiff diff, String base, String tip) {
-                restartWatching(observer);
+                reNewWatching(observer);
             }
         };
     }
 
-    private void restartWatching(final Task.IObserver<TaskUpdate, Void> observer) {
-        if (currentWatcher == null)
+    private void reNewWatching(final Task.IObserver<TaskUpdate, Void> observer) {
+        if (syncer.isSyncing() || !isWatching())
             return;
+        if (currentWatcher != null)
+            currentWatcher.stopWatching();
+        currentWatcher = new Watcher(branchInfoList);
         final Watcher activeWatcher = currentWatcher;
+
         currentWatcher.startWatching(context, connectionManager, server, new Task.IObserver<Void, WatchJob.Result>() {
             private TaskUpdate makeUpdate(String message) {
                 return new TaskUpdate("Watching", -1, -1, message);
@@ -432,13 +441,12 @@ class SyncManagerServerWorker {
             public void onResult(WatchJob.Result result) {
                 // timeout?
                 if (result.updated == null || result.updated.size() == 0) {
-                    restartWatching(observer);
+                    reNewWatching(observer);
                     observer.onProgress(makeUpdate("timeout"));
                     return;
                 }
 
                 observer.onProgress(makeUpdate("start syncing"));
-                final Task.IObserver<Void, WatchJob.Result> that = this;
                 syncer.sync(activeWatcher.getBranchLocations(result.updated),
                         new Task.IObserver<TaskUpdate, Void>() {
                             @Override
@@ -449,8 +457,8 @@ class SyncManagerServerWorker {
                             @Override
                             public void onResult(Void result) {
                                 // still watching?
-                                if (currentWatcher != null)
-                                    restartWatching(observer);
+                                if (isWatching())
+                                    reNewWatching(observer);
                                 else
                                     observer.onResult(null);
                             }
@@ -475,20 +483,26 @@ class SyncManagerServerWorker {
 
     public void startWatching(Collection<BranchInfo.Location> branchInfoList,
                               final Task.IObserver<TaskUpdate, Void> observer) {
+        this.branchInfoList.clear();
+        this.branchInfoList.addAll(branchInfoList);
+        isWatching = true;
         if (currentWatcher != null && currentWatcher.isWatching())
             currentWatcher.stopWatching();
         listenToBranches(branchInfoList, observer);
-        currentWatcher = new Watcher(branchInfoList);
-        if (!syncer.isSyncing())
-            restartWatching(observer);
+        reNewWatching(observer);
     }
 
     public void stopWatching() {
+        isWatching = false;
         if (currentWatcher != null) {
             currentWatcher.stopWatching();
             currentWatcher = null;
         }
         localBranchMonitor.stopWatching();
+    }
+
+    public boolean isWatching() {
+        return isWatching;
     }
 
     public void stop() {
