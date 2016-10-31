@@ -13,10 +13,8 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.TextFieldListCell;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
 import org.fejoa.gui.IStatusManager;
@@ -39,6 +37,8 @@ import java.util.List;
 
 class CreateMessageBranchView extends VBox {
     public CreateMessageBranchView(final UserData userData, final Messenger messenger)  {
+        setBackground(new Background(new BackgroundFill(Color.WHITE, null, null)));
+
         HBox receiverLayout = new HBox();
         receiverLayout.getChildren().add(new Label("Receiver:"));
         final TextField receiverTextField = new TextField();
@@ -97,6 +97,8 @@ class MessageBranchView extends VBox {
         this.userData = userData;
         this.messageBranchEntry = messageBranchEntry;
         this.messageBranch = messageBranchEntry.getMessageBranch(userData);
+
+        setBackground(new Background(new BackgroundFill(Color.WHITE, null, null)));
 
         VBox.setVgrow(messageListView, Priority.ALWAYS);
         messageListView.setCellFactory(new Callback<ListView<Message>, ListCell<Message>>() {
