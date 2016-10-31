@@ -28,6 +28,7 @@ public class Constants {
 
     static final public String SERVER_USER_KEY = "serverUser";
     static final public String BRANCH_KEY = "branch";
+    static final public String BRANCH_DESCRIPTION_KEY = "description";
 
     static final public String COMMAND_NAME_KEY = "command";
     static final public String SENDER_ID_KEY = "sender";

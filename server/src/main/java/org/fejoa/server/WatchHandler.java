@@ -110,13 +110,11 @@ public class WatchHandler extends JsonRequestHandler {
                 AccessControl accessControl = new AccessControl(session, entry.user);
                 String branch = entry.branch;
                 String remoteMessageHashString = entry.branchTip;
-                HashValue remoteMessageHash = Config.newDataHash();
+                HashValue remoteMessageHash = Config.newBoxHash();
                 if (!remoteMessageHashString.equals(""))
                     remoteMessageHash = HashValue.fromHex(remoteMessageHashString);
                 ChunkStoreBranchLog branchLog;
-                //JGitInterface gitInterface;
                 try {
-                    //gitInterface = accessControl.getReadDatabase(branch);
                     branchLog = accessControl.getChunkStoreBranchLog(branch, BranchAccessRight.PULL);
                 } catch (IOException e) {
                     continue;
@@ -125,9 +123,8 @@ public class WatchHandler extends JsonRequestHandler {
                     status.put(branch, Status.ACCESS_DENIED);
                     continue;
                 }
-                //if (!tip.equals(gitInterface.getTip()))
                 ChunkStoreBranchLog.Entry latest = branchLog.getLatest();
-                HashValue localMessageHash = Config.newDataHash();
+                HashValue localMessageHash = Config.newBoxHash();
                 if (latest != null)
                     localMessageHash = latest.getEntryId();
                 if (!remoteMessageHash.equals(localMessageHash))

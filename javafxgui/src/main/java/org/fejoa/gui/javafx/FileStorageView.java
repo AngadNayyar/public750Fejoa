@@ -22,6 +22,7 @@ import org.fejoa.filestorage.Index;
 import org.fejoa.gui.IStatusManager;
 import org.fejoa.gui.StatusManagerMessenger;
 import org.fejoa.library.*;
+import org.fejoa.library.command.AccessCommandHandler;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.crypto.CryptoHelper;
 import org.fejoa.library.database.DatabaseDiff;
@@ -30,6 +31,7 @@ import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.remote.ChunkStorePullJob;
 import org.fejoa.library.support.Task;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
@@ -256,6 +258,12 @@ public class FileStorageView extends VBox {
                 return fileStorageEntry;
             }
         });
+        appContext.addAccessGrantedHandler(client.getIncomingCommandManager(), new AccessCommandHandler.IContextHandler() {
+            @Override
+            public boolean handle(String senderId, BranchInfo branchInfo) throws Exception {
+                return true;
+            }
+        });
 
         // create layout
         HBox createLayout = new HBox();
@@ -291,7 +299,6 @@ public class FileStorageView extends VBox {
 
         // contact list
         contactFileStorageListView = new ContactFileStorageView(client);
-
 
         // sync layout
         HBox syncLayout = new HBox();

@@ -9,9 +9,11 @@ package org.fejoa.messaging;
 
 import org.fejoa.library.*;
 import org.fejoa.library.crypto.CryptoException;
+import org.fejoa.library.crypto.CryptoHelper;
 import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.database.MovableStorageContainer;
 import org.fejoa.library.database.MovableStorageList;
+import org.fejoa.library.database.StorageDir;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -26,26 +28,33 @@ public class MessageBranch extends MovableStorageContainer {
     final static private String PARTICIPANTS_KEY = "participants";
     final static private String MESSAGES_KEY = "messages";
 
+    final private String id;
     final private UserData userData;
     final private MovableStorageList<Message> messages;
 
-    public static MessageBranch create(UserData userData, Collection<ContactPublic> participants)
-            throws IOException, JSONException {
-        MessageBranch branch = new MessageBranch(null, userData);
+    public static MessageBranch create(UserData userData, BranchInfo branchInfo, Collection<ContactPublic> participants)
+            throws IOException, JSONException, CryptoException {
+        MessageBranch branch = new MessageBranch(null, branchInfo.getBranch(), userData);
         branch.setParticipants(participants);
+        branch.setStorageDir(userData.getStorageDir(branchInfo));
         return branch;
     }
 
-    public static MessageBranch open(IOStorageDir storageDir, UserData userData) {
-        return new MessageBranch(storageDir, userData);
+    public static MessageBranch open(StorageDir storageDir, UserData userData) {
+        return new MessageBranch(storageDir, storageDir.getBranch(), userData);
     }
 
-    private MessageBranch(IOStorageDir storageDir, UserData userData) {
+    public StorageDir getStorageDir() {
+        return (StorageDir)storageDir;
+    }
+
+    private MessageBranch(IOStorageDir storageDir, String id, UserData userData) {
         super(storageDir);
 
+        this.id = id;
         this.userData = userData;
 
-        messages = new MovableStorageList<Message>(null) {
+        messages = new MovableStorageList<Message>(new IOStorageDir(this.storageDir, MESSAGES_KEY)) {
             @Override
             protected Message readObject(IOStorageDir storageDir) throws IOException, CryptoException {
                 return Message.open(storageDir);
@@ -89,12 +98,12 @@ public class MessageBranch extends MovableStorageContainer {
         return messages;
     }
 
-    public String getId() throws IOException {
-        String baseDir = storageDir.getBaseDir();
-        int i = baseDir.lastIndexOf("/");
-        if (i < 0)
-            return "";
+    public String getId() {
+        return id;
+    }
 
-        return baseDir.substring(i + 1);
+    public void commit() throws IOException {
+        if (storageDir instanceof StorageDir)
+            ((StorageDir) storageDir).commit();
     }
 }

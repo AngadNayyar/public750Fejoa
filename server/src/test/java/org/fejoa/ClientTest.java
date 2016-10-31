@@ -20,6 +20,7 @@ import org.fejoa.library.support.LooperThread;
 import org.fejoa.library.support.Task;
 import org.fejoa.server.CookiePerPortManager;
 import org.fejoa.server.JettyServer;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
@@ -162,6 +163,14 @@ public class ClientTest extends TestCase {
         client2.getConnectionManager().setStartScheduler(new Task.NewThreadScheduler());
         client2.getConnectionManager().setObserverScheduler(new Task.LooperThreadScheduler(clientThread));
 
+        AccessCommandHandler accessHandler = (AccessCommandHandler)client1.getIncomingCommandManager().getHandler(
+                AccessCommand.COMMAND_NAME);
+        accessHandler.addContextHandler(UserData.USER_DATA_CONTEXT, new AccessCommandHandler.IContextHandler() {
+            @Override
+            public boolean handle(String senderId, BranchInfo branchInfo) throws Exception {
+                return true;
+            }
+        });
 
         clientThread.start();
     }

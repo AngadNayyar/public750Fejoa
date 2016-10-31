@@ -30,6 +30,7 @@ public class AccessCommand extends EncryptedZipSignedCommand {
         command.put(Constants.SENDER_ID_KEY, sender.getId());
         command.put(BRANCH_CONTEXT_KEY, context);
         command.put(Constants.BRANCH_KEY, branchInfo.getBranch());
+        command.put(Constants.BRANCH_DESCRIPTION_KEY, branchInfo.getDescription());
         if (keyData != null)
             command.put(BRANCH_KEY_KEY, keyData.toJson());
         command.put(TOKEN_KEY, token.getContactToken());

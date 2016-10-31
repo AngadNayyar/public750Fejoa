@@ -21,6 +21,6 @@ public class ConfigStore extends StorageDirObject {
 
     public AppContext getAppContext(String appId) {
         String path = appId.replace('.', '/');
-        return new AppContext(context, new StorageDir(storageDir, path), userData);
+        return new AppContext(context, appId, new StorageDir(storageDir, path), userData);
     }
 }

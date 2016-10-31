@@ -126,6 +126,11 @@ public class IncomingCommandManager {
         return false;
     }
 
+    public void handleCommands() {
+        for (IncomingCommandQueue queue : queues)
+            handleCommands(queue);
+    }
+
     private void handleCommands(IncomingCommandQueue queue) {
         try {
             List<CommandQueue.Entry> commands = queue.getCommands();

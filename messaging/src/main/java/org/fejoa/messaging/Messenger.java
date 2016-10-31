@@ -7,63 +7,28 @@
  */
 package org.fejoa.messaging;
 
-
 import org.fejoa.library.*;
+import org.fejoa.library.command.AccessCommandHandler;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.database.IOStorageDir;
-import org.fejoa.library.database.StorageDir;
 import org.json.JSONException;
 
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 
-class MessageBranchEntry implements IStorageDirBundle {
-    private String branch;
-    private String privateBranch;
-
-    public MessageBranchEntry() {
-    }
-
-    public MessageBranchEntry(BranchInfo branchInfo) {
-        this.branch = branchInfo.getBranch();
-    }
-
-    public String getBranch() {
-        return branch;
-    }
-
-    public String getId() {
-        return getBranch();
-    }
-
-    @Override
-    public void write(IOStorageDir dir) throws IOException, CryptoException {
-        dir.writeString(Constants.BRANCH_KEY, branch);
-    }
-
-    @Override
-    public void read(IOStorageDir dir) throws IOException, CryptoException {
-        branch = dir.readString(Constants.BRANCH_KEY);
-    }
-
-    public MessageBranch getMessageBranch(UserData userData) throws IOException, CryptoException {
-        BranchInfo branchInfo = userData.findBranchInfo(getBranch(), Messenger.MESSENGER_CONTEXT);
-        StorageDir storageDir = userData.getStorageDir(branchInfo);
-        return MessageBranch.open(storageDir, userData);
-    }
-}
 
 public class Messenger {
     final static public String MESSENGER_CONTEXT = "org.fejoa.messenger";
 
     final private Client client;
     final private StorageDirList<MessageBranchEntry> branchList;
+    final private AppContext appContext;
 
     public Messenger(Client client) {
         this.client = client;
 
-        AppContext appContext = client.getUserData().getConfigStore().getAppContext(MESSENGER_CONTEXT);
+        this.appContext = client.getUserData().getConfigStore().getAppContext(MESSENGER_CONTEXT);
         branchList = new StorageDirList<>(appContext.getStorageDir(),
                 new StorageDirList.AbstractEntryIO<MessageBranchEntry>() {
                     @Override
@@ -78,6 +43,14 @@ public class Messenger {
                         return entry;
                     }
                 });
+
+        appContext.addAccessGrantedHandler(client.getIncomingCommandManager(), new AccessCommandHandler.IContextHandler() {
+            @Override
+            public boolean handle(String senderId, BranchInfo branchInfo) throws Exception {
+                branchList.add(new MessageBranchEntry(branchInfo, senderId));
+                return true;
+            }
+        });
     }
 
     public MessageBranch createMessageBranch(List<ContactPublic> participants)
@@ -88,10 +61,9 @@ public class Messenger {
         branchInfo.addLocation(remote.getId(), userData.getContext().getRootAuthInfo(remote));
         userData.addBranch(branchInfo);
 
-        MessageBranch messageBranch = MessageBranch.create(userData, participants);
-        messageBranch.setStorageDir(userData.getStorageDir(branchInfo));
+        MessageBranch messageBranch = MessageBranch.create(userData, branchInfo, participants);
 
-        branchList.add(new MessageBranchEntry(branchInfo));
+        branchList.add(new MessageBranchEntry(branchInfo, client.getUserData().getMyself().getId()));
 
         return messageBranch;
     }
@@ -107,5 +79,9 @@ public class Messenger {
 
     public StorageDirList<MessageBranchEntry> getBranchList() {
         return branchList;
+    }
+
+    public AppContext getAppContext() {
+        return appContext;
     }
 }

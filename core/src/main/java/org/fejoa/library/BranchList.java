@@ -44,11 +44,17 @@ public class BranchList extends MovableStorageList<BranchInfo> {
             branch = subDir.substring(lastSlash + 1);
         }
 
-        return BranchInfo.open(storageDir, branch, storageContext);
+        BranchInfo branchInfo = BranchInfo.open(storageDir, branch, pathPathToContext(storageContext));
+        branchInfo.setRemoteList(remoteList);
+        return branchInfo;
     }
 
-    private String contextToPath(String context) {
+    static public String contextToPath(String context) {
         return context.replace('.', '/');
+    }
+
+    static public String pathPathToContext(String context) {
+        return context.replace('/', '.');
     }
 
     public void add(BranchInfo branchInfo) throws IOException, CryptoException {

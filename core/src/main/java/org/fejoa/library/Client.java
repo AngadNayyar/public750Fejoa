@@ -173,6 +173,10 @@ public class Client {
         syncObserver = null;
     }
 
+    public SyncManager getSyncManager() {
+        return syncManager;
+    }
+
     private void loadCommandManagers() throws IOException, CryptoException {
         outgoingQueueManager = new OutgoingQueueManager(userData.getOutgoingCommandQueue(), connectionManager);
         incomingCommandManager = new IncomingCommandManager(userData);

@@ -19,19 +19,22 @@ import java.io.IOException;
 public class Message extends MovableStorage {
     final static private String BODY_KEY = "body";
 
-    static public Message open(IOStorageDir storageDir) {
-        return new Message(storageDir);
-    }
+    final private String id;
 
     static public Message create(FejoaContext context) throws IOException {
-        Message message = new Message(null);
-        message.setId(CryptoHelper.sha1HashHex(context.getCrypto().generateSalt()));
+        Message message = new Message(null, CryptoHelper.sha1HashHex(context.getCrypto().generateSalt()));
         return message;
     }
 
-    private Message(IOStorageDir storageDir) {
+    static public Message open(IOStorageDir storageDir) {
+        String id = getIdFromDir(storageDir);
+        return new Message(storageDir, id);
+    }
+
+    private Message(IOStorageDir storageDir, String id) {
         super(storageDir);
-        this.storageDir = storageDir;
+
+        this.id = id;
     }
 
     public void setBody(String body) throws IOException {
@@ -42,11 +45,15 @@ public class Message extends MovableStorage {
         return storageDir.readString(BODY_KEY);
     }
 
-    private void setId(String id) throws IOException {
-        storageDir.writeString(Constants.ID_KEY, id);
-    }
-
     public String getId() throws IOException {
-        return storageDir.readString(Constants.ID_KEY);
+        return id;
+    }
+    static public String getIdFromDir(IOStorageDir storageDir) {
+        String baseDir = storageDir.getBaseDir();
+        int i = baseDir.lastIndexOf("/");
+        if (i < 0)
+            return "";
+
+        return baseDir.substring(i + 1);
     }
 }

@@ -8,6 +8,7 @@
 package org.fejoa.library;
 
 import org.fejoa.chunkstore.ChunkStoreBranchLog;
+import org.fejoa.chunkstore.Config;
 import org.fejoa.chunkstore.HashValue;
 import org.fejoa.chunkstore.Repository;
 import org.fejoa.library.crypto.Crypto;
@@ -90,7 +91,7 @@ public class FejoaContext {
         File logDir = new File(getChunkStoreDir(), "branches");
         ChunkStoreBranchLog log = new ChunkStoreBranchLog(new File(logDir, branch));
         if (log.getLatest() == null)
-            return new HashValue(new byte[0]);
+            return Config.newBoxHash();
         return log.getLatest().getEntryId();
     }
 
