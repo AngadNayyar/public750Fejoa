@@ -93,6 +93,7 @@ public class Portal extends AbstractHandler {
         addJsonHandler(new RemotePullHandler());
     }
 
+    @Override
     public void handle(String s, Request request, HttpServletRequest httpServletRequest,
                        HttpServletResponse response) throws IOException, ServletException {
         response.setContentType("text/plain;charset=utf-8");
