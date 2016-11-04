@@ -18,10 +18,11 @@ public class FileBox {
     private IChunkAccessor accessor;
     private ChunkContainer dataContainer;
 
-    static public FileBox create(IChunkAccessor accessor, ChunkSplitter nodeSplitter) {
+    static public FileBox create(IChunkAccessor accessor, ChunkSplitter nodeSplitter, boolean compress) {
         FileBox fileBox = new FileBox();
         fileBox.accessor = accessor;
         fileBox.dataContainer = new ChunkContainer(accessor, nodeSplitter);
+        fileBox.dataContainer.setZLibCompression(compress);
         return fileBox;
     }
 

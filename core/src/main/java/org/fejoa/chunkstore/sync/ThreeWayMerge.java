@@ -30,7 +30,8 @@ public class ThreeWayMerge {
     static public TreeAccessor merge(IRepoChunkAccessors.ITransaction outTransaction,
                                      IRepoChunkAccessors.ITransaction ourTransaction, CommitBox ours,
                                      IRepoChunkAccessors.ITransaction theirTransaction,
-                                     CommitBox theirs, CommitBox parent, IConflictSolver conflictSolver)
+                                     CommitBox theirs, CommitBox parent, IConflictSolver conflictSolver,
+                                     boolean compression)
             throws IOException, CryptoException {
         IChunkAccessor ourAccessor = ourTransaction.getTreeAccessor();
         IChunkAccessor theirAccessor = ourTransaction.getTreeAccessor();
@@ -39,12 +40,13 @@ public class ThreeWayMerge {
         TreeIterator treeIterator = new TreeIterator(ourAccessor, ourRoot, theirAccessor, theirRoot);
 
         FlatDirectoryBox parentRoot = FlatDirectoryBox.read(ourAccessor, parent.getTree());
-        TreeAccessor parentTreeAccessor = new TreeAccessor(parentRoot, ourTransaction);
-        TreeAccessor ourTreeAccessor = new TreeAccessor(FlatDirectoryBox.read(ourAccessor, ours.getTree()), ourTransaction);
+        TreeAccessor parentTreeAccessor = new TreeAccessor(parentRoot, ourTransaction, compression);
+        TreeAccessor ourTreeAccessor = new TreeAccessor(FlatDirectoryBox.read(ourAccessor, ours.getTree()),
+                ourTransaction, compression);
         TreeAccessor theirTreeAccessor = new TreeAccessor(FlatDirectoryBox.read(theirAccessor, theirs.getTree()),
-                theirTransaction);
+                theirTransaction, compression);
 
-        TreeAccessor outTree = new TreeAccessor(ourRoot, outTransaction);
+        TreeAccessor outTree = new TreeAccessor(ourRoot, outTransaction, compression);
 
         while (treeIterator.hasNext()) {
             DiffIterator.Change<FlatDirectoryBox.Entry> change = treeIterator.next();

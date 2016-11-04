@@ -16,13 +16,16 @@ import java.util.List;
 
 
 public class TreeAccessor {
+    private boolean compress = false;
     private boolean modified = false;
     private FlatDirectoryBox root;
     private IRepoChunkAccessors.ITransaction transaction;
 
-    public TreeAccessor(FlatDirectoryBox root, IRepoChunkAccessors.ITransaction transaction) throws IOException {
+    public TreeAccessor(FlatDirectoryBox root, IRepoChunkAccessors.ITransaction transaction, boolean compress)
+            throws IOException {
         this.transaction = transaction;
 
+        this.compress = true;
         this.root = root;
     }
 
@@ -209,7 +212,7 @@ public class TreeAccessor {
             BoxPointer dataPointer = write(fileBox);
             child.setDataPointer(dataPointer);
         }
-        return Repository.put(dir, transaction.getTreeAccessor());
+        return Repository.put(dir, transaction.getTreeAccessor(), compress);
     }
 
     public FlatDirectoryBox getRoot() {

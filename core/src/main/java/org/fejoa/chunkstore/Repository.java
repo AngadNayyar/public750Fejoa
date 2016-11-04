@@ -54,7 +54,7 @@ public class Repository implements IDatabaseInterface {
             headCommit = CommitBox.read(transaction.getCommitAccessor(), headCommitPointer);
             root = FlatDirectoryBox.read(transaction.getTreeAccessor(), headCommit.getTree());
         }
-        this.treeAccessor = new TreeAccessor(root, transaction);
+        this.treeAccessor = new TreeAccessor(root, transaction, useCompression());
         commitCache = new CommitCache(this);
     }
 
@@ -77,7 +77,7 @@ public class Repository implements IDatabaseInterface {
     private void setHeadCommit(CommitBox headCommit) throws IOException, CryptoException {
         this.headCommit = headCommit;
         FlatDirectoryBox root = FlatDirectoryBox.read(transaction.getTreeAccessor(), headCommit.getTree());
-        this.treeAccessor = new TreeAccessor(root, transaction);
+        this.treeAccessor = new TreeAccessor(root, transaction, useCompression());
     }
 
     public String getBranch() {
@@ -209,8 +209,13 @@ public class Repository implements IDatabaseInterface {
         }
     }
 
+    public boolean useCompression() {
+        return true;
+    }
+
     private FileBox writeToFileBox(String path, byte[] data) throws IOException {
-        FileBox file = FileBox.create(transaction.getFileAccessor(path), defaultNodeSplitter(RabinSplitter.CHUNK_8KB));
+        FileBox file = FileBox.create(transaction.getFileAccessor(path), defaultNodeSplitter(RabinSplitter.CHUNK_8KB),
+                useCompression());
         ChunkContainer chunkContainer = file.getDataContainer();
         ChunkContainerOutputStream containerOutputStream = new ChunkContainerOutputStream(chunkContainer,
                 chunkSplitter);
@@ -219,9 +224,11 @@ public class Repository implements IDatabaseInterface {
         return file;
     }
 
-    static public BoxPointer put(TypedBlob blob, IChunkAccessor accessor) throws IOException, CryptoException {
+    static public BoxPointer put(TypedBlob blob, IChunkAccessor accessor, boolean compress) throws IOException,
+            CryptoException {
         ChunkSplitter nodeSplitter = Repository.defaultNodeSplitter(RabinSplitter.CHUNK_8KB);
         ChunkContainer chunkContainer = new ChunkContainer(accessor, nodeSplitter);
+        chunkContainer.setZLibCompression(compress);
 
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         blob.write(new DataOutputStream(outputStream));
@@ -293,7 +300,7 @@ public class Repository implements IDatabaseInterface {
                 log.add(commitCallback.logHash(headCommit.getBoxPointer()),
                         commitCallback.commitPointerToLog(headCommit.getBoxPointer()), transaction.getObjectsWritten());
                 treeAccessor = new TreeAccessor(FlatDirectoryBox.read(transaction.getTreeAccessor(),
-                        otherBranch.getTree()), transaction);
+                        otherBranch.getTree()), transaction, useCompression());
                 return MergeResult.FAST_FORWARD;
             }
             if (headCommit.dataHash().equals(otherBranch.dataHash()))
@@ -318,13 +325,13 @@ public class Repository implements IDatabaseInterface {
                 log.add(commitCallback.logHash(headCommit.getBoxPointer()),
                         commitCallback.commitPointerToLog(headCommit.getBoxPointer()), transaction.getObjectsWritten());
                 treeAccessor = new TreeAccessor(FlatDirectoryBox.read(transaction.getTreeAccessor(),
-                        otherBranch.getTree()), transaction);
+                        otherBranch.getTree()), transaction, useCompression());
                 return MergeResult.FAST_FORWARD;
             }
 
             // merge branches
             treeAccessor = ThreeWayMerge.merge(transaction, transaction, headCommit, otherTransaction,
-                    otherBranch, shortestChain.getOldest(), ThreeWayMerge.ourSolver());
+                    otherBranch, shortestChain.getOldest(), ThreeWayMerge.ourSolver(), useCompression());
             return MergeResult.MERGED;
         }
     }
@@ -370,7 +377,7 @@ public class Repository implements IDatabaseInterface {
             if (commitSignature != null)
                 message = commitSignature.signMessage(message, rootTree.getDataHash(), getParents());
             commitBox.setCommitMessage(message.getBytes());
-            BoxPointer commitPointer = put(commitBox, transaction.getCommitAccessor());
+            BoxPointer commitPointer = put(commitBox, transaction.getCommitAccessor(), useCompression());
             commitBox.setBoxPointer(commitPointer);
             headCommit = commitBox;
 
