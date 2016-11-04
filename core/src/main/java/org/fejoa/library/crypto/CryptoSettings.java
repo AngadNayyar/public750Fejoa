@@ -72,7 +72,7 @@ public class CryptoSettings {
         cryptoSettings.symmetric.keySize = 256;
         cryptoSettings.symmetric.ivSize = 16 * 8;
 
-        cryptoSettings.masterPassword.kdfAlgorithm = "PBKDF2WithHmacSHA1";
+        cryptoSettings.masterPassword.kdfAlgorithm = "PBKDF2WithHmacSHA512";
         cryptoSettings.masterPassword.kdfIterations = 20000;
         cryptoSettings.masterPassword.passwordSize = 256;
 
