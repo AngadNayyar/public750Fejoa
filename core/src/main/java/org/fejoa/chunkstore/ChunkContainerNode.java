@@ -336,9 +336,9 @@ public class ChunkContainerNode implements IChunk {
                 flush(childOnly);
                 return;
             }
-            byte[] data = getData();
+
             HashValue oldBoxHash = that.getBoxPointer().getBoxHash();
-            HashValue boxHash = blobAccessor.putChunk(data, rawHash()).key;
+            HashValue boxHash = writeNode();
             // cleanup old chunk
             if (!boxHash.equals(oldBoxHash) && !oldBoxHash.isZero())
                 blobAccessor.releaseChunk(oldBoxHash);
@@ -350,6 +350,11 @@ public class ChunkContainerNode implements IChunk {
 
             onDisk = true;
         }
+    }
+
+    protected HashValue writeNode() throws IOException, CryptoException {
+        byte[] data = getData();
+        return blobAccessor.putChunk(data, rawHash()).key;
     }
 
     @Override
@@ -388,7 +393,7 @@ public class ChunkContainerNode implements IChunk {
         return calculateDataHash();
     }
 
-    private HashValue rawHash() throws IOException {
+    protected HashValue rawHash() throws IOException {
         return new HashValue(CryptoHelper.sha256Hash(getData()));
     }
 
