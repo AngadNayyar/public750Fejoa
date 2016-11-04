@@ -49,7 +49,7 @@ public class HistoryViewTest extends Application {
         branchCommit.addParent(base0.getBoxPointer());
         branchCommit.setCommitMessage("Branch Commit 1".getBytes());
         IRepoChunkAccessors.ITransaction transaction = repository.getAccessors().startTransaction();
-        BoxPointer commitPointer = Repository.put(branchCommit, transaction.getCommitAccessor());
+        BoxPointer commitPointer = Repository.put(branchCommit, transaction.getCommitAccessor(), true);
         branchCommit.setBoxPointer(commitPointer);
         repository.merge(transaction, branchCommit);
         repository.commitInternal("Merge.", null, Collections.singletonList(branchCommit.getBoxPointer()));
