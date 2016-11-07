@@ -79,8 +79,8 @@ public class JettyServer {
         }
 
         String directory = ".";
-        //if (cmd.hasOption("directory"))
-          //  directory = cmd.getOptionValue("directory");
+        if (cmd.hasOption("directory"))
+            directory = cmd.getOptionValue("directory");
 
         JettyServer server = new JettyServer(directory, host, port);
         server.start();
