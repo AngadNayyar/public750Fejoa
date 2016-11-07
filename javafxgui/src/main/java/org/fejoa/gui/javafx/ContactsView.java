@@ -7,6 +7,7 @@
  */
 package org.fejoa.gui.javafx;
 
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -73,10 +74,10 @@ class ContactRequestList extends ListView<ContactRequestCommandHandler.ContactRe
     }
 }
 
-class ContactList extends ListView<ContactPublic> {
+class ContactListView extends ListView<ContactPublic> {
     final private StorageDir.IListener listener;
 
-    public ContactList(StorageDir storageDir, final StorageDirList<ContactPublic> contactList) {
+    public ContactListView(StorageDir storageDir, final StorageDirList<ContactPublic> contactList) {
         update(contactList);
 
         this.listener = new StorageDir.IListener() {
@@ -118,7 +119,7 @@ class ContactList extends ListView<ContactPublic> {
 
 public class ContactsView extends VBox {
     public ContactsView(final Client client,
-                        ObservableList<ContactRequestCommandHandler.ContactRequest> contactRequests,
+                        final ObservableList<ContactRequestCommandHandler.ContactRequest> contactRequests,
                         IStatusManager statusManager) {
         ContactStore contactStore = client.getUserData().getContactStore();
 
@@ -134,13 +135,13 @@ public class ContactsView extends VBox {
 
         getChildren().add(addContactLayout);
         getChildren().add(new Label("Contact Requests:"));
-        ContactRequestList contactRequestList = new ContactRequestList();
+        final ContactRequestList contactRequestList = new ContactRequestList();
         contactRequestList.setItems(contactRequests);
         getChildren().add(contactRequestList);
         getChildren().add(new Label("Requested Contacts:"));
-        getChildren().add(new ContactList(contactStore.getStorageDir(), contactStore.getRequestedContacts()));
+        getChildren().add(new ContactListView(contactStore.getStorageDir(), contactStore.getRequestedContacts()));
         getChildren().add(new Label("Contact List:"));
-        getChildren().add(new ContactList(contactStore.getStorageDir(), contactStore.getContactList()));
+        getChildren().add(new ContactListView(contactStore.getStorageDir(), contactStore.getContactList()));
 
         addContactButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
