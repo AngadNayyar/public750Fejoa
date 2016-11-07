@@ -64,7 +64,7 @@ public class AccessRequestHandler extends JsonRequestHandler {
             BranchAccessRight branchAccessRight = new BranchAccessRight(new JSONObject(accessEntry));
             for (BranchAccessRight.Entry entry : branchAccessRight.getEntries())
                 session.addRole(serverUser, entry.getBranch(), entry.getRights());
-            if (branchAccessRight.getType() == BranchAccessRight.MIGRATION_ACCESS)
+            if (branchAccessRight.getType().equals(BranchAccessRight.MIGRATION_ACCESS))
                 session.addMigrationRole(serverUser);
 
             responseHandler.setResponseHeader(jsonRPCHandler.makeResult(Errors.OK, "access request successful"));

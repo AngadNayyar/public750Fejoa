@@ -20,14 +20,10 @@ import java.io.IOException;
 public class AccessControl {
     final private Session session;
     final private String user;
-    final private boolean isMigrating;
 
     public AccessControl(Session session, String user) {
         this.session = session;
         this.user = user;
-
-        File migrationFile = new File(session.getServerUserDir(user), StartMigrationHandler.MIGRATION_INFO_FILE);
-        this.isMigrating = migrationFile.exists();
     }
 
     private boolean hasAccess(String branch, int rights) {
@@ -42,7 +38,7 @@ public class AccessControl {
     }
 
     public int getBranchAccessRights(String branch) {
-        if (DebugSingleton.get().isNoAccessControl() || isRootUser())
+        if (DebugSingleton.get().isNoAccessControl() || isRootUser() || session.hasMigrationRole(user))
             return BranchAccessRight.ALL;
         return session.getRoleRights(user, branch);
     }
@@ -83,9 +79,5 @@ public class AccessControl {
         JGitInterface gitInterface = new JGitInterface();
         gitInterface.init(session.getBaseDir() + "/" + user + "/.git", branch, true);
         return gitInterface;
-    }
-
-    public JGitInterface getReadDatabase(String branch) throws IOException {
-        return getDatabase(branch, BranchAccessRight.PULL);
     }
 }

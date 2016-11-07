@@ -53,6 +53,8 @@ public class ChunkStoreRequestHandler extends JsonRequestHandler {
 
         ServerPipe pipe = new ServerPipe(jsonRPCHandler.makeResult(Errors.OK, "data pipe ok"),
                 responseHandler, data);
-        handler.handle(pipe, branchAccessRights);
+        RequestHandler.Result result = handler.handle(pipe, branchAccessRights);
+        if (result != RequestHandler.Result.OK && !responseHandler.isHandled())
+            responseHandler.setResponseHeader(jsonRPCHandler.makeResult(Errors.ERROR, result.getDescription()));
     }
 }

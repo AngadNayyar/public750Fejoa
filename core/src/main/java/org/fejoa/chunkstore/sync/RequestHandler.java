@@ -11,6 +11,7 @@ import org.fejoa.chunkstore.ChunkStore;
 import org.fejoa.chunkstore.ChunkStoreBranchLog;
 import org.fejoa.library.BranchAccessRight;
 import org.fejoa.library.remote.IRemotePipe;
+import org.fejoa.library.remote.JsonRPC;
 import org.fejoa.library.remote.RemoteJob;
 import org.fejoa.library.support.StreamHelper;
 
@@ -21,18 +22,24 @@ import java.io.IOException;
 
 public class RequestHandler {
     public enum Result {
-        OK(0),
-        MISSING_ACCESS_RIGHTS(1),
-        ERROR(-1);
+        OK(0, "ok"),
+        MISSING_ACCESS_RIGHTS(1, "missing access rights"),
+        ERROR(-1, "error");
 
         private int value;
+        private String description;
 
-        Result(int value) {
+        Result(int value, String description) {
             this.value = value;
+            this.description = description;
         }
 
         public int getValue() {
             return value;
+        }
+
+        public String getDescription() {
+            return description;
         }
     }
 
