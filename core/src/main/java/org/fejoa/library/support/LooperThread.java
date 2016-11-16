@@ -7,15 +7,15 @@
  */
 package org.fejoa.library.support;
 
-import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
 
 
 public class LooperThread extends Thread {
     private boolean quit = false;
-    final private ArrayBlockingQueue<Runnable> jobs;
+    final private LinkedBlockingDeque<Runnable> jobs;
 
     public LooperThread(int capacity) {
-        jobs = new ArrayBlockingQueue(capacity);
+        jobs = new LinkedBlockingDeque(capacity);
     }
 
     @Override
@@ -53,9 +53,16 @@ public class LooperThread extends Thread {
     }
 
     public boolean post(Runnable runnable) {
+        return post(runnable, false);
+    }
+
+    public boolean post(Runnable runnable, boolean insertAtFront) {
         if (quit)
             return false;
-        jobs.add(runnable);
+        if (insertAtFront)
+            jobs.addFirst(runnable);
+        else
+            jobs.add(runnable);
         return true;
     }
 }
