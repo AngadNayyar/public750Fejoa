@@ -24,12 +24,12 @@
     <orderEntry type="library" name="Maven: commons-io:commons-io:2.4" level="project" />
     <orderEntry type="library" name="Maven: org.bouncycastle:bcpg-jdk15on:1.55" level="project" />
     <orderEntry type="library" name="Maven: org.bouncycastle:bcprov-jdk15on:1.55" level="project" />
-    <orderEntry type="library" name="Maven: org.eclipse.jgit:org.eclipse.jgit:2.3.1.201302201838-r" level="project" />
-    <orderEntry type="library" name="Maven: com.jcraft:jsch:0.1.46" level="project" />
     <orderEntry type="library" name="Maven: org.eclipse.jetty:jetty-server:9.0.3.v20130506" level="project" />
     <orderEntry type="library" name="Maven: org.eclipse.jetty.orbit:javax.servlet:3.0.0.v201112011016" level="project" />
     <orderEntry type="library" name="Maven: org.eclipse.jetty:jetty-http:9.0.3.v20130506" level="project" />
     <orderEntry type="library" name="Maven: org.eclipse.jetty:jetty-util:9.0.3.v20130506" level="project" />
     <orderEntry type="library" name="Maven: org.eclipse.jetty:jetty-io:9.0.3.v20130506" level="project" />
+    <orderEntry type="library" name="Maven: net.sourceforge.streamsupport:streamsupport-cfuture:1.5.2" level="project" />
+    <orderEntry type="library" name="Maven: net.sourceforge.streamsupport:streamsupport:1.5.2" level="project" />
   </component>
 </module>

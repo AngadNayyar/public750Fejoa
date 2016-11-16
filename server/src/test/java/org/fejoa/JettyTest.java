@@ -7,7 +7,6 @@ import org.fejoa.library.FejoaContext;
 import org.fejoa.library.Remote;
 import org.fejoa.library.UserData;
 import org.fejoa.library.database.ICommitSignature;
-import org.fejoa.library.database.JGitInterface;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.remote.*;
 import org.fejoa.library.support.StorageLib;
@@ -74,109 +73,6 @@ public class JettyTest extends TestCase {
 
         for (String dir : cleanUpDirs)
             StorageLib.recursiveDeleteFile(new File(dir));
-    }
-
-    public void testSync2() throws Exception {
-        String serverUser = "user1";
-        String localGitDir = TEST_DIR + "/.git";
-        String BRANCH = "testBranch";
-
-        // push
-        JGitInterface gitInterface = new JGitInterface();
-        gitInterface.init(localGitDir, BRANCH, true);
-        gitInterface.writeBytes("id", "testData".getBytes());
-        gitInterface.commit();
-        sync(connectionManager, gitInterface, serverUser);
-
-        // do changes on the server
-        JGitInterface serverGit = new JGitInterface();
-        serverGit.init(SERVER_TEST_DIR + "/" + serverUser + "/.git", BRANCH, false);
-        serverGit.writeBytes("hash/command", "testData".getBytes());
-        serverGit.commit();
-        sync(connectionManager, gitInterface, serverUser);
-
-        serverGit.writeBytes("hash2/command", "testData".getBytes());
-        serverGit.commit();
-
-        // client delete
-        gitInterface.remove("hash");
-        gitInterface.commit();
-        sync(connectionManager, gitInterface, serverUser);
-
-        // test trivial merge
-        serverGit.writeBytes("hash3/command", "testData".getBytes());
-        serverGit.commit();
-        sync(connectionManager, gitInterface, serverUser);
-
-        // pull into empty git
-        StorageLib.recursiveDeleteFile(new File(localGitDir));
-        gitInterface = new JGitInterface();
-        gitInterface.init(localGitDir, BRANCH, true);
-        sync(connectionManager, gitInterface, serverUser);
-    }
-
-    public void testSync() throws Exception {
-        String serverUser = "user1";
-        String localGitDir = TEST_DIR + "/.git";
-        String BRANCH = "testBranch";
-
-        // push
-        JGitInterface gitInterface = new JGitInterface();
-        gitInterface.init(localGitDir, BRANCH, true);
-        gitInterface.writeBytes("testFile", "testData".getBytes());
-        gitInterface.commit();
-        sync(connectionManager, gitInterface, serverUser);
-
-        // do changes on the server
-        JGitInterface serverGit = new JGitInterface();
-        serverGit.init(SERVER_TEST_DIR + "/" + serverUser + "/.git", BRANCH, false);
-        serverGit.writeBytes("testFileServer", "testDataServer".getBytes());
-        serverGit.commit();
-
-        // merge
-        gitInterface.writeBytes("testFile2", "testDataClient2".getBytes());
-        gitInterface.remove("testFile");
-        gitInterface.commit();
-
-        // sync
-        sync(connectionManager, gitInterface, serverUser);
-
-        // pull into empty git
-        StorageLib.recursiveDeleteFile(new File(localGitDir));
-        gitInterface = new JGitInterface();
-        gitInterface.init(localGitDir, BRANCH, true);
-        sync(connectionManager, gitInterface, serverUser);
-    }
-
-    private void sync(final ConnectionManager connectionManager, final JGitInterface gitInterface, final String serverUser) {
-        connectionManager.submit(new GitPullJob(gitInterface.getRepository(), serverUser,
-                gitInterface.getBranch()), remote, authInfo, new Task.IObserver<Void, GitPullJob.Result>() {
-            @Override
-            public void onProgress(Void aVoid) {
-                observer.onProgress(aVoid);
-            }
-
-            @Override
-            public void onResult(GitPullJob.Result result) {
-                observer.onResult(result);
-                try {
-                    HashValue pullRevHash = HashValue.fromHex(result.pulledRev);
-                    gitInterface.merge(pullRevHash);
-                    HashValue tip = gitInterface.getTip();
-                    if (tip.equals(pullRevHash))
-                        return;
-                    connectionManager.submit(new GitPushJob(gitInterface.getRepository(), serverUser,
-                            gitInterface.getBranch()), remote, authInfo, observer);
-                } catch (IOException e) {
-                    observer.onException(e);
-                }
-            }
-
-            @Override
-            public void onException(Exception exception) {
-                observer.onException(exception);
-            }
-        });
     }
 
     private void syncChunkStore(final ConnectionManager connectionManager, final Repository repository,

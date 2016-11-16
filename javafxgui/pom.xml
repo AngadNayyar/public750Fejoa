@@ -11,7 +11,6 @@
 
     <artifactId>javafxgui</artifactId>
 
-
     <dependencies>
         <dependency>
             <groupId>fejoa</groupId>
@@ -44,5 +43,11 @@
             <artifactId>jetty-server</artifactId>
             <version>9.0.3.v20130506</version>
         </dependency>
+        <dependency>
+            <groupId>net.sourceforge.streamsupport</groupId>
+            <artifactId>streamsupport-cfuture</artifactId>
+            <version>1.5.2</version>
+        </dependency>
     </dependencies>
+
 </project>

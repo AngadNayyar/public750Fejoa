@@ -12,7 +12,6 @@ import org.fejoa.chunkstore.ChunkStoreBranchLog;
 import org.fejoa.chunkstore.Config;
 import org.fejoa.chunkstore.HashValue;
 import org.fejoa.library.BranchAccessRight;
-import org.fejoa.library.database.JGitInterface;
 import org.fejoa.library.Constants;
 import org.fejoa.library.remote.*;
 import org.json.JSONArray;

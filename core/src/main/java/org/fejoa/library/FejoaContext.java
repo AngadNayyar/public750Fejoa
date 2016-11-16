@@ -16,7 +16,6 @@ import org.fejoa.library.crypto.CryptoSettings;
 import org.fejoa.library.crypto.ICryptoInterface;
 import org.fejoa.library.database.CSRepositoryBuilder;
 import org.fejoa.library.database.ICommitSignature;
-import org.fejoa.library.database.JGitInterface;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.remote.AuthInfo;
 import org.fejoa.library.crypto.CryptoException;
@@ -47,10 +46,6 @@ public class FejoaContext {
         return homeDir;
     }
 
-    public StorageDir getStorage(String branch) throws IOException {
-        return get(".git", branch);
-    }
-
     public ICryptoInterface getCrypto() {
         return Crypto.get();
     }
@@ -59,20 +54,6 @@ public class FejoaContext {
         return cryptoSettings;
     }
 
-    private StorageDir get(String path, String branch) throws IOException {
-        path = new File(homeDir, path).getPath();
-        StorageDir dir = secureStorageDirs.get(path + ":" + branch);
-        if (dir != null && dir.getBranch().equals(branch))
-            return new StorageDir(dir);
-
-        // not found create one
-        JGitInterface database = new JGitInterface();
-        database.init(path, branch, true);
-
-        StorageDir storageDir = new StorageDir(database, "");
-        secureStorageDirs.put(path + ":" + branch, storageDir);
-        return new StorageDir(storageDir);
-    }
 
     public StorageDir getPlainStorage(String branch) throws IOException, CryptoException {
         return getStorage(branch, null, null);

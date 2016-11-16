@@ -82,8 +82,6 @@ public class Portal extends AbstractHandler {
 
         addJsonHandler(new JsonPingHandler());
         addJsonHandler(new WatchHandler());
-        addJsonHandler(new GitPushHandler());
-        addJsonHandler(new GitPullHandler());
         addJsonHandler(new ChunkStoreRequestHandler());
         addJsonHandler(new CreateAccountHandler());
         addJsonHandler(new RootLoginRequestHandler());

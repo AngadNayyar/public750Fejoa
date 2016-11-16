@@ -44,7 +44,7 @@ public class AccessStoreTest extends TestCase {
     public void testSimple() throws Exception {
         // set up
         FejoaContext context = new FejoaContext(TEST_DIR);
-        StorageDir serverDir = context.getStorage("server");
+        StorageDir serverDir = context.getPlainStorage("server");
 
         // create token
         AccessToken accessToken = AccessToken.create(context);
@@ -55,7 +55,7 @@ public class AccessStoreTest extends TestCase {
         serverDir.commit();
 
         // test to reopen it
-        serverDir = context.getStorage("server");
+        serverDir = context.getPlainStorage("server");
         accessToken = AccessToken.open(context, serverDir);
         String contactToken = accessToken.getContactToken().toString();
 

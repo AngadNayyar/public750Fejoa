@@ -9,8 +9,6 @@ package org.fejoa.server;
 
 import org.fejoa.chunkstore.ChunkStore;
 import org.fejoa.chunkstore.ChunkStoreBranchLog;
-import org.fejoa.chunkstore.Repository;
-import org.fejoa.library.database.JGitInterface;
 import org.fejoa.library.BranchAccessRight;
 
 import java.io.File;
@@ -71,13 +69,5 @@ public class AccessControl {
 
     private File getChunkStoreDir() {
         return new File(session.getServerUserDir(user), ".chunkstore");
-    }
-
-    public JGitInterface getDatabase(String branch, int rights) throws IOException {
-        if (!hasAccess(branch, rights))
-            return null;
-        JGitInterface gitInterface = new JGitInterface();
-        gitInterface.init(session.getBaseDir() + "/" + user + "/.git", branch, true);
-        return gitInterface;
     }
 }

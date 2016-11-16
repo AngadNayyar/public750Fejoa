@@ -7,9 +7,9 @@
  */
 package org.fejoa.library.remote;
 
+import org.apache.commons.codec.binary.Base64;
 import org.fejoa.library.crypto.CryptoSettings;
 import org.fejoa.library.crypto.JsonCryptoSettings;
-import org.eclipse.jgit.util.Base64;
 import org.fejoa.library.UserDataSettings;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -46,7 +46,7 @@ public class AccountSettings {
     public AccountSettings(JSONObject object) throws JSONException {
         userName = object.getString(USER_NAME_KEY);
         derivedPassword = object.getString(LOGIN_PASSWORD_KEY);
-        salt = Base64.decode(object.getString(LOGIN_KDF_SALT_KEY));
+        salt = Base64.decodeBase64(object.getString(LOGIN_KDF_SALT_KEY));
         loginSettings = JsonCryptoSettings.passwordFromJson(object.getJSONObject(LOGIN_KDF_SETTINGS_KEY));
         userDataSettings = new UserDataSettings(object.getJSONObject(USER_DATA_SETTINGS_KEY));
     }
@@ -64,7 +64,7 @@ public class AccountSettings {
     }
 
     public JSONObject toJson() {
-        String saltBase64 = Base64.encodeBytes(salt);
+        String saltBase64 = Base64.encodeBase64String(salt);
 
         JSONObject object = new JSONObject();
         try {

@@ -438,8 +438,8 @@ public class ClientTest extends TestCase {
                         @Override
                         public void run() {
                             try {
-                                TestCase.assertFalse(client1.getContext().getStorage(contactBranch.getBranch()).getTip().equals(""));
-                            } catch (IOException e) {
+                                TestCase.assertFalse(client1.getContext().getPlainStorage(contactBranch.getBranch()).getTip().equals(""));
+                            } catch (Exception e) {
                                 finishAndFail(e);
                             }
                             onTaskPerformed();
