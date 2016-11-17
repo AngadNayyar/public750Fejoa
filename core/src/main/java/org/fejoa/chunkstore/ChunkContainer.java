@@ -48,7 +48,7 @@ class ChunkPointer implements IChunkPointer {
     }
 
     @Override
-    public int getDataLength() throws IOException {
+    public int getDataLength() {
         if (cachedChunk != null)
             dataLength = cachedChunk.getDataLength();
         return dataLength;
@@ -253,14 +253,9 @@ public class ChunkContainer extends ChunkContainerNode {
 
             @Override
             public boolean hasNext() {
-                try {
-                    if (position >= getDataLength())
-                        return false;
-                    return true;
-                } catch (IOException e) {
-                    e.printStackTrace();
+                if (position >= getDataLength())
                     return false;
-                }
+                return true;
             }
 
             @Override

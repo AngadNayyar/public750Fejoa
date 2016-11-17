@@ -49,7 +49,7 @@ public class DataChunk implements IChunk {
     }
 
     @Override
-    public int getDataLength() throws IOException {
+    public int getDataLength() {
         return data.length;
     }
 }

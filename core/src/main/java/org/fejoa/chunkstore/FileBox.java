@@ -15,22 +15,18 @@ import java.io.IOException;
 
 
 public class FileBox {
-    private IChunkAccessor accessor;
     private ChunkContainer dataContainer;
 
-    static public FileBox create(IChunkAccessor accessor, ChunkSplitter nodeSplitter, boolean compress) {
+    static public FileBox create(ChunkContainer chunkContainer) {
         FileBox fileBox = new FileBox();
-        fileBox.accessor = accessor;
-        fileBox.dataContainer = new ChunkContainer(accessor, nodeSplitter);
-        fileBox.dataContainer.setZLibCompression(compress);
+        fileBox.dataContainer = chunkContainer;
         return fileBox;
     }
 
     static public FileBox read(IChunkAccessor accessor, BoxPointer pointer)
             throws IOException, CryptoException {
         FileBox fileBox = new FileBox();
-        fileBox.accessor = accessor;
-        fileBox.read(pointer);
+        fileBox.readChunkContainer(accessor, pointer);
         return fileBox;
     }
 
@@ -38,7 +34,7 @@ public class FileBox {
         dataContainer.flush(false);
     }
 
-    private void read(BoxPointer pointer) throws IOException, CryptoException {
+    private void readChunkContainer(IChunkAccessor accessor, BoxPointer pointer) throws IOException, CryptoException {
         dataContainer = ChunkContainer.read(accessor, pointer);
     }
 

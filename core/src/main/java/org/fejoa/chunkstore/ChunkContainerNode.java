@@ -89,7 +89,7 @@ public class ChunkContainerNode implements IChunk {
     }
 
     @Override
-    public int getDataLength() throws IOException {
+    public int getDataLength() {
         return calculateDataLength();
     }
 
@@ -118,7 +118,7 @@ public class ChunkContainerNode implements IChunk {
         return node;
     }
 
-    protected int calculateDataLength() throws IOException {
+    protected int calculateDataLength() {
         int length = 0;
         for (IChunkPointer pointer : slots)
             length += pointer.getDataLength();
@@ -238,12 +238,6 @@ public class ChunkContainerNode implements IChunk {
         }
     }
 
-    /**
-     *
-     * @return true if the root has been updated
-     * @throws IOException
-     * @throws CryptoException
-     */
     private void balance() throws IOException, CryptoException {
         nodeSplitter.reset();
         int size = size();

@@ -17,5 +17,5 @@ public interface IChunk {
     void read(DataInputStream inputStream) throws IOException;
     void write(DataOutputStream outputStream) throws IOException;
     byte[] getData() throws IOException;
-    int getDataLength() throws IOException;
+    int getDataLength();
 }

@@ -7,10 +7,10 @@
  */
 package org.fejoa.chunkstore;
 
-import org.fejoa.library.support.StreamHelper;
 import org.fejoa.library.crypto.CryptoException;
 
 import java.io.IOException;
+import java.nio.file.NoSuchFileException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -105,17 +105,16 @@ public class TreeAccessor {
         return fileEntry.isFile();
     }
 
-    public byte[] read(String path) throws IOException, CryptoException {
+    public FileBox getFileBox(String path) throws IOException, CryptoException {
         FlatDirectoryBox.Entry fileEntry = get(path);
         if (fileEntry == null)
-            throw new IOException("Entry not found");
+            throw new NoSuchFileException("Entry not found");
         assert fileEntry.isFile();
 
         FileBox fileBox = (FileBox)fileEntry.getObject();
         if (fileBox == null)
             fileBox = FileBox.read(transaction.getFileAccessor(path), fileEntry.getDataPointer());
-        ChunkContainerInputStream inputStream = new ChunkContainerInputStream(fileBox.getDataContainer());
-        return StreamHelper.readAll(inputStream);
+        return fileBox;
     }
 
     public void put(String path, FileBox file) throws IOException, CryptoException {
