@@ -102,8 +102,10 @@ public class RepositoryTest extends RepositoryTestBase {
     }
 
     private FileBox writeToFileBox(IChunkAccessor accessor, String content) throws IOException, CryptoException {
-        FileBox file = FileBox.create(accessor, Repository.defaultNodeSplitter(RabinSplitter.CHUNK_8KB), true);
-        ChunkContainer chunkContainer = file.getDataContainer();
+        ChunkContainer chunkContainer = new ChunkContainer(accessor,
+                Repository.defaultNodeSplitter(RabinSplitter.CHUNK_8KB));
+        chunkContainer.setZLibCompression(true);
+        FileBox file = FileBox.create(chunkContainer);
         ChunkContainerOutputStream containerOutputStream = new ChunkContainerOutputStream(chunkContainer, splitter);
         containerOutputStream.write(content.getBytes());
         containerOutputStream.flush();

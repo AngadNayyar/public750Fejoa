@@ -7,6 +7,9 @@
  */
 package org.fejoa.library.support;
 
+import org.fejoa.library.crypto.CryptoException;
+import org.fejoa.library.database.ISyncRandomDataAccess;
+
 import java.io.*;
 
 
@@ -32,6 +35,14 @@ public class StreamHelper {
             outputStream.write(buffer, 0, length);
     }
 
+    static public void copy(ISyncRandomDataAccess inputStream, OutputStream outputStream) throws IOException,
+            CryptoException {
+        byte[] buffer = new byte[BUFFER_SIZE];
+        int length;
+        while ((length = inputStream.read(buffer)) > 0)
+            outputStream.write(buffer, 0, length);
+    }
+
     static public void copy(InputStream inputStream, OutputStream outputStream) throws IOException {
         byte[] buffer = new byte[BUFFER_SIZE];
         int length;
@@ -45,6 +56,12 @@ public class StreamHelper {
         InputStreamReader reader = new InputStreamReader(inputStream);
         while ((length = reader.read(buffer)) > 0)
             writer.write(buffer, 0, length);
+    }
+
+    static public byte[] readAll(ISyncRandomDataAccess inputStream) throws IOException, CryptoException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        copy(inputStream, outputStream);
+        return outputStream.toByteArray();
     }
 
     static public byte[] readAll(InputStream inputStream) throws IOException {

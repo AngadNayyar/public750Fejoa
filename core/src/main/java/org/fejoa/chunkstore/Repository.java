@@ -7,14 +7,19 @@
  */
 package org.fejoa.chunkstore;
 
-import org.fejoa.library.database.DatabaseDiff;
-import org.fejoa.library.database.ICommitSignature;
-import org.fejoa.library.database.IDatabaseInterface;
+import org.fejoa.library.database.*;
 import org.fejoa.chunkstore.sync.*;
 import org.fejoa.library.crypto.CryptoException;
+import org.fejoa.library.support.StreamHelper;
 
 import java.io.*;
+import java.lang.ref.WeakReference;
+import java.nio.file.NoSuchFileException;
 import java.util.*;
+
+import static org.fejoa.library.database.IIODatabaseInterface.Mode.READ;
+import static org.fejoa.library.database.IIODatabaseInterface.Mode.TRUNCATE;
+import static org.fejoa.library.database.IIODatabaseInterface.Mode.WRITE;
 
 
 public class Repository implements IDatabaseInterface {
@@ -191,14 +196,172 @@ public class Repository implements IDatabaseInterface {
     @Override
     public byte[] readBytes(String path) throws IOException, CryptoException {
         synchronized (this) {
-            return treeAccessor.read(path);
+            ISyncRandomDataAccess randomDataAccess = open(path, READ);
+            byte[] date = StreamHelper.readAll(randomDataAccess);
+            randomDataAccess.close();
+            return date;
+            //FileBox fileBox = treeAccessor.getFileBox(path);
+            //ChunkContainerInputStream inputStream = new ChunkContainerInputStream(fileBox.getDataContainer());
+            //return StreamHelper.readAll(inputStream);
         }
     }
 
     @Override
     public void writeBytes(String path, byte[] bytes) throws IOException, CryptoException {
         synchronized (this) {
-            treeAccessor.put(path, writeToFileBox(path, bytes));
+            ISyncRandomDataAccess randomDataAccess = open(path, TRUNCATE);
+            randomDataAccess.write(bytes);
+            randomDataAccess.close();
+            //treeAccessor.put(path, writeToFileBox(path, bytes));
+        }
+    }
+
+    private BoxPointer flush() throws IOException, CryptoException {
+        List<String> paths = new ArrayList<>(openHandles.keySet());
+        for (String path : paths) {
+            for (ChunkContainerRandomDataAccess randomDataAccess : getOpenHandles(path)) {
+                if (!randomDataAccess.getMode().has(WRITE))
+                    continue;
+                randomDataAccess.flush();
+                treeAccessor.put(path, FileBox.create(randomDataAccess.getChunkContainer()));
+            }
+        }
+        return treeAccessor.build();
+    }
+
+    final private Map<String, List<WeakReference<ChunkContainerRandomDataAccess>>> openHandles = new HashMap<>();
+
+    private void registerHandle(String path, ChunkContainerRandomDataAccess handle) {
+        List<WeakReference<ChunkContainerRandomDataAccess>> list = openHandles.get(path);
+        if (list == null) {
+            list = new ArrayList<>();
+            openHandles.put(path, list);
+        }
+        list.add(new WeakReference<>(handle));
+    }
+
+    private void unregisterHandel(String path, ChunkContainerRandomDataAccess randomDataAccess) {
+        List<WeakReference<ChunkContainerRandomDataAccess>> list = openHandles.get(path);
+        if (list == null)
+            return;
+        Iterator<WeakReference<ChunkContainerRandomDataAccess>> it = list.iterator();
+        while (it.hasNext()) {
+            WeakReference<ChunkContainerRandomDataAccess> weakReference = it.next();
+            if (weakReference.get() == randomDataAccess) {
+                it.remove();
+                break;
+            }
+        }
+    }
+
+    private List<ChunkContainerRandomDataAccess> getOpenHandles(String path) {
+        List<WeakReference<ChunkContainerRandomDataAccess>> list = openHandles.get(path);
+        if (list == null)
+            return Collections.emptyList();
+
+        List<WeakReference<ChunkContainerRandomDataAccess>> toRemove = new ArrayList<>();
+        List<ChunkContainerRandomDataAccess> refs = new ArrayList<>();
+        for (WeakReference<ChunkContainerRandomDataAccess> entry : list) {
+            ChunkContainerRandomDataAccess randomDataAccess = entry.get();
+            if (randomDataAccess == null) {
+                toRemove.add(entry);
+                continue;
+            }
+            refs.add(randomDataAccess);
+        }
+        for (WeakReference<ChunkContainerRandomDataAccess> entry : toRemove)
+            list.remove(entry);
+        if (list.size() == 0)
+            openHandles.remove(path);
+        return refs;
+    }
+
+    private ChunkContainer findOpenChunkContainer(String path) {
+        List<ChunkContainerRandomDataAccess> refs = getOpenHandles(path);
+        if (refs.size() == 0)
+            return null;
+        return refs.get(0).getChunkContainer();
+    }
+
+    private ChunkContainerRandomDataAccess.IIOCallback createIOCallback(final String path) {
+        return new ChunkContainerRandomDataAccess.IIOCallback() {
+            private void flushOngoingWrites(ChunkContainerRandomDataAccess veto) throws IOException {
+                List<ChunkContainerRandomDataAccess> openHandles = getOpenHandles(path);
+                for (ChunkContainerRandomDataAccess randomDataAccess : openHandles) {
+                    if (randomDataAccess == veto)
+                        continue;
+                    if (!randomDataAccess.getMode().has(WRITE))
+                        continue;
+                    randomDataAccess.flush();
+                }
+            }
+
+            @Override
+            public void requestRead(ChunkContainerRandomDataAccess caller) throws IOException {
+                flushOngoingWrites(caller);
+            }
+
+            @Override
+            public void requestWrite(ChunkContainerRandomDataAccess caller) throws IOException {
+                flushOngoingWrites(caller);
+            }
+
+            @Override
+            public void onClosed(ChunkContainerRandomDataAccess caller) throws IOException, CryptoException {
+                FileBox file = FileBox.create(caller.getChunkContainer());
+                treeAccessor.put(path, file);
+                unregisterHandel(path, caller);
+            }
+        };
+    }
+
+    private ChunkContainerRandomDataAccess createNewHandle(String path, Mode openFlags) {
+        ChunkContainer chunkContainer = new ChunkContainer(transaction.getFileAccessor(path),
+                defaultNodeSplitter(RabinSplitter.CHUNK_8KB));
+        chunkContainer.setZLibCompression(useCompression());
+        ChunkContainerRandomDataAccess randomDataAccess = new ChunkContainerRandomDataAccess(chunkContainer,
+                openFlags, createIOCallback(path));
+        registerHandle(path, randomDataAccess);
+        return randomDataAccess;
+    }
+
+    // TODO: remove when ChunkContainer supports truncate
+    private void swapChunkContainer(String path, ChunkContainer chunkContainer) {
+        for (ChunkContainerRandomDataAccess randomDataAccess : getOpenHandles(path))
+            randomDataAccess.setChunkContainer(chunkContainer);
+    }
+
+    @Override
+    public ISyncRandomDataAccess open(String path, Mode openFlags) throws IOException, CryptoException {
+        synchronized (this) {
+            // hacky way to do truncate, when ChunkContainer supports truncate this should be done on the chunk
+            // container
+            if (openFlags.has(TRUNCATE)) {
+                ChunkContainerRandomDataAccess randomDataAccess = createNewHandle(path, openFlags);
+                swapChunkContainer(path, randomDataAccess.getChunkContainer());
+                return randomDataAccess;
+            }
+
+            ChunkContainer chunkContainer = findOpenChunkContainer(path);
+            if (chunkContainer != null) {
+                ChunkContainerRandomDataAccess randomDataAccess = new ChunkContainerRandomDataAccess(chunkContainer,
+                        openFlags, createIOCallback(path));
+                registerHandle(path, randomDataAccess);
+                return randomDataAccess;
+            }
+
+            try {
+                FileBox fileBox = treeAccessor.getFileBox(path);
+                chunkContainer = fileBox.getDataContainer();
+                ChunkContainerRandomDataAccess randomDataAccess = new ChunkContainerRandomDataAccess(chunkContainer,
+                        openFlags, createIOCallback(path));
+                registerHandle(path, randomDataAccess);
+                return randomDataAccess;
+            } catch (NoSuchFileException e) {
+                if (!openFlags.has(WRITE) && !openFlags.has(TRUNCATE))
+                    throw e;
+                return createNewHandle(path, openFlags);
+            }
         }
     }
 
@@ -214,9 +377,11 @@ public class Repository implements IDatabaseInterface {
     }
 
     private FileBox writeToFileBox(String path, byte[] data) throws IOException {
-        FileBox file = FileBox.create(transaction.getFileAccessor(path), defaultNodeSplitter(RabinSplitter.CHUNK_8KB),
-                useCompression());
-        ChunkContainer chunkContainer = file.getDataContainer();
+        ChunkContainer chunkContainer = new ChunkContainer(transaction.getFileAccessor(path),
+                defaultNodeSplitter(RabinSplitter.CHUNK_8KB));
+        chunkContainer.setZLibCompression(useCompression());
+
+        FileBox file = FileBox.create(chunkContainer);
         ChunkContainerOutputStream containerOutputStream = new ChunkContainerOutputStream(chunkContainer,
                 chunkSplitter);
         containerOutputStream.write(data);
@@ -282,7 +447,7 @@ public class Repository implements IDatabaseInterface {
                 if (headCommit != null) {
                     // do deeper check if data has been changed
                     BoxPointer boxPointer = headCommit.getTree();
-                    BoxPointer afterBuild = treeAccessor.build();
+                    BoxPointer afterBuild = flush();
                     if (!boxPointer.equals(afterBuild))
                         return MergeResult.UNCOMMITTED_CHANGES;
                 } else {
@@ -365,7 +530,7 @@ public class Repository implements IDatabaseInterface {
         synchronized (this) {
             if (mergeParents.size() == 0 && !needCommit())
                 return null;
-            BoxPointer rootTree = treeAccessor.build();
+            BoxPointer rootTree = flush();
             if (mergeParents.size() == 0 && headCommit != null && headCommit.getTree().equals(rootTree))
                 return null;
             CommitBox commitBox = CommitBox.create();

@@ -14,9 +14,36 @@ import java.util.Collection;
 
 
 public interface IIODatabaseInterface {
+    enum Mode {
+        READ(0x01),
+        WRITE(0x02),
+        TRUNCATE((WRITE.getValue() | 0x04));
+
+        private int mode;
+
+        Mode(int mode) {
+            this.mode = mode;
+        }
+
+        private int getValue() {
+            return mode;
+        }
+
+        public void add(Mode otherMode) {
+            this.mode |= otherMode.getValue();
+        }
+
+        public boolean has(Mode otherMode) {
+            return (this.mode & otherMode.getValue()) != 0;
+        }
+    }
+
     boolean hasFile(String path) throws IOException, CryptoException;
+
     byte[] readBytes(String path) throws IOException, CryptoException;
     void writeBytes(String path, byte[] bytes) throws IOException, CryptoException;
+    ISyncRandomDataAccess open(String path, Mode mode) throws IOException, CryptoException;
+
     void remove(String path) throws IOException, CryptoException;
 
     Collection<String> listFiles(String path) throws IOException, CryptoException;

@@ -71,6 +71,11 @@ public class StorageDir extends IOStorageDir {
             this.toAdd.put(path, data);
         }
 
+        @Override
+        public ISyncRandomDataAccess open(String path, Mode mode) throws IOException, CryptoException {
+            return null;
+        }
+
         public HashValue getHash(String path, IIOFilter filter) throws IOException {
             byte[] bytes = toAdd.get(path);
             if (bytes != null) {

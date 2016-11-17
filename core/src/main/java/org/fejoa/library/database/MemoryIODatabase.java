@@ -125,6 +125,11 @@ public class MemoryIODatabase implements IIODatabaseInterface {
     }
 
     @Override
+    public ISyncRandomDataAccess open(String path, Mode mode) throws IOException, CryptoException {
+        return null;
+    }
+
+    @Override
     public void remove(String path) throws IOException, CryptoException {
         path = validate(path);
         root.remove(path);
