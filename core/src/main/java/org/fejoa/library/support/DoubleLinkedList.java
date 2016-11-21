@@ -86,6 +86,18 @@ public class DoubleLinkedList<T extends DoubleLinkedList.Entry> implements Itera
             entry.next.previous = entry.previous;
     }
 
+    public T removeHead() {
+        T head = getHead();
+        remove(head);
+        return head;
+    }
+
+    public T removeTail() {
+        T tail = getTail();
+        remove(tail);
+        return tail;
+    }
+
     @Override
     public Iterator<T> iterator() {
         return new Iterator<T>() {

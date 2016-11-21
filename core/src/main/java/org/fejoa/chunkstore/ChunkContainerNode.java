@@ -62,6 +62,10 @@ public class ChunkContainerNode implements IChunk {
         setNodeSplitter(nodeSplitter);
     }
 
+    public IChunkPointer getChunkPointer() {
+        return that;
+    }
+
     public void setParent(ChunkContainerNode parent) {
         this.parent = parent;
     }
@@ -130,6 +134,10 @@ public class ChunkContainerNode implements IChunk {
         length += slots.size() * that.getPointerLength();
 
         return length;
+    }
+
+    public int getLevel() {
+        return that.getLevel();
     }
 
     static class SearchResult {

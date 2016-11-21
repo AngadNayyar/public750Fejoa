@@ -8,13 +8,14 @@
 package org.fejoa.chunkstore;
 
 import org.fejoa.library.crypto.CryptoException;
-import org.fejoa.library.support.StreamHelper;
+import org.fejoa.library.support.DoubleLinkedList;
 
 import java.io.*;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
-import java.util.zip.InflaterOutputStream;
 
 
 class ChunkPointer implements IChunkPointer {
@@ -104,7 +105,93 @@ class ChunkPointer implements IChunkPointer {
 }
 
 
+class CacheManager {
+    static private class PointerEntry extends DoubleLinkedList.Entry {
+        final public IChunkPointer dataChunkPointer;
+        final public ChunkContainerNode parent;
+
+        public PointerEntry(IChunkPointer dataChunkPointer, ChunkContainerNode parent) {
+            this.dataChunkPointer = dataChunkPointer;
+            this.parent = parent;
+        }
+    }
+    final DoubleLinkedList<PointerEntry> queue = new DoubleLinkedList<>();
+    final Map<IChunkPointer, PointerEntry> pointerMap = new HashMap<>();
+
+    final private int targetCapacity = 10;
+    final private int triggerCapacity = 15;
+    final private int keptMetadataLevels = 2;
+
+    final private ChunkContainer chunkContainer;
+
+    public CacheManager(ChunkContainer chunkContainer) {
+        this.chunkContainer = chunkContainer;
+    }
+
+    private void bringToFront(PointerEntry entry) {
+        queue.remove(entry);
+        queue.addFirst(entry);
+    }
+
+    public void update(IChunkPointer dataChunkPointer, ChunkContainerNode parent) {
+        assert ChunkContainer.isDataPointer(dataChunkPointer);
+        PointerEntry entry = pointerMap.get(dataChunkPointer);
+        if (entry != null) {
+            bringToFront(entry);
+            return;
+        }
+        entry = new PointerEntry(dataChunkPointer, parent);
+        queue.addFirst(entry);
+        pointerMap.put(dataChunkPointer, entry);
+        if (pointerMap.size() >= triggerCapacity)
+            clean(triggerCapacity - targetCapacity);
+    }
+
+    public void remove(IChunkPointer dataChunkPointer) {
+        DoubleLinkedList.Entry entry = pointerMap.get(dataChunkPointer);
+        if (entry == null)
+            return;
+        queue.remove(entry);
+        pointerMap.remove(dataChunkPointer);
+        // don't clean parents yet, they are most likely being edited right now
+    }
+
+    private void clean(int numberOfEntries) {
+        for (int i = 0; i < numberOfEntries; i++) {
+            PointerEntry entry = queue.removeTail();
+            pointerMap.remove(entry.dataChunkPointer);
+
+            clean(entry);
+        }
+    }
+
+    private void clean(PointerEntry entry) {
+        // always clean the data cache
+        entry.dataChunkPointer.setCachedChunk(null);
+
+        IChunkPointer currentPointer = entry.dataChunkPointer;
+        ChunkContainerNode currentParent = entry.parent;
+        while (chunkContainer.getNLevels() - currentParent.getLevel() >= keptMetadataLevels) {
+            currentPointer.setCachedChunk(null);
+            if (hasCachedPointers(currentParent))
+                break;
+
+            currentPointer = currentParent.getChunkPointer();
+            currentParent = currentParent.getParent();
+        }
+    }
+
+    private boolean hasCachedPointers(ChunkContainerNode node) {
+        for (IChunkPointer pointer : node.getChunkPointers()) {
+            if (pointer.getCachedChunk() != null)
+                return true;
+        }
+        return false;
+    }
+}
+
 public class ChunkContainer extends ChunkContainerNode {
+
     static public ChunkContainer read(IChunkAccessor blobAccessor, BoxPointer boxPointer)
             throws IOException, CryptoException {
         return new ChunkContainer(blobAccessor, boxPointer);
@@ -158,6 +245,8 @@ public class ChunkContainer extends ChunkContainerNode {
 
     final private ChunkAccessor chunkContainerAccessor;
     final private Config config = new Config();
+    final private CacheManager cacheManager;
+
     /**
      * Create a new chunk container.
      *
@@ -169,6 +258,8 @@ public class ChunkContainer extends ChunkContainerNode {
 
         // reset the node splitter to get the config
         setNodeSplitter(nodeSplitter);
+
+        cacheManager = new CacheManager(this);
     }
 
     /**
@@ -190,6 +281,8 @@ public class ChunkContainer extends ChunkContainerNode {
         super(new ChunkAccessor(blobAccessor), null, null, LEAF_LEVEL);
         chunkContainerAccessor = (ChunkAccessor)this.blobAccessor;
         read(inputStream);
+
+        cacheManager = new CacheManager(this);
     }
 
     @Override
@@ -281,6 +374,7 @@ public class ChunkContainer extends ChunkContainerNode {
         SearchResult searchResult = findLevel0Node(position);
         if (searchResult.pointer == null)
             throw new IOException("Invalid position");
+        cacheManager.update(searchResult.pointer, searchResult.node);
         return new DataChunkPointer(searchResult.pointer, searchResult.pointerDataPosition);
     }
 
@@ -367,6 +461,8 @@ public class ChunkContainer extends ChunkContainerNode {
         ChunkContainerNode containerNode = searchResult.containerNode;
         IChunkPointer blobChunkPointer = putDataChunk(blob);
         containerNode.addBlobPointer(searchResult.index, blobChunkPointer);
+
+        cacheManager.update(blobChunkPointer, containerNode);
     }
 
     public void append(final DataChunk blob) throws IOException, CryptoException {
@@ -387,6 +483,8 @@ public class ChunkContainer extends ChunkContainerNode {
         ChunkContainerNode containerNode = searchResult.node;
         int indexInParent = containerNode.indexOf(searchResult.pointer);
         containerNode.removeBlobPointer(indexInParent, true);
+
+        cacheManager.remove(searchResult.pointer);
     }
 
     @Override
