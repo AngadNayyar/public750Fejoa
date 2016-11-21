@@ -265,15 +265,16 @@ public class BenchmarkTest  extends TestCase {
         // hack to avoid out of memory:
         final int copySize = 1024 * 1024 * 128;
         long startTime = System.currentTimeMillis();
+        System.out.println("Start filling chunk container");
         for (int i = 0; i < data.length; i+= copySize) {
             int toWrite = Math.min(copySize, data.length - i);
             outputStream.write(data, i, toWrite);
             // reopen to free memory
-            outputStream.close();
+            /*outputStream.close();
             chunkContainer.flush(false);
             BoxPointer pointer = chunkContainer.getBoxPointer();
             chunkContainer = openContainer(dirName, name, pointer, nodeSplitter);
-            outputStream = new ChunkContainerOutputStream(chunkContainer, dataSplitter);
+            outputStream = new ChunkContainerOutputStream(chunkContainer, dataSplitter);*/
             System.out.println("Fill chunk container progress: " + ((i + toWrite) / (1024 * 1024)));
         }
         outputStream.close();
@@ -332,7 +333,7 @@ public class BenchmarkTest  extends TestCase {
                 1024 * 1024 * 32,
                 1024 * 1024 * 64,
                 1024 * 1024 * 128,
-                1024 * 1024 * 256,8*/
+                1024 * 1024 * 256,*/
                 //1024 * 1024 * 512,
                 //1024 * 1024 * 1024
         };
