@@ -109,13 +109,13 @@ public class DiffMergeTest extends RepositoryTest {
         Repository repository = new Repository(directory, branch, accessors, simpleCommitCallback);
         Repository repository2 = new Repository(directory2, branch, accessors, simpleCommitCallback);
 
-        repository.writeBytes("file1", "file1".getBytes());
+        repository.putBytes("file1", "file1".getBytes());
         repository.commit(null);
 
-        repository2.writeBytes("file1", "file1".getBytes());
+        repository2.putBytes("file1", "file1".getBytes());
         repository2.commit(null);
 
-        repository2.writeBytes("file2", "file2".getBytes());
+        repository2.putBytes("file2", "file2".getBytes());
         repository2.commit(null);
 
         Map<String, DatabaseStingEntry> mergedContent = new HashMap<>();
@@ -139,9 +139,9 @@ public class DiffMergeTest extends RepositoryTest {
         repository.commit("merge1", null);
         containsContent(repository, mergedContent);
 
-        repository.writeBytes("file2", "our file 2".getBytes());
+        repository.putBytes("file2", "our file 2".getBytes());
         repository.commit(null);
-        repository2.writeBytes("file2", "their file 2".getBytes());
+        repository2.putBytes("file2", "their file 2".getBytes());
         repository2.commit(null);
 
         theirs = repository2.getHeadCommit();

@@ -13,7 +13,7 @@ import org.fejoa.library.crypto.CryptoException;
 import java.io.IOException;
 
 
-public interface IDatabaseInterface extends IIODatabaseInterface {
+public interface ISyncDatabase extends IIOSyncDatabase {
     String getBranch();
     HashValue getTip() throws IOException;
     HashValue getHash(String path) throws IOException, CryptoException;

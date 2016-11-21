@@ -8,12 +8,12 @@
 package org.fejoa.library.remote;
 
 import org.fejoa.chunkstore.HashValue;
+import org.fejoa.chunkstore.Repository;
 import org.fejoa.chunkstore.sync.RequestHandler;
 import org.fejoa.library.Remote;
 import org.fejoa.library.UserData;
 import org.fejoa.library.database.DatabaseDiff;
 import org.fejoa.library.database.StorageDir;
-import org.fejoa.chunkstore.Repository;
 import org.fejoa.library.FejoaContext;
 import org.fejoa.library.BranchInfo;
 import org.fejoa.library.support.Task;

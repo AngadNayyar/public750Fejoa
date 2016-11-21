@@ -9,10 +9,10 @@ package org.fejoa.library.remote;
 
 import org.fejoa.chunkstore.BoxPointer;
 import org.fejoa.chunkstore.HashValue;
+import org.fejoa.chunkstore.Repository;
 import org.fejoa.chunkstore.sync.PullRequest;
 import org.fejoa.library.Constants;
 import org.fejoa.library.database.ICommitSignature;
-import org.fejoa.chunkstore.Repository;
 
 
 public class ChunkStorePullJob extends JsonRemoteJob<ChunkStorePullJob.Result> {

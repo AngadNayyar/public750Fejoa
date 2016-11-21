@@ -40,8 +40,8 @@ public class KeyPairData implements IStorageDirBundle {
     @Override
     public void write(IOStorageDir dir) throws IOException, CryptoException {
         dir.writeString(Constants.ID_KEY, id);
-        dir.writeBytes(PATH_PRIVATE_KEY, keyPair.getPrivate().getEncoded());
-        dir.writeBytes(PATH_PUBLIC_KEY, keyPair.getPublic().getEncoded());
+        dir.putBytes(PATH_PRIVATE_KEY, keyPair.getPrivate().getEncoded());
+        dir.putBytes(PATH_PUBLIC_KEY, keyPair.getPublic().getEncoded());
         writeSettings(dir);
     }
 

@@ -1,7 +1,6 @@
 package org.fejoa;
 
 import junit.framework.TestCase;
-import org.fejoa.chunkstore.HashValue;
 import org.fejoa.chunkstore.Repository;
 import org.fejoa.library.FejoaContext;
 import org.fejoa.library.Remote;
@@ -14,7 +13,6 @@ import org.fejoa.library.support.Task;
 import org.fejoa.server.JettyServer;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -131,11 +129,11 @@ public class JettyTest extends TestCase {
         // do changes on the server
         FejoaContext serverContext = new FejoaContext(SERVER_TEST_DIR);
         StorageDir server =  serverContext.getStorage(BRANCH, null, null);
-        server.writeBytes("testFileServer", "testDataServer".getBytes());
+        server.putBytes("testFileServer", "testDataServer".getBytes());
         server.commit();
 
         // merge
-        local.writeBytes("testFile2", "testDataClient2".getBytes());
+        local.putBytes("testFile2", "testDataClient2".getBytes());
         local.remove("testFile");
         local.commit();
 

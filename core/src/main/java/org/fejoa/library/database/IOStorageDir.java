@@ -9,16 +9,20 @@ package org.fejoa.library.database;
 
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.support.StorageLib;
+import org.fejoa.library.support.StreamHelper;
 
 import java.io.IOException;
 import java.util.Collection;
 
+import static org.fejoa.library.database.IIOSyncDatabase.Mode.READ;
+import static org.fejoa.library.database.IIOSyncDatabase.Mode.TRUNCATE;
+
 
 public class IOStorageDir {
     private String baseDir;
-    final protected IIODatabaseInterface database;
+    final protected IIOSyncDatabase database;
 
-    public IOStorageDir(IIODatabaseInterface database, String baseDir) {
+    public IOStorageDir(IIOSyncDatabase database, String baseDir) {
         this.database = database;
         this.baseDir = baseDir;
     }
@@ -40,7 +44,7 @@ public class IOStorageDir {
         return baseDir;
     }
 
-    private String getRealPath(String path) {
+    protected String getRealPath(String path) {
         return StorageLib.appendDir(getBaseDir(), path);
     }
 
@@ -48,12 +52,25 @@ public class IOStorageDir {
         return database.hasFile(getRealPath(path));
     }
 
-    public byte[] readBytes(String path) throws IOException, CryptoException {
-        return database.readBytes(getRealPath(path));
+    static public byte[] readBytes(IIOSyncDatabase database, String path) throws IOException, CryptoException {
+        ISyncRandomDataAccess randomDataAccess = database.open(path, READ);
+        byte[] date = StreamHelper.readAll(randomDataAccess);
+        randomDataAccess.close();
+        return date;
     }
 
-    public void writeBytes(String path, byte[] bytes) throws IOException, CryptoException {
-        database.writeBytes(getRealPath(path), bytes);
+    static public void putBytes(IIOSyncDatabase database, String path, byte[] bytes) throws IOException, CryptoException {
+        ISyncRandomDataAccess randomDataAccess = database.open(path, TRUNCATE);
+        randomDataAccess.write(bytes);
+        randomDataAccess.close();
+    }
+
+    public byte[] readBytes(String path) throws IOException, CryptoException {
+        return readBytes(database, getRealPath(path));
+    }
+
+    public void putBytes(String path, byte[] bytes) throws IOException, CryptoException {
+        putBytes(database, getRealPath(path), bytes);
     }
 
     public void remove(String path) throws IOException, CryptoException {
@@ -78,7 +95,7 @@ public class IOStorageDir {
 
     private void writeBytesInternal(String path, byte[] bytes) throws IOException {
         try {
-            writeBytes(path, bytes);
+            putBytes(path, bytes);
         } catch (CryptoException e) {
             throw new IOException(e.getMessage());
         }
@@ -119,7 +136,7 @@ public class IOStorageDir {
     private void copyTo(IOStorageDir target, String currentDir) throws IOException, CryptoException {
         for (String file : listFiles(currentDir)) {
             String path = StorageLib.appendDir(currentDir, file);
-            target.writeBytes(path, readBytes(path));
+            target.putBytes(path, readBytes(path));
         }
         for (String dir : listDirectories(currentDir))
             copyTo(target, StorageLib.appendDir(currentDir, dir));

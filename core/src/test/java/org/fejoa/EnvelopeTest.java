@@ -51,8 +51,6 @@ public class EnvelopeTest extends TestCase {
             }
         };
 
-        CryptoSettings cryptoSettings = context.getCryptoSettings();
-
         final String message = "Hallo Fejoa";
 
         // signature

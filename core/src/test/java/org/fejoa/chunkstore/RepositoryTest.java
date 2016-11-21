@@ -103,7 +103,7 @@ public class RepositoryTest extends RepositoryTestBase {
 
     private FileBox writeToFileBox(IChunkAccessor accessor, String content) throws IOException, CryptoException {
         ChunkContainer chunkContainer = new ChunkContainer(accessor,
-                Repository.defaultNodeSplitter(RabinSplitter.CHUNK_8KB));
+                SyncRepository.defaultNodeSplitter(RabinSplitter.CHUNK_8KB));
         chunkContainer.setZLibCompression(true);
         FileBox file = FileBox.create(chunkContainer);
         ChunkContainerOutputStream containerOutputStream = new ChunkContainerOutputStream(chunkContainer, splitter);

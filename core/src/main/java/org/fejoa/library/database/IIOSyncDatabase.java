@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.util.Collection;
 
 
-public interface IIODatabaseInterface {
+public interface IIOSyncDatabase {
     enum Mode {
         READ(0x01),
         WRITE(0x02),
@@ -40,9 +40,10 @@ public interface IIODatabaseInterface {
 
     boolean hasFile(String path) throws IOException, CryptoException;
 
-    byte[] readBytes(String path) throws IOException, CryptoException;
-    void writeBytes(String path, byte[] bytes) throws IOException, CryptoException;
     ISyncRandomDataAccess open(String path, Mode mode) throws IOException, CryptoException;
+
+    byte[] readBytes(String path) throws IOException, CryptoException;
+    void putBytes(String path, byte[] data) throws IOException, CryptoException;
 
     void remove(String path) throws IOException, CryptoException;
 

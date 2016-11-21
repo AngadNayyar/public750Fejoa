@@ -45,7 +45,7 @@ public class PublicKeyItem implements IStorageDirBundle {
     @Override
     public void write(IOStorageDir dir) throws IOException, CryptoException {
         dir.writeString(Constants.ID_KEY, id);
-        dir.writeBytes(PATH_KEY, key.getEncoded());
+        dir.putBytes(PATH_KEY, key.getEncoded());
         CryptoSettingsIO.write(typeSettings, dir, "");
     }
 

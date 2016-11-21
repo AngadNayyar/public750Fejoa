@@ -65,8 +65,8 @@ public class SymmetricKeyData implements IStorageDirBundle {
 
     @Override
     public void write(IOStorageDir dir) throws IOException, CryptoException {
-        dir.writeBytes(PATH_SYMMETRIC_KEY, key.getEncoded());
-        dir.writeBytes(PATH_SYMMETRIC_IV, iv);
+        dir.putBytes(PATH_SYMMETRIC_KEY, key.getEncoded());
+        dir.putBytes(PATH_SYMMETRIC_IV, iv);
 
         CryptoSettingsIO.write(settings, dir);
     }

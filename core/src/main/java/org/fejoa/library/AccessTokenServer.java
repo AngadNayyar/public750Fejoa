@@ -10,7 +10,6 @@ package org.fejoa.library;
 import org.fejoa.library.crypto.CryptoSettings;
 import org.fejoa.library.crypto.JsonCryptoSettings;
 import org.fejoa.library.database.IOStorageDir;
-import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.crypto.CryptoHelper;
 import org.fejoa.library.crypto.CryptoSettingsIO;
@@ -100,10 +99,10 @@ public class AccessTokenServer implements IStorageDirBundle {
     @Override
     public void write(IOStorageDir dir) throws IOException, CryptoException {
         CryptoSettingsIO.write(contactAuthKeySettings, dir, CONTACT_AUTH_KEY_SETTINGS_KEY);
-        dir.writeBytes(CONTACT_AUTH_PUBLIC_KEY_KEY, contactAuthKey.getEncoded());
+        dir.putBytes(CONTACT_AUTH_PUBLIC_KEY_KEY, contactAuthKey.getEncoded());
 
         CryptoSettingsIO.write(accessSignatureKeySettings, dir, SIGNATURE_KEY_SETTINGS_KEY);
-        dir.writeBytes(ACCESS_VERIFICATION_KEY_KEY, accessSignatureKey.getEncoded());
+        dir.putBytes(ACCESS_VERIFICATION_KEY_KEY, accessSignatureKey.getEncoded());
     }
 
     @Override

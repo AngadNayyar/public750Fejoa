@@ -19,9 +19,9 @@ public class CommitCache {
     final private Map<HashValue, CommitBox> commitCache = new HashMap<>();
     // All commits in this list as well are their parent are in the cached.
     final private LinkedList<CommitBox> tailList = new LinkedList<>();
-    final private Repository repository;
+    final private SyncRepository repository;
 
-    public CommitCache(Repository repository) {
+    public CommitCache(SyncRepository repository) {
         this.repository = repository;
     }
 

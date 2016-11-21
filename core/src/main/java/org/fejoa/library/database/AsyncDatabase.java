@@ -12,36 +12,124 @@ import org.fejoa.chunkstore.HashValue;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.support.LooperThread;
 
-import java.io.*;
+import java.io.IOException;
 import java.util.Collection;
 
 
-interface IRandomDataAccess extends ISyncRandomDataAccess {
-    CompletableFuture<Void> writeAsync(byte[] data);
-    CompletableFuture<Integer> readAsync(byte[] buffer);
+public class AsyncDatabase implements IDatabase {
+    final private LooperThread looperThread;
+    final protected ISyncDatabase syncDatabase;
 
-    CompletableFuture<Void> flushAsync();
-    CompletableFuture<Void> closeAsync();
-}
+    public AsyncDatabase(AsyncDatabase database, ISyncDatabase syncDatabase) {
+        this.syncDatabase = syncDatabase;
+        this.looperThread = database.looperThread;
+    }
 
-
-class AsyncDatabase implements IDatabase2 {
-    final private LooperThread looperThread = new LooperThread(100);
-    final private IDatabaseInterface syncDatabase;
-
-    public AsyncDatabase(IDatabaseInterface syncDatabase) {
+    public AsyncDatabase(ISyncDatabase syncDatabase) {
         this.syncDatabase = syncDatabase;
 
+        looperThread = new LooperThread(100);
+        looperThread.setDaemon(true);
         looperThread.start();
     }
 
-    public CompletableFuture<Void> close() {
+    public CompletableFuture<Void> close(final boolean waitTillFinished) {
         return CompletableFuture.runAsync(new Runnable() {
             @Override
             public void run() {
-                looperThread.quit(true);
+                looperThread.quit(waitTillFinished);
             }
         });
+    }
+
+    @Override
+    public boolean hasFile(String path) throws IOException, CryptoException {
+        try {
+            return hasFileAsync(path).get();
+        } catch (Exception e) {
+            throw new IOException(e.getCause());
+        }
+    }
+
+    @Override
+    public ISyncRandomDataAccess open(String path, Mode mode) throws IOException, CryptoException {
+        try {
+            return openAsync(path, mode).get();
+        } catch (Exception e) {
+            throw new IOException(e.getCause());
+        }
+    }
+
+    @Override
+    public byte[] readBytes(String path) throws IOException, CryptoException {
+        try {
+            return readBytesAsync(path).get();
+        } catch (Exception e) {
+            throw new IOException(e.getCause());
+        }
+    }
+
+    @Override
+    public void putBytes(String path, byte[] data) throws IOException, CryptoException {
+        try {
+            putBytesAsync(path, data).get();
+        } catch (Exception e) {
+            throw new IOException(e.getCause());
+        }
+    }
+
+    @Override
+    public void remove(String path) throws IOException, CryptoException {
+        try {
+            removeAsync(path).get();
+        } catch (Exception e) {
+            throw new IOException(e.getCause());
+        }
+    }
+
+    @Override
+    public Collection<String> listFiles(String path) throws IOException, CryptoException {
+        try {
+            return listFilesAsync(path).get();
+        } catch (Exception e) {
+            throw new IOException(e.getCause());
+        }
+    }
+
+    @Override
+    public Collection<String> listDirectories(String path) throws IOException, CryptoException {
+        try {
+            return listDirectoriesAsync(path).get();
+        } catch (Exception e) {
+           throw new IOException(e.getCause());
+        }
+    }
+
+    @Override
+    public DatabaseDiff getDiff(HashValue baseCommit, HashValue endCommit) throws IOException, CryptoException {
+        try {
+            return getDiffAsync(baseCommit, endCommit).get();
+        } catch (Exception e) {
+            throw new IOException(e.getCause());
+        }
+    }
+
+    @Override
+    public HashValue getHash(String path) throws CryptoException {
+        try {
+            return getHashAsync(path).get();
+        } catch (Exception e) {
+            throw new CryptoException(e.getMessage());
+        }
+    }
+
+    @Override
+    public HashValue commit(String message, ICommitSignature signature) throws IOException {
+        try {
+            return commitAsync(message, signature).get();
+        } catch (Exception e) {
+            throw new IOException(e.getMessage());
+        }
     }
 
     public class RandomDataAccess implements IRandomDataAccess {
@@ -187,7 +275,7 @@ class AsyncDatabase implements IDatabase2 {
     }
 
     @Override
-    public CompletableFuture<HashValue> getHash(final String path) {
+    public CompletableFuture<HashValue> getHashAsync(final String path) {
         final CompletableFuture<HashValue> future = new CompletableFuture<>();
         looperThread.post(new Runnable() {
             @Override
@@ -203,39 +291,17 @@ class AsyncDatabase implements IDatabase2 {
     }
 
     @Override
-    public CompletableFuture<String> getBranch() {
-        final CompletableFuture<String> future = new CompletableFuture<>();
-        looperThread.post(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    future.complete(syncDatabase.getBranch());
-                } catch (Exception e) {
-                    future.completeExceptionally(e);
-                }
-            }
-        });
-        return future;
+    public String getBranch() {
+        return syncDatabase.getBranch();
     }
 
     @Override
-    public CompletableFuture<HashValue> getTip() throws IOException {
-        final CompletableFuture<HashValue> future = new CompletableFuture<>();
-        looperThread.post(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    future.complete(syncDatabase.getTip());
-                } catch (Exception e) {
-                    future.completeExceptionally(e);
-                }
-            }
-        });
-        return future;
+    public HashValue getTip() throws IOException {
+        return syncDatabase.getTip();
     }
 
     @Override
-    public CompletableFuture<Boolean> hasFile(final String path) {
+    public CompletableFuture<Boolean> hasFileAsync(final String path) {
         final CompletableFuture<Boolean> future = new CompletableFuture<>();
         looperThread.post(new Runnable() {
             @Override
@@ -251,12 +317,24 @@ class AsyncDatabase implements IDatabase2 {
     }
 
     @Override
-    public CompletableFuture<IRandomDataAccess> open(String path, String mode) {
-        return null;
+    public CompletableFuture<IRandomDataAccess> openAsync(final String path, final IIOSyncDatabase.Mode mode) {
+        final CompletableFuture<IRandomDataAccess> future = new CompletableFuture<>();
+        looperThread.post(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    ISyncRandomDataAccess syncRandomDataAccess = syncDatabase.open(path, mode);
+                    future.complete(new RandomDataAccess(syncRandomDataAccess));
+                } catch (Exception e) {
+                    future.completeExceptionally(e);
+                }
+            }
+        });
+        return future;
     }
 
     @Override
-    public CompletableFuture<Void> remove(final String path) {
+    public CompletableFuture<Void> removeAsync(final String path) {
         final CompletableFuture<Void> future = new CompletableFuture<>();
         looperThread.post(new Runnable() {
             @Override
@@ -273,7 +351,40 @@ class AsyncDatabase implements IDatabase2 {
     }
 
     @Override
-    public CompletableFuture<HashValue> commit(final String message, final ICommitSignature signature) {
+    public CompletableFuture<byte[]> readBytesAsync(final String path) {
+        final CompletableFuture<byte[]> future = new CompletableFuture<>();
+        looperThread.post(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    future.complete(syncDatabase.readBytes(path));
+                } catch (Exception e) {
+                    future.completeExceptionally(e);
+                }
+            }
+        });
+        return future;
+    }
+
+    @Override
+    public CompletableFuture<Void> putBytesAsync(final String path, final byte[] data) {
+        final CompletableFuture<Void> future = new CompletableFuture<>();
+        looperThread.post(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    syncDatabase.putBytes(path, data);
+                    future.complete(null);
+                } catch (Exception e) {
+                    future.completeExceptionally(e);
+                }
+            }
+        });
+        return future;
+    }
+
+    @Override
+    public CompletableFuture<HashValue> commitAsync(final String message, final ICommitSignature signature) {
         final CompletableFuture<HashValue> future = new CompletableFuture<>();
         looperThread.post(new Runnable() {
             @Override
@@ -289,7 +400,23 @@ class AsyncDatabase implements IDatabase2 {
     }
 
     @Override
-    public CompletableFuture<Collection<String>> listFiles(final String path) {
+    public CompletableFuture<DatabaseDiff> getDiffAsync(final HashValue baseCommit, final HashValue endCommit) {
+        final CompletableFuture<DatabaseDiff> future = new CompletableFuture<>();
+        looperThread.post(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    future.complete(syncDatabase.getDiff(baseCommit, endCommit));
+                } catch (Exception e) {
+                    future.completeExceptionally(e);
+                }
+            }
+        });
+        return future;
+    }
+
+    @Override
+    public CompletableFuture<Collection<String>> listFilesAsync(final String path) {
         final CompletableFuture<Collection<String>> future = new CompletableFuture<>();
         looperThread.post(new Runnable() {
             @Override
@@ -305,7 +432,7 @@ class AsyncDatabase implements IDatabase2 {
     }
 
     @Override
-    public CompletableFuture<Collection<String>> listDirectories(final String path) {
+    public CompletableFuture<Collection<String>> listDirectoriesAsync(final String path) {
         final CompletableFuture<Collection<String>> future = new CompletableFuture<>();
         looperThread.post(new Runnable() {
             @Override
@@ -319,23 +446,4 @@ class AsyncDatabase implements IDatabase2 {
         });
         return future;
     }
-}
-
-
-interface IIODatabase2 {
-    CompletableFuture<Boolean> hasFile(String path);
-    CompletableFuture<IRandomDataAccess> open(String path, String mode);
-    CompletableFuture<Void> remove(String path);
-
-    CompletableFuture<Collection<String>> listFiles(String path);
-    CompletableFuture<Collection<String>> listDirectories(String path);
-}
-
-public interface IDatabase2 extends IIODatabase2 {
-    CompletableFuture<HashValue> getHash(String path);
-    CompletableFuture<String> getBranch();
-    CompletableFuture<HashValue> getTip() throws IOException;
-
-    CompletableFuture<HashValue> commit(String message, ICommitSignature signature);
-
 }

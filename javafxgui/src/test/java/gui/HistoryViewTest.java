@@ -2,8 +2,12 @@ package gui;
 
 
 import javafx.application.Application;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
+import javafx.event.EventHandler;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import org.fejoa.chunkstore.BoxPointer;
 import org.fejoa.chunkstore.CommitBox;
 import org.fejoa.chunkstore.IRepoChunkAccessors;
@@ -36,7 +40,7 @@ public class HistoryViewTest extends Application {
         storageDir.writeString("test2", "test2");
         storageDir.commit("commit 2");
 
-        Repository repository = (Repository)storageDir.getDatabase();
+        final Repository repository = (Repository)storageDir.getDatabase();
         CommitBox base0 = repository.getHeadCommit();
 
         storageDir.writeString("test3", "test3");

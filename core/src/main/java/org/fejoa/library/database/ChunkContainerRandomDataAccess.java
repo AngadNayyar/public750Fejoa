@@ -14,7 +14,7 @@ import org.fejoa.library.crypto.CryptoException;
 
 import java.io.IOException;
 
-import static org.fejoa.library.database.IIODatabaseInterface.Mode.READ;
+import static org.fejoa.library.database.IIOSyncDatabase.Mode.READ;
 
 
 public class ChunkContainerRandomDataAccess implements ISyncRandomDataAccess {
@@ -25,14 +25,14 @@ public class ChunkContainerRandomDataAccess implements ISyncRandomDataAccess {
     }
 
     private ChunkContainer chunkContainer;
-    final private IIODatabaseInterface.Mode mode;
+    final private IIOSyncDatabase.Mode mode;
     final private IIOCallback callback;
 
     private long position = 0;
     private ChunkContainerInputStream inputStream = null;
     private ChunkContainerOutputStream outputStream = null;
 
-    public ChunkContainerRandomDataAccess(ChunkContainer chunkContainer, IIODatabaseInterface.Mode mode,
+    public ChunkContainerRandomDataAccess(ChunkContainer chunkContainer, IIOSyncDatabase.Mode mode,
                                           IIOCallback callback) {
         this.chunkContainer = chunkContainer;
         this.mode = mode;
@@ -58,7 +58,7 @@ public class ChunkContainerRandomDataAccess implements ISyncRandomDataAccess {
         outputStream = null;
     }
 
-    public IIODatabaseInterface.Mode getMode() {
+    public IIOSyncDatabase.Mode getMode() {
         return mode;
     }
 
@@ -120,12 +120,15 @@ public class ChunkContainerRandomDataAccess implements ISyncRandomDataAccess {
     public void write(byte[] data) throws IOException {
         prepareForWrite();
         outputStream.write(data);
+        position += data.length;
     }
 
     @Override
     public int read(byte[] buffer) throws IOException, CryptoException {
         prepareForRead();
-        return inputStream.read(buffer);
+        int read = inputStream.read(buffer);
+        position += read;
+        return read;
     }
 
     @Override

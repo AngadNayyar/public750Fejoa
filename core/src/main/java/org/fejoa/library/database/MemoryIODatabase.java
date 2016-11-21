@@ -10,11 +10,104 @@ package org.fejoa.library.database;
 import org.fejoa.library.support.StorageLib;
 import org.fejoa.library.crypto.CryptoException;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
 
 
-public class MemoryIODatabase implements IIODatabaseInterface {
+class MemorySyncRandomDataAccess implements ISyncRandomDataAccess {
+    interface IIOCallback {
+        void onClose(MemorySyncRandomDataAccess that);
+    }
+
+    private byte[] buffer;
+    final private IIOSyncDatabase.Mode mode;
+    final private IIOCallback callback;
+    private long position = 0;
+    private ByteArrayInputStream inputStream = null;
+    private ByteArrayOutputStream outputStream = null;
+
+    public MemorySyncRandomDataAccess(byte[] buffer, IIOSyncDatabase.Mode mode, IIOCallback callback) {
+        this.buffer = buffer;
+        this.mode = mode;
+        this.callback = callback;
+    }
+
+    public IIOSyncDatabase.Mode getMode() {
+        return mode;
+    }
+
+    public byte[] getData() {
+        return buffer;
+    }
+
+    @Override
+    public long length() {
+        if (outputStream != null)
+            return Math.max(position, outputStream.toByteArray().length);
+        return buffer.length;
+    }
+
+    @Override
+    public long position() {
+        return position;
+    }
+
+    @Override
+    public void seek(long position) throws IOException, CryptoException {
+        if (inputStream != null) // position is set on next read
+            inputStream = null;
+        else
+            flush();
+        this.position = position;
+    }
+
+    @Override
+    public void write(byte[] data) throws IOException {
+        if (!mode.has(IIOSyncDatabase.Mode.WRITE))
+            throw new IOException("Read only");
+        if (inputStream != null)
+            inputStream = null;
+        if (outputStream == null) {
+            outputStream = new ByteArrayOutputStream();
+            outputStream.write(buffer, 0, (int)position);
+        }
+        outputStream.write(data);
+    }
+
+    @Override
+    public int read(byte[] buffer) throws IOException, CryptoException {
+        if (!mode.has(IIOSyncDatabase.Mode.READ))
+            throw new IOException("Not in read mode");
+
+        if (outputStream != null) {
+            flush();
+        }
+        if (inputStream == null) {
+            inputStream = new ByteArrayInputStream(this.buffer);
+            inputStream.skip(position);
+        }
+        return inputStream.read(buffer);
+    }
+
+    @Override
+    public void flush() throws IOException {
+        if (outputStream == null)
+            return;
+        this.buffer = outputStream.toByteArray();
+        outputStream = null;
+    }
+
+    @Override
+    public void close() throws IOException, CryptoException {
+        flush();
+        callback.onClose(this);
+    }
+}
+
+public class MemoryIODatabase implements IIOSyncDatabase {
 
     static class Dir {
         final private Dir parent;
@@ -94,13 +187,9 @@ public class MemoryIODatabase implements IIODatabaseInterface {
         return root.hasFile(path);
     }
 
-    @Override
-    public byte[] readBytes(String path) throws IOException, CryptoException {
+    private byte[] readBytesInternal(String path) {
         path = validate(path);
-        byte[] data = root.get(path);
-        if (data == null)
-            throw new IOException("No data at path: " + path);
-        return data;
+        return root.get(path);
     }
 
     private List<String> getList(Map<String, List<String>> map, String path) {
@@ -118,15 +207,41 @@ public class MemoryIODatabase implements IIODatabaseInterface {
         return path;
     }
 
-    @Override
-    public void writeBytes(String path, byte[] bytes) throws IOException, CryptoException {
-        path = validate(path);
-        root.put(path, bytes);
+    public byte[] readBytes(String path) throws IOException, CryptoException {
+        byte[] bytes = readBytesInternal(path);
+        if (bytes == null)
+            throw new IOException("Not found!");
+        return bytes;
+
+       /* ISyncRandomDataAccess dataAccess = open(path, Mode.READ);
+        byte[] data = StreamHelper.readAll(dataAccess);
+        dataAccess.close();
+        return data;*/
+    }
+
+    public void putBytes(String path, byte[] bytes) throws IOException, CryptoException {
+        root.put(validate(path), bytes);
+        /*ISyncRandomDataAccess dataAccess = open(path, Mode.TRUNCATE);
+        dataAccess.write(bytes);
+        dataAccess.close();*/
     }
 
     @Override
-    public ISyncRandomDataAccess open(String path, Mode mode) throws IOException, CryptoException {
-        return null;
+    public ISyncRandomDataAccess open(final String path, Mode mode) throws IOException, CryptoException {
+        byte[] existingBytes = readBytesInternal(path);
+        if (existingBytes == null) {
+            if (!mode.has(Mode.WRITE))
+                throw new FileNotFoundException("File not found: " + path);
+            existingBytes = new byte[0];
+        }
+        return new MemorySyncRandomDataAccess(existingBytes, mode, new MemorySyncRandomDataAccess.IIOCallback() {
+            @Override
+            public void onClose(MemorySyncRandomDataAccess that) {
+                if (!that.getMode().has(Mode.WRITE))
+                    return;
+                root.put(validate(path), that.getData());
+            }
+        });
     }
 
     @Override

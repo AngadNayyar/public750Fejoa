@@ -138,7 +138,7 @@ public class CheckoutDir {
                     BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(checkedOutFile));
                     ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
                     StreamHelper.copy(inputStream, outputStream);
-                    storageDir.writeBytes(filePath, outputStream.toByteArray());
+                    storageDir.putBytes(filePath, outputStream.toByteArray());
                     index.update(filePath, new Index.Entry(storageDir.getHash(filePath), checkedOutFile));
                     task.onProgress(new Update(checkedOutFile));
                 }

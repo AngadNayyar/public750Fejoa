@@ -77,7 +77,7 @@ public class PullRequest {
         chunkFetcher.enqueueJob(getCommitJob);
         chunkFetcher.fetch();
 
-        Repository.MergeResult merged = requestRepo.merge(transaction, getCommitJob.getCommitBox());
+        MergeResult merged = requestRepo.merge(transaction, getCommitJob.getCommitBox());
         switch (merged) {
             case MERGED:
                 requestRepo.commitInternal("Merge after pull.", commitSignature,

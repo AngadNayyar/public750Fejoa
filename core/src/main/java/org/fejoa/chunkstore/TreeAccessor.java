@@ -211,7 +211,7 @@ public class TreeAccessor {
             BoxPointer dataPointer = write(fileBox);
             child.setDataPointer(dataPointer);
         }
-        return Repository.put(dir, transaction.getTreeAccessor(), compress);
+        return SyncRepository.put(dir, transaction.getTreeAccessor(), compress);
     }
 
     public FlatDirectoryBox getRoot() {

@@ -17,9 +17,6 @@ import java.io.IOException;
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 
 
 public class AccessToken implements IStorageDirBundle {
@@ -113,12 +110,12 @@ public class AccessToken implements IStorageDirBundle {
     @Override
     public void write(IOStorageDir dir) throws IOException, CryptoException {
         CryptoSettingsIO.write(contactAuthKeySettings, dir, CONTACT_AUTH_KEY_SETTINGS_KEY);
-        dir.writeBytes(CONTACT_AUTH_PUBLIC_KEY_KEY, contactAuthKey.getPublic().getEncoded());
-        dir.writeBytes(CONTACT_AUTH_PRIVATE_KEY_KEY, contactAuthKey.getPrivate().getEncoded());
+        dir.putBytes(CONTACT_AUTH_PUBLIC_KEY_KEY, contactAuthKey.getPublic().getEncoded());
+        dir.putBytes(CONTACT_AUTH_PRIVATE_KEY_KEY, contactAuthKey.getPrivate().getEncoded());
 
         CryptoSettingsIO.write(accessSignatureKeySettings, dir, SIGNATURE_KEY_SETTINGS_KEY);
-        dir.writeBytes(ACCESS_VERIFICATION_KEY_KEY, accessSignatureKey.getPublic().getEncoded());
-        dir.writeBytes(ACCESS_SIGNING_KEY_KEY, accessSignatureKey.getPrivate().getEncoded());
+        dir.putBytes(ACCESS_VERIFICATION_KEY_KEY, accessSignatureKey.getPublic().getEncoded());
+        dir.putBytes(ACCESS_SIGNING_KEY_KEY, accessSignatureKey.getPrivate().getEncoded());
 
         dir.writeString(ACCESS_ENTRY_KEY, accessEntry);
     }

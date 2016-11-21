@@ -24,7 +24,7 @@ public class MemoryIODatabaseTest extends TestCase {
         while (key.length() > 0 && key.charAt(0) == '/')
             key = key.substring(1);
         data.put(key, value.getBytes());
-        database.writeBytes(key, value.getBytes());
+        database.putBytes(key, value.getBytes());
     }
 
     private void assertEquals(Map<String, byte[]> data, MemoryIODatabase database) {

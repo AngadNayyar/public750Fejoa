@@ -37,11 +37,11 @@ public class StorageDir extends IOStorageDir {
     }
 
     /**
-     * The StorageDirCache is shared between all StorageDir that are build from the same parent.
+     * The StorageDirCache idatabases shared between all StorageDir that are build from the same parent.
      */
-    static class StorageDirCache extends WeakListenable<StorageDir.IListener> implements IIODatabaseInterface {
+    static class StorageDirCache extends WeakListenable<StorageDir.IListener> implements IIOSyncDatabase {
         private ICommitSignature commitSignature;
-        final private IDatabaseInterface database;
+        final private IDatabase database;
         final private Map<String, byte[]> toAdd = new HashMap<>();
         final private List<String> toDelete = new ArrayList<>();
         private boolean needsCommit = false;
@@ -51,11 +51,11 @@ public class StorageDir extends IOStorageDir {
                 listener.onTipChanged(diff, base.toHex(), tip.toHex());
         }
 
-        public StorageDirCache(IDatabaseInterface database) {
+        public StorageDirCache(IDatabase database) {
             this.database = database;
         }
 
-        public IDatabaseInterface getDatabase() {
+        public IDatabase getDatabase() {
             return database;
         }
 
@@ -63,8 +63,7 @@ public class StorageDir extends IOStorageDir {
             this.commitSignature = commitSignature;
         }
 
-        @Override
-        public void writeBytes(String path, byte[] data) throws IOException {
+        public void putBytes(String path, byte[] data) throws IOException {
             // process deleted items before adding new items
             if (toDelete.size() > 0)
                 flush();
@@ -73,7 +72,9 @@ public class StorageDir extends IOStorageDir {
 
         @Override
         public ISyncRandomDataAccess open(String path, Mode mode) throws IOException, CryptoException {
-            return null;
+            if (mode.has(Mode.WRITE))
+                needsCommit = true;
+            return database.open(path, mode);
         }
 
         public HashValue getHash(String path, IIOFilter filter) throws IOException {
@@ -99,12 +100,11 @@ public class StorageDir extends IOStorageDir {
             return database.hasFile(path);
         }
 
-        @Override
         public byte[] readBytes(String path) throws IOException {
             if (toAdd.containsKey(path))
                 return toAdd.get(path);
             try {
-                return database.readBytes(path);
+                return IOStorageDir.readBytes(database, path);
             } catch (CryptoException e) {
                 throw new IOException(e);
             }
@@ -113,7 +113,7 @@ public class StorageDir extends IOStorageDir {
         public void flush() throws IOException {
             try {
                 for (Map.Entry<String, byte[]> entry : toAdd.entrySet())
-                    database.writeBytes(entry.getKey(), entry.getValue());
+                    StorageDir.putBytes(database, entry.getKey(), entry.getValue());
 
                 for (String path : toDelete)
                     database.remove(path);
@@ -204,7 +204,7 @@ public class StorageDir extends IOStorageDir {
         this.filter = storageDir.filter;
     }
 
-    public StorageDir(IDatabaseInterface database, String baseDir) {
+    public StorageDir(IDatabase database, String baseDir) {
         super(new StorageDirCache(database), baseDir);
 
     }
@@ -225,7 +225,7 @@ public class StorageDir extends IOStorageDir {
         this.filter = filter;
     }
 
-    public IDatabaseInterface getDatabase() {
+    public IDatabase getDatabase() {
         return getStorageDirCache().getDatabase();
     }
 
@@ -235,17 +235,17 @@ public class StorageDir extends IOStorageDir {
 
     @Override
     public byte[] readBytes(String path) throws IOException, CryptoException {
-        byte[] bytes = super.readBytes(path);
+        byte[] bytes = getStorageDirCache().readBytes(getRealPath(path));
         if (filter != null)
             return filter.readFilter(bytes);
         return bytes;
     }
 
     @Override
-    public void writeBytes(String path, byte[] data) throws IOException, CryptoException {
+    public void putBytes(String path, byte[] data) throws IOException, CryptoException {
         if (filter != null)
             data = filter.writeFilter(data);
-        super.writeBytes(path, data);
+        getStorageDirCache().putBytes(getRealPath(path), data);
     }
 
     public void commit(String message) throws IOException {

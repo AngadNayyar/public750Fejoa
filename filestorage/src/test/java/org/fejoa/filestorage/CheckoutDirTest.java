@@ -70,9 +70,9 @@ public class CheckoutDirTest extends TestCase {
         StorageDir storageDir = context.getPlainStorage("testBranch");
 
         byte data[] = "test".getBytes();
-        storageDir.writeBytes("test1", data);
+        storageDir.putBytes("test1", data);
         storageDir.commit();
-        storageDir.writeBytes("dir/test1", data);
+        storageDir.putBytes("dir/test1", data);
         storageDir.commit();
 
         List<CheckoutDir.Update> updates = new ArrayList<>();
@@ -85,7 +85,7 @@ public class CheckoutDirTest extends TestCase {
         assertEquals(2, updates.size());
 
         updates.clear();
-        storageDir.writeBytes("test1", "update".getBytes());
+        storageDir.putBytes("test1", "update".getBytes());
         storageDir.commit();
         task.start(createObserver(updates));
         assertEquals(1, updates.size());

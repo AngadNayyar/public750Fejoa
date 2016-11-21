@@ -9,9 +9,6 @@ package org.fejoa.chunkstore;
 
 import junit.framework.TestCase;
 import org.apache.commons.codec.binary.Base64;
-import org.fejoa.chunkstore.BoxPointer;
-import org.fejoa.chunkstore.HashValue;
-import org.fejoa.chunkstore.Repository;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.crypto.CryptoHelper;
 import org.fejoa.library.support.StorageLib;
@@ -67,7 +64,7 @@ public class RepositoryTestBase extends TestCase {
         }
     }
 
-    protected Repository.ICommitCallback simpleCommitCallback = new Repository.ICommitCallback() {
+    protected ICommitCallback simpleCommitCallback = new ICommitCallback() {
         static final String DATA_HASH_KEY = "dataHash";
         static final String BOX_HASH_KEY = "boxHash";
         static final String IV_KEY = "iv";
@@ -116,7 +113,7 @@ public class RepositoryTestBase extends TestCase {
     protected void add(Repository database, Map<String, DatabaseStingEntry> content, DatabaseStingEntry entry)
             throws Exception {
         content.put(entry.path, entry);
-        database.writeBytes(entry.path, entry.content.getBytes());
+        database.putBytes(entry.path, entry.content.getBytes());
     }
 
     protected void remove(Repository database, Map<String, DatabaseStingEntry> content, String path)
@@ -127,7 +124,7 @@ public class RepositoryTestBase extends TestCase {
         }
     }
 
-    private int countFiles(Repository database, String dirPath) throws IOException {
+    private int countFiles(Repository database, String dirPath) throws IOException, CryptoException {
         int fileCount = database.listFiles(dirPath).size();
         for (String dir : database.listDirectories(dirPath))
             fileCount += countFiles(database, StorageLib.appendDir(dirPath, dir));

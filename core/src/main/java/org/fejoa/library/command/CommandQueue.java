@@ -48,7 +48,7 @@ abstract class CommandQueue<T extends CommandQueue.Entry> {
 
         @Override
         public void write(IOStorageDir dir) throws IOException, CryptoException {
-            dir.writeBytes(COMMAND_KEY, data);
+            dir.putBytes(COMMAND_KEY, data);
         }
 
         @Override

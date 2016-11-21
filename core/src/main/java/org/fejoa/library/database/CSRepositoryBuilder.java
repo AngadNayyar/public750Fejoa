@@ -34,12 +34,12 @@ public class CSRepositoryBuilder {
         else
             chunkStore = ChunkStore.create(dir, branch);
         IRepoChunkAccessors accessors = getRepoChunkAccessors(context, chunkStore, keyData);
-        Repository.ICommitCallback commitCallback = getCommitCallback(context, keyData);
+        ICommitCallback commitCallback = getCommitCallback(context, keyData);
 
         return new Repository(dir, branch, accessors, commitCallback);
     }
 
-    private static Repository.ICommitCallback getCommitCallback(final FejoaContext context,
+    private static ICommitCallback getCommitCallback(final FejoaContext context,
                                                                 SymmetricKeyData keyData) {
         if (keyData == null)
             return getSimpleCommitCallback();
@@ -52,9 +52,9 @@ public class CSRepositoryBuilder {
     static final String BOX_HASH_KEY = "boxHash";
     static final String BOX_IV_KEY = "boxIV";
 
-    private static Repository.ICommitCallback getEncCommitCallback(final FejoaContext context,
+    private static ICommitCallback getEncCommitCallback(final FejoaContext context,
                                                                    final SymmetricKeyData keyData) {
-        return new Repository.ICommitCallback() {
+        return new ICommitCallback() {
             byte[] encrypt(byte[] plain, byte[] iv) throws CryptoException {
                 ICryptoInterface cryptoInterface = context.getCrypto();
                 return cryptoInterface.encryptSymmetric(plain, keyData.key, iv, keyData.settings);
@@ -120,8 +120,8 @@ public class CSRepositoryBuilder {
         };
     }
 
-    private static Repository.ICommitCallback getSimpleCommitCallback() {
-        return new Repository.ICommitCallback() {
+    private static ICommitCallback getSimpleCommitCallback() {
+        return new ICommitCallback() {
             @Override
             public HashValue logHash(BoxPointer commitPointer) {
                 return commitPointer.getBoxHash();
