@@ -9,7 +9,6 @@ package org.fejoa.chunkstore;
 
 import java8.util.concurrent.CompletableFuture;
 import java8.util.function.BiConsumer;
-import java8.util.function.Function;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.support.StreamHelper;
@@ -288,8 +287,8 @@ public class RepositoryTest extends RepositoryTestBase {
 
         final StorageDir storageDir = new StorageDir(repository, "");
         System.out.println("1) Before put call");
-        CompletableFuture<Void> job = storageDir.putStringAsync("test", "content");
-        job.whenCompleteAsync(new BiConsumer<Void, Throwable>() {
+        CompletableFuture<Void> putReadJob = storageDir.putStringAsync("test", "content").whenCompleteAsync(
+                new BiConsumer<Void, Throwable>() {
             @Override
             public void accept(Void aVoid, Throwable throwable) {
                 System.out.println("3) put done");
@@ -297,6 +296,7 @@ public class RepositoryTest extends RepositoryTestBase {
                     @Override
                     public void accept(String s, Throwable throwable) {
                         assertEquals("content", s);
+                        System.out.println("Read: " + s);
                     }
                 });
             }
@@ -309,7 +309,7 @@ public class RepositoryTest extends RepositoryTestBase {
         } catch (ExecutionException e) {
             assertTrue(e.getCause() instanceof NoSuchFileException);
         }
-        
-        job.get();
+
+        putReadJob.get();
     }
 }
