@@ -9,10 +9,14 @@ package org.fejoa.gui.javafx;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.geometry.Orientation;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.TextFieldListCell;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.util.Callback;
@@ -34,6 +38,253 @@ import org.fejoa.library.support.Task;
 import java.io.File;
 import java.io.IOException;
 
+
+abstract class TreeObject<T extends TreeObject<?>> {
+    abstract public String getName();
+    abstract public ObservableList<T> getItems();
+}
+
+class OwnStorageList extends TreeObject<OwnStorageEntry> {
+    final private FileStorageManager fileStorageManager;
+
+    final private ObservableList<OwnStorageEntry> list = FXCollections.observableArrayList();
+
+    public OwnStorageList(FileStorageManager storageManager) {
+        this.fileStorageManager = storageManager;
+
+        list.clear();
+        for (FileStorageEntry entry : fileStorageManager.getFileStorageList().getEntries())
+            list.add(new OwnStorageEntry(entry));
+    }
+
+    @Override
+    public String getName() {
+        return "Own Storage";
+    }
+
+    @Override
+    public String toString() {
+        return getName();
+    }
+
+    @Override
+    public ObservableList<OwnStorageEntry> getItems() {
+        return list;
+    }
+}
+
+class OwnStorageEntry extends TreeObject<TreeObject<?>> {
+    final private FileStorageEntry entry;
+
+    public OwnStorageEntry(FileStorageEntry entry) {
+        this.entry = entry;
+    }
+
+    @Override
+    public String getName() {
+        return "Branch: " + entry.getBranch() + " -> " + entry.getPath().getPath();
+    }
+
+    @Override
+    public String toString() {
+        return getName();
+    }
+
+    @Override
+    public ObservableList<TreeObject<?>> getItems() {
+        return FXCollections.emptyObservableList();
+    }
+}
+
+class ContactStorageEntryList extends TreeObject<ContactTreeEntry> {
+    final private ObservableList<ContactTreeEntry> list = FXCollections.observableArrayList();
+
+    public ContactStorageEntryList(UserData userData) {
+        list.clear();
+        for (ContactPublic contactPublic : userData.getContactStore().getContactList().getEntries()) {
+            ContactTreeEntry contactTreeEntry = new ContactTreeEntry(contactPublic);
+            if (contactTreeEntry.getItems().size() > 0)
+                list.add(contactTreeEntry);
+            /*
+            int nContactBranches = 0;
+            try {
+                for (BranchInfo branchInfo : contactPublic.getBranchList().getEntries()) {
+                    nContactBranches++;
+                    Entry branchItem = new Entry(branchInfo.getBranch());
+                    item.getChildren().add(branchItem);
+                    for (BranchInfo.Location location : branchInfo.getLocations().getEntries()) {
+                        Entry locationItem = new Entry(location.getRemote().toAddress(), location);
+                        branchItem.getChildren().add(locationItem);
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            if (nContactBranches > 0)
+                list.add(item);*/
+        }
+    }
+
+    @Override
+    public String getName() {
+        return "Contact Storage";
+    }
+
+    @Override
+    public String toString() {
+        return getName();
+    }
+
+    @Override
+    public ObservableList<ContactTreeEntry> getItems() {
+        return list;
+    }
+}
+
+
+class ContactTreeEntry extends TreeObject<ContactStorageEntry> {
+    final private ContactPublic contactPublic;
+    final private String name;
+    final private ObservableList<ContactStorageEntry> list = FXCollections.observableArrayList();
+
+    public ContactTreeEntry(ContactPublic contactPublic) {
+        this.contactPublic = contactPublic;
+
+        Remote remote = contactPublic.getRemotes().getDefault();
+        String remoteString = remote.toAddress();
+        this.name =  remoteString + " (" + contactPublic.getId() + ")";
+
+        try {
+            for (BranchInfo branchInfo : contactPublic.getBranchList().getEntries(FileStorageManager.STORAGE_CONTEXT))
+                list.add(new ContactStorageEntry(branchInfo));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public String toString() {
+        return getName();
+    }
+
+    @Override
+    public ObservableList<ContactStorageEntry> getItems() {
+        return list;
+    }
+}
+
+class ContactStorageEntry extends TreeObject<ContactStorageLocationEntry> {
+    final private BranchInfo branchInfo;
+    final private ObservableList<ContactStorageLocationEntry> list = FXCollections.observableArrayList();
+
+    public ContactStorageEntry(BranchInfo branchInfo) {
+        this.branchInfo = branchInfo;
+
+        try {
+            for (BranchInfo.Location location : branchInfo.getLocations().getEntries())
+                list.add(new ContactStorageLocationEntry(location));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public String getName() {
+        return "Branch: " + branchInfo.getBranch();
+    }
+
+    @Override
+    public String toString() {
+        return getName();
+    }
+
+    @Override
+    public ObservableList<ContactStorageLocationEntry> getItems() {
+        return list;
+    }
+}
+
+class ContactStorageLocationEntry extends TreeObject<TreeObject<?>> {
+    final private BranchInfo.Location location;
+
+    public ContactStorageLocationEntry(BranchInfo.Location location) {
+        this.location = location;
+    }
+
+    @Override
+    public String getName() {
+        try {
+            return "Location: " + location.getRemote().toAddress();
+        } catch (IOException e) {
+            return "failed to load remote";
+        }
+    }
+
+    @Override
+    public String toString() {
+        return getName();
+    }
+
+    @Override
+    public ObservableList<TreeObject<?>> getItems() {
+        return FXCollections.emptyObservableList();
+    }
+}
+
+
+class FileStorageTreeView extends TreeView<TreeObject<?>> {
+    final private TreeItem<TreeObject<?>> rootNode;
+
+    public FileStorageTreeView() {
+        rootNode = new TreeItem<>();
+        setRoot(rootNode);
+        setShowRoot(false);
+
+        setCellFactory(new Callback<TreeView<TreeObject<?>>, TreeCell<TreeObject<?>>>() {
+            @Override
+            public TreeCell<TreeObject<?>> call(TreeView<TreeObject<?>> treeObjectTreeView) {
+                return new TreeCell<TreeObject<?>>() {
+                    @Override
+                    protected void updateItem(TreeObject<?> item, boolean empty) {
+                        super.updateItem(item, empty);
+                        textProperty().unbind();
+                        if (empty) {
+                            setGraphic(null);
+                            setText(null);
+                            return;
+                        }
+                        setText(item.getName());
+                        if (item instanceof ContactTreeEntry) {
+                            setGraphic(new ImageView(Resources.getIcon(Resources.ICON_CONTACT_32)));
+                        } else if (item instanceof ContactStorageEntry || item instanceof OwnStorageEntry) {
+                            setGraphic(new ImageView(Resources.getIcon(Resources.ICON_FOLDER_32)));
+                        } else if (item instanceof ContactStorageLocationEntry) {
+                            setGraphic(new ImageView(Resources.getIcon(Resources.ICON_REMOTE_32)));
+                        }
+                    }
+                };
+            }
+        });
+    }
+
+    public void setTo(UserData userData, FileStorageManager fileStorageManager) {
+        rootNode.getChildren().clear();
+        rootNode.getChildren().add(createTree(new OwnStorageList(fileStorageManager)));
+        rootNode.getChildren().add(createTree(new ContactStorageEntryList(userData)));
+    }
+
+    private TreeItem<TreeObject<?>> createTree(TreeObject<?> item) {
+        TreeItem<TreeObject<?>> treeItem = new TreeItem<TreeObject<?>>(item);
+        for (TreeObject<?> subItem : item.getItems())
+            treeItem.getChildren().add(createTree(subItem));
+        return treeItem;
+    }
+}
 
 class ContactFileStorageView extends VBox {
     static public class Entry extends TreeItem<String> {
@@ -59,7 +310,7 @@ class ContactFileStorageView extends VBox {
 
     final private StorageDir.IListener listener = new StorageDir.IListener() {
         @Override
-        public void onTipChanged(DatabaseDiff diff, String base, String tip) {
+        public void onTipChanged(DatabaseDiff diff) {
             update();
         }
     };
@@ -181,18 +432,19 @@ class ContactFileStorageView extends VBox {
 
 }
 
-public class FileStorageView extends VBox {
+public class FileStorageView extends SplitPane {
     final private Client client;
     final StatusManagerMessenger statusManager;
 
     final private FileStorageManager fileStorageManager;
     final private StorageDir.IListener listener = new StorageDir.IListener() {
         @Override
-        public void onTipChanged(DatabaseDiff diff, String base, String tip) {
+        public void onTipChanged(DatabaseDiff diff) {
             update();
         }
     };
 
+    final FileStorageTreeView fileStorageTreeView = new FileStorageTreeView();;
     final ListView<FileStorageEntry> fileStorageListView;
     final ContactFileStorageView contactFileStorageListView;
 
@@ -276,10 +528,15 @@ public class FileStorageView extends VBox {
             }
         });
 
-        getChildren().add(createLayout);
-        getChildren().add(syncLayout);
-        getChildren().add(fileStorageListView);
-        getChildren().add(contactFileStorageListView);
+        VBox rightLayout = new VBox();
+        rightLayout.getChildren().add(createLayout);
+        rightLayout.getChildren().add(syncLayout);
+        rightLayout.getChildren().add(fileStorageListView);
+        rightLayout.getChildren().add(contactFileStorageListView);
+
+        setOrientation(Orientation.HORIZONTAL);
+        getItems().addAll(fileStorageTreeView, rightLayout);
+        setDividerPosition(0, 0.3);
 
         client.getUserData().getStorageDir().addListener(listener);
         update();
@@ -306,6 +563,8 @@ public class FileStorageView extends VBox {
     }
 
     private void update() {
+        fileStorageTreeView.setTo(client.getUserData(), fileStorageManager);
+
         fileStorageListView.getItems().clear();
         fileStorageListView.getItems().addAll(fileStorageManager.getFileStorageList().getEntries());
     }

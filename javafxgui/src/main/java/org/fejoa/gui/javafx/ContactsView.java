@@ -53,7 +53,7 @@ class ContactCell extends ListCell<ContactEntry> {
         public ContactBaseLayout(String icon) {
             super();
 
-            Image image = new Image(this.getClass().getClassLoader().getResourceAsStream(icon));
+            Image image = Resources.getIcon(icon);
             text = new Label();
             setAlignment(Pos.CENTER_LEFT);
 
@@ -66,7 +66,7 @@ class ContactCell extends ListCell<ContactEntry> {
         final private Button button;
 
         public ContactRequestLayout() {
-            super("contact_request.png");
+            super(Resources.ICON_CONTACT_REQUEST_32);
             button = new Button("Accept");
 
             Pane space = new Pane();
@@ -90,7 +90,7 @@ class ContactCell extends ListCell<ContactEntry> {
 
     class ContactRequestSentLayout extends ContactBaseLayout {
         public ContactRequestSentLayout() {
-            super("contact_requested.png");
+            super(Resources.ICON_REQUESTED_32);
         }
 
         public void setTo(ContactPublic contact) {
@@ -101,7 +101,7 @@ class ContactCell extends ListCell<ContactEntry> {
 
     class ContactLayout extends ContactBaseLayout {
         public ContactLayout() {
-            super("contact.png");
+            super(Resources.ICON_CONTACT_32);
         }
 
         public void setTo(ContactPublic contact) {
@@ -176,7 +176,7 @@ class ContactListView extends ListView<ContactEntry> {
 
         this.listener = new StorageDir.IListener() {
             @Override
-            public void onTipChanged(DatabaseDiff diff, String base, String tip) {
+            public void onTipChanged(DatabaseDiff diff) {
                 update(contactRequests, requestedContactList, contactList);
             }
         };
