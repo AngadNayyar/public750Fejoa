@@ -343,7 +343,7 @@ public class AsyncDatabase implements IDatabase {
     }
 
     @Override
-    public HashValue getTip() throws IOException {
+    public HashValue getTip() {
         return syncDatabase.getTip();
     }
 

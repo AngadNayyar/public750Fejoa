@@ -19,7 +19,7 @@ public interface IDatabase extends IIODatabase {
     HashValue getHash(String path) throws CryptoException, IOException;
 
     String getBranch();
-    HashValue getTip() throws IOException;
+    HashValue getTip();
 
     CompletableFuture<HashValue> commitAsync(String message, ICommitSignature signature);
     HashValue commit(String message, ICommitSignature signature) throws IOException, CryptoException;

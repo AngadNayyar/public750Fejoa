@@ -29,6 +29,7 @@ import org.fejoa.library.support.Task;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.Executor;
 
 
 public class AccountListView extends HBox {
@@ -92,11 +93,12 @@ public class AccountListView extends HBox {
                 File dir = new File(accountManager.getAccountDir(), loginWindow.getUserName());
                 dir.mkdirs();
                 try {
-                    Client client = Client.create(dir, loginWindow.getUserName(), loginWindow.getServer(),
-                            loginWindow.getPassword());
+                    Executor observerExecutor = new JavaFXScheduler();
+                    Client client = Client.create(dir, observerExecutor, loginWindow.getUserName(),
+                            loginWindow.getServer(), loginWindow.getPassword());
                     client.commit();
                     client.getConnectionManager().setStartScheduler(new Task.NewThreadScheduler());
-                    client.getConnectionManager().setObserverScheduler(new JavaFXScheduler());
+                    client.getConnectionManager().setObserverScheduler(observerExecutor);
 
                     createAccountOnServer(client, loginWindow.getUserName(), loginWindow.getPassword(),
                             loginWindow.getServer(), statusManager);

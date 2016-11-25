@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
+import java.util.concurrent.Executor;
 
 
 public class Client {
@@ -37,7 +38,7 @@ public class Client {
 
     final private StorageDir.IListener userDataStorageListener = new StorageDir.IListener() {
         @Override
-        public void onTipChanged(DatabaseDiff diff, String base, String tip) {
+        public void onTipChanged(DatabaseDiff diff) {
             if (syncObserver != null) {
                 try {
                     startSyncing(syncObserver);
@@ -48,15 +49,15 @@ public class Client {
         }
     };
 
-    private Client(File homeDir) {
-        this.context = new FejoaContext(homeDir);
+    private Client(File homeDir, Executor contextExecutor) {
+        this.context = new FejoaContext(homeDir, contextExecutor);
         this.connectionManager = new ConnectionManager();
         this.migrationManager = new MigrationManager(this);
     }
 
-    static public Client create(File homeDir, String userName, String server, String password)
+    static public Client create(File homeDir, Executor contextExecutor, String userName, String server, String password)
             throws IOException, CryptoException {
-        Client client = new Client(homeDir);
+        Client client = new Client(homeDir, contextExecutor);
         client.context.registerRootPassword(userName, server, password);
         client.userData = UserData.create(client.context, password);
         Remote remoteRemote = new Remote(userName, server);
@@ -80,8 +81,8 @@ public class Client {
         return client;
     }
 
-    static public Client open(File homeDir, String password) throws IOException, CryptoException, JSONException {
-        Client client = new Client(homeDir);
+    static public Client open(File homeDir, Executor contextExecutor, String password) throws IOException, CryptoException, JSONException {
+        Client client = new Client(homeDir, contextExecutor);
         client.userData = UserData.open(client.context, client.readUserDataSettings(), password);
 
         Remote gateway = client.userData.getGateway();

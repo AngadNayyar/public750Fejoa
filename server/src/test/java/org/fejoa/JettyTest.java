@@ -120,14 +120,14 @@ public class JettyTest extends TestCase {
         String BRANCH = "testBranch";
 
         // push
-        FejoaContext localContext = new FejoaContext(TEST_DIR);
+        FejoaContext localContext = new FejoaContext(TEST_DIR, null);
         StorageDir local =  localContext.getStorage(BRANCH, null, null);
         local.writeString("testFile", "testData");
         local.commit();
         syncChunkStore(connectionManager, (Repository)local.getDatabase(), null, serverUser);
 
         // do changes on the server
-        FejoaContext serverContext = new FejoaContext(SERVER_TEST_DIR);
+        FejoaContext serverContext = new FejoaContext(SERVER_TEST_DIR, null);
         StorageDir server =  serverContext.getStorage(BRANCH, null, null);
         server.putBytes("testFileServer", "testDataServer".getBytes());
         server.commit();
@@ -142,7 +142,7 @@ public class JettyTest extends TestCase {
 
         // pull into empty git
         StorageLib.recursiveDeleteFile(new File(localCSDir));
-        localContext = new FejoaContext(TEST_DIR);
+        localContext = new FejoaContext(TEST_DIR, null);
         local =  localContext.getStorage(BRANCH, null, null);
         syncChunkStore(connectionManager, (Repository)local.getDatabase(), null, serverUser);
     }
@@ -150,7 +150,7 @@ public class JettyTest extends TestCase {
     public void testSimple() throws Exception {
         connectionManager.submit(new JsonPingJob(), remote, authInfo, observer);
 
-        UserData userData = UserData.create(new FejoaContext(TEST_DIR), "password");
+        UserData userData = UserData.create(new FejoaContext(TEST_DIR, null), "password");
         connectionManager.submit(new CreateAccountJob("userName", "password", userData.getSettings()),
                 remote, authInfo, observer);
         Thread.sleep(1000);

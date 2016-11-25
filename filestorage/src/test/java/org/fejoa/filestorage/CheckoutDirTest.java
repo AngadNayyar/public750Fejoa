@@ -63,7 +63,7 @@ public class CheckoutDirTest extends TestCase {
         cleanUpDirs.add(databasePath);
         cleanUpDirs.add(destination);
 
-        FejoaContext context = new FejoaContext(databasePath);
+        FejoaContext context = new FejoaContext(databasePath, null);
         StorageDir indexDatabase = context.getPlainStorage("testBranchIndex");
         Index index = new Index(indexDatabase);
 

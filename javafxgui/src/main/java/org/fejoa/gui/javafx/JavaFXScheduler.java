@@ -10,10 +10,12 @@ package org.fejoa.gui.javafx;
 import javafx.application.Platform;
 import org.fejoa.library.support.Task;
 
+import java.util.concurrent.Executor;
 
-public class JavaFXScheduler implements Task.IScheduler {
+
+public class JavaFXScheduler implements Executor {
     @Override
-    public void run(final Runnable runnable) {
+    public void execute(final Runnable runnable) {
         Platform.runLater(runnable);
     }
 }

@@ -34,7 +34,7 @@ class BranchList extends ListView<BranchInfo> {
     public BranchList(final UserData userData) {
         listener = new StorageDir.IListener() {
             @Override
-            public void onTipChanged(DatabaseDiff diff, String base, String tip) {
+            public void onTipChanged(DatabaseDiff diff) {
                 update(userData);
             }
         };
@@ -136,7 +136,7 @@ public class HistoryView extends SplitPane {
                 dirView.getRoot().getChildren().clear();
                 try {
                     Repository repo = new Repository(repository, commitBox);
-                    fillTree(dirView.getRoot(), new StorageDir(repo, ""), "");
+                    fillTree(dirView.getRoot(), new StorageDir(repo, "", userData.getContext().getContextExecutor()), "");
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

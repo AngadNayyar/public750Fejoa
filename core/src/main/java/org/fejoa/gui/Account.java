@@ -14,6 +14,7 @@ import org.json.JSONException;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.Executor;
 
 
 public class Account {
@@ -33,10 +34,10 @@ public class Account {
         return client != null;
     }
 
-    public void open(String password, Task.IScheduler observerScheduler) throws JSONException, IOException, CryptoException {
+    public void open(String password, Executor observerScheduler) throws JSONException, IOException, CryptoException {
         if (isOpen())
             return;
-        client = Client.open(accountDir, password);
+        client = Client.open(accountDir, observerScheduler, password);
         client.getConnectionManager().setStartScheduler(new Task.NewThreadScheduler());
         client.getConnectionManager().setObserverScheduler(observerScheduler);
     }

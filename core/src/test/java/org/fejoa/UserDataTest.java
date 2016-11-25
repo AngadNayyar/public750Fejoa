@@ -8,12 +8,9 @@
 package org.fejoa;
 
 import junit.framework.TestCase;
-import org.fejoa.library.UserDataSettings;
+import org.fejoa.library.*;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.support.StorageLib;
-import org.fejoa.library.FejoaContext;
-import org.fejoa.library.Remote;
-import org.fejoa.library.UserData;
 import org.json.JSONException;
 
 import java.io.File;
@@ -43,7 +40,7 @@ public class UserDataTest extends TestCase {
         String user = "user";
         String server = "localhost";
 
-        FejoaContext context = new FejoaContext(dir);
+        FejoaContext context = new FejoaContext(dir, null);
         UserData userData = UserData.create(context, password);
         Remote remoteRemote = new Remote(user, server);
         userData.getRemoteStore().add(remoteRemote);
@@ -55,10 +52,28 @@ public class UserDataTest extends TestCase {
         UserDataSettings settings = userData.getSettings();
 
         // open it again
-        context = new FejoaContext(dir);
+        context = new FejoaContext(dir, null);
         userData = UserData.open(context, settings, password);
 
         assertEquals(defaultSignatureKey, userData.getMyself().getSignatureKeys().getDefault().getId());
         assertEquals(defaultPublicKey, userData.getMyself().getEncryptionKeys().getDefault().getId());
+    }
+
+    public void testClient() throws IOException, CryptoException, JSONException {
+        String dir = "clientTest";
+        cleanUpDirs.add(dir);
+        for (String dir1 : cleanUpDirs)
+            StorageLib.recursiveDeleteFile(new File(dir1));
+
+        String password = "password";
+        String user = "user";
+        String server = "localhost";
+
+        Client client = Client.create(new File(dir), null, user, server, password);
+        client.commit();
+
+        // open it again
+        client = Client.open(new File(dir), null, password);
+        assertTrue(client != null);
     }
 }

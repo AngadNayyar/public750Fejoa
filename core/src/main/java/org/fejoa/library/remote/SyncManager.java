@@ -413,7 +413,7 @@ class SyncManagerServerWorker {
     private StorageDir.IListener createStorageWatchListener(final Task.IObserver<TaskUpdate, Void> observer) {
         return new StorageDir.IListener() {
             @Override
-            public void onTipChanged(DatabaseDiff diff, String base, String tip) {
+            public void onTipChanged(DatabaseDiff diff) {
                 reNewWatching(observer);
             }
         };

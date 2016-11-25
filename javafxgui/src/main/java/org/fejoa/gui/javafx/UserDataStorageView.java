@@ -51,7 +51,7 @@ public class UserDataStorageView extends SplitPane {
 
             storageDirListener = new StorageDir.IListener() {
                 @Override
-                public void onTipChanged(DatabaseDiff diff, String base, String tip) {
+                public void onTipChanged(DatabaseDiff diff) {
                     try {
                         update(root, storageDir, path);
                     } catch (Exception e) {

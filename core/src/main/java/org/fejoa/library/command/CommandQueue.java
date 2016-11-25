@@ -61,7 +61,6 @@ abstract class CommandQueue<T extends CommandQueue.Entry> {
 
     public CommandQueue(StorageDir dir) throws IOException {
         this.storageDir = new StorageDir(dir);
-        this.storageDir.setFilter(null);
 
         String oldIdKey = null;
         try {

@@ -18,6 +18,7 @@ import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
+import org.fejoa.gui.javafx.JavaFXScheduler;
 import org.fejoa.library.BranchInfo;
 import org.fejoa.library.FejoaContext;
 import org.fejoa.library.UserData;
@@ -110,7 +111,7 @@ public class StorageDirViewer extends Application {
 
         String baseDir = "StorageDirViewerTest";
         StorageLib.recursiveDeleteFile(new File(baseDir));
-        FejoaContext context = new FejoaContext("StorageDirViewerTest");
+        FejoaContext context = new FejoaContext("StorageDirViewerTest", new JavaFXScheduler());
         UserData userData = UserData.create(context, "test");
         userData.commit();
 

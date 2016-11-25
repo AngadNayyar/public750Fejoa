@@ -22,6 +22,7 @@ import org.fejoa.library.crypto.CryptoException;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.Executor;
 
 
 public class FejoaContext {
@@ -33,13 +34,26 @@ public class FejoaContext {
     private Map<String, StorageDir> secureStorageDirs = new HashMap<>();
     private Map<String, String> rootPasswords = new HashMap<>();
 
-    public FejoaContext(String homeDir) {
-        this(new File(homeDir));
+    // executes a task in the context thread
+    private Executor contextExecutor;
+
+    public FejoaContext(String homeDir, Executor contextExecutor) {
+        this(new File(homeDir), contextExecutor);
     }
 
-    public FejoaContext(File homeDir) {
+    public FejoaContext(File homeDir, Executor contextExecutor) {
         this.homeDir = homeDir;
         this.homeDir.mkdirs();
+
+        setContextExecutor(contextExecutor);
+    }
+
+    public void setContextExecutor(Executor contextExecutor) {
+        this.contextExecutor = contextExecutor;
+    }
+
+    public Executor getContextExecutor() {
+        return contextExecutor;
     }
 
     public File getHomeDir() {
@@ -90,7 +104,7 @@ public class FejoaContext {
         pathFile.mkdirs();
 
         Repository repository = CSRepositoryBuilder.openOrCreate(this, pathFile, branch, cryptoKeyData);
-        StorageDir storageDir = new StorageDir(repository, "");
+        StorageDir storageDir = new StorageDir(repository, "", contextExecutor);
         secureStorageDirs.put(pathFile.getPath() + ":" + branch, storageDir);
         storageDir = new StorageDir(storageDir);
         storageDir.setCommitSignature(commitSignature);

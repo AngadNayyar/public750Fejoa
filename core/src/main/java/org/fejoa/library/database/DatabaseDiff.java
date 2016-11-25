@@ -8,8 +8,17 @@
 package org.fejoa.library.database;
 
 
+import org.fejoa.chunkstore.HashValue;
+
 public class DatabaseDiff {
+    final public HashValue base;
+    final public HashValue target;
     final public DatabaseDir added = new DatabaseDir("");
     final public DatabaseDir modified = new DatabaseDir("");
     final public DatabaseDir removed = new DatabaseDir("");
+
+    public DatabaseDiff(HashValue base, HashValue target) {
+        this.base = base;
+        this.target = target;
+    }
 }

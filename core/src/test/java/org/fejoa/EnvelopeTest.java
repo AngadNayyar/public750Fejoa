@@ -39,7 +39,7 @@ public class EnvelopeTest extends TestCase {
         String dir = "envelopeTest";
         cleanUpDirs.add(dir);
 
-        FejoaContext context = new FejoaContext(dir);
+        FejoaContext context = new FejoaContext(dir, null);
         UserData userData = UserData.create(context, "test");
         final ContactPrivate myself = userData.getMyself();
         IContactFinder<IContactPublic> finder = new IContactFinder<IContactPublic>() {

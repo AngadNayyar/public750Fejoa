@@ -13,6 +13,7 @@ import org.fejoa.chunkstore.CommitBox;
 import org.fejoa.chunkstore.IRepoChunkAccessors;
 import org.fejoa.chunkstore.Repository;
 import org.fejoa.gui.javafx.HistoryListView;
+import org.fejoa.gui.javafx.JavaFXScheduler;
 import org.fejoa.library.FejoaContext;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.support.StorageLib;
@@ -30,7 +31,7 @@ public class HistoryViewTest extends Application {
     @Override
     public void start(Stage stage) throws Exception {
         StorageLib.recursiveDeleteFile(new File(MAIN_DIR));
-        FejoaContext context = new FejoaContext(MAIN_DIR);
+        FejoaContext context = new FejoaContext(MAIN_DIR, new JavaFXScheduler());
         StorageDir storageDir = context.getStorage("test", null, null);
 
         HistoryListView historyView = new HistoryListView(storageDir);

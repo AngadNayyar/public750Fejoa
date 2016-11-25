@@ -15,6 +15,7 @@ import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.net.URL;
 import java.util.*;
+import java.util.concurrent.Executor;
 
 
 public class ConnectionManager {
@@ -96,19 +97,19 @@ public class ConnectionManager {
 
     //final private CookieStore cookieStore = new BasicCookieStore();
     final private TokenManager tokenManager = new TokenManager();
-    private Task.IScheduler startScheduler = new Task.NewThreadScheduler();
-    private Task.IScheduler observerScheduler = new Task.CurrentThreadScheduler();
+    private Executor startScheduler = new Task.NewThreadScheduler();
+    private Executor observerScheduler = new Task.CurrentThreadScheduler();
 
     public ConnectionManager() {
         if (CookieHandler.getDefault() == null)
             CookieHandler.setDefault(new CookieManager(null, CookiePolicy.ACCEPT_ALL));
     }
 
-    public void setStartScheduler(Task.IScheduler startScheduler) {
+    public void setStartScheduler(Executor startScheduler) {
         this.startScheduler = startScheduler;
     }
 
-    public void setObserverScheduler(Task.IScheduler scheduler) {
+    public void setObserverScheduler(Executor scheduler) {
         this.observerScheduler = scheduler;
     }
 

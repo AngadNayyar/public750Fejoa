@@ -89,7 +89,7 @@ class MessageBranchView extends VBox {
 
     final StorageDir.IListener storageListener = new StorageDir.IListener() {
         @Override
-        public void onTipChanged(DatabaseDiff diff, String base, String tip) {
+        public void onTipChanged(DatabaseDiff diff) {
             update();
         }
     };
@@ -194,7 +194,7 @@ public class MessengerView extends SplitPane {
 
     final private StorageDir.IListener listener = new StorageDir.IListener() {
         @Override
-        public void onTipChanged(DatabaseDiff diff, String base, String tip) {
+        public void onTipChanged(DatabaseDiff diff) {
             update();
         }
     };

@@ -15,7 +15,7 @@ import java.io.IOException;
 
 public interface ISyncDatabase extends IIOSyncDatabase {
     String getBranch();
-    HashValue getTip() throws IOException;
+    HashValue getTip();
     HashValue getHash(String path) throws IOException, CryptoException;
 
     HashValue commit(String message, ICommitSignature commitSignature) throws IOException, CryptoException;

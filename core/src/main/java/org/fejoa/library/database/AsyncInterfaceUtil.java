@@ -248,7 +248,7 @@ public class AsyncInterfaceUtil {
         }
 
         @Override
-        public HashValue getTip() throws IOException {
+        public HashValue getTip() {
             return syncDatabase.getTip();
         }
 

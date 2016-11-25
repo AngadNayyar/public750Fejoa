@@ -7,9 +7,6 @@
  */
 package org.fejoa.filestorage;
 
-import org.fejoa.filestorage.CheckoutDir;
-import org.fejoa.filestorage.FileStorageEntry;
-import org.fejoa.filestorage.Index;
 import org.fejoa.library.*;
 import org.fejoa.library.command.AccessCommandHandler;
 import org.fejoa.library.crypto.CryptoException;
@@ -23,7 +20,7 @@ import java.io.IOException;
 
 
 public class FileStorageManager {
-    final static private String STORAGE_CONTEXT = "org.fejoa.filestorage";
+    final static public String STORAGE_CONTEXT = "org.fejoa.filestorage";
     final private Client client;
     final private StorageDirList<FileStorageEntry> storageList;
     final private AppContext appContext;

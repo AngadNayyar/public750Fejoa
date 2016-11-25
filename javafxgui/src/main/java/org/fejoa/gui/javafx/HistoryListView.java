@@ -68,7 +68,7 @@ public class HistoryListView extends ListView<HistoryListView.HistoryEntry> {
 
         this.listener = new StorageDir.IListener() {
             @Override
-            public void onTipChanged(DatabaseDiff diff, String base, String tip) {
+            public void onTipChanged(DatabaseDiff diff) {
                 if (HistoryListView.this.storageDir != storageDirIn)
                     return;
                 update(repository.getHeadCommit(), commitAccessor);

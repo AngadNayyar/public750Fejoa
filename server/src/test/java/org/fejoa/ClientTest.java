@@ -28,6 +28,7 @@ import java.net.CookieHandler;
 import java.net.CookiePolicy;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Semaphore;
 
 import static org.fejoa.library.UserData.USER_DATA_CONTEXT;
@@ -132,6 +133,7 @@ public class ClientTest extends TestCase {
         super.setUp();
 
         finishedSemaphore = new Semaphore(0);
+        Executor executor = new Task.LooperThreadScheduler(clientThread);
 
         cleanUpDirs.add(TEST_DIR);
         for (String dir : cleanUpDirs)
@@ -150,15 +152,15 @@ public class ClientTest extends TestCase {
         serverNew.start();
 
         clientStatus1 = new ClientStatus(USER_NAME_1, SERVER_URL_1);
-        client1 = Client.create(new File(TEST_DIR + "/" + USER_NAME_1), clientStatus1.name, clientStatus1.server,
-                PASSWORD);
+        client1 = Client.create(new File(TEST_DIR + "/" + USER_NAME_1), executor, clientStatus1.name,
+                clientStatus1.server, PASSWORD);
         client1.commit();
         client1.getConnectionManager().setStartScheduler(new Task.NewThreadScheduler());
         client1.getConnectionManager().setObserverScheduler(new Task.LooperThreadScheduler(clientThread));
 
         clientStatus2 = new ClientStatus(USER_NAME_2, SERVER_URL_2);
-        client2 = Client.create(new File(TEST_DIR + "/" + USER_NAME_2), clientStatus2.name, clientStatus2.server,
-                PASSWORD);
+        client2 = Client.create(new File(TEST_DIR + "/" + USER_NAME_2), executor, clientStatus2.name,
+                clientStatus2.server, PASSWORD);
         client2.commit();
         client2.getConnectionManager().setStartScheduler(new Task.NewThreadScheduler());
         client2.getConnectionManager().setObserverScheduler(new Task.LooperThreadScheduler(clientThread));

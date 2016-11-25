@@ -96,7 +96,7 @@ class SyncRepository implements ISyncDatabase {
     }
 
     @Override
-    public HashValue getTip() throws IOException {
+    public HashValue getTip() {
         synchronized (this) {
             if (getHeadCommit() == null)
                 return Config.newDataHash();
@@ -123,7 +123,9 @@ class SyncRepository implements ISyncDatabase {
             FlatDirectoryBox.Entry entry = treeAccessor.get(path);
             if (!entry.isFile())
                 throw new IOException("Not a file path.");
-            FileBox fileBox = FileBox.read(transaction.getFileAccessor(path), entry.getDataPointer());
+            FileBox fileBox = (FileBox)entry.getObject();
+            if (fileBox == null)
+                fileBox = FileBox.read(transaction.getFileAccessor(path), entry.getDataPointer());
             return fileBox.getDataContainer().hash();
         }
     }
@@ -542,7 +544,7 @@ class SyncRepository implements ISyncDatabase {
             CommitBox baseCommit = commitCache.getCommit(baseCommitHash);
             CommitBox endCommit = commitCache.getCommit(endCommitHash);
 
-            DatabaseDiff databaseDiff = new DatabaseDiff();
+            DatabaseDiff databaseDiff = new DatabaseDiff(baseCommitHash, endCommitHash);
 
             IChunkAccessor treeAccessor = transaction.getTreeAccessor();
             TreeIterator diffIterator = new TreeIterator(treeAccessor, baseCommit, treeAccessor, endCommit);

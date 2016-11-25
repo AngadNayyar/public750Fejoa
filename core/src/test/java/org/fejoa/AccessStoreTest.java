@@ -11,6 +11,7 @@ import junit.framework.TestCase;
 import org.fejoa.library.*;
 import org.fejoa.library.support.StorageLib;
 import org.fejoa.library.database.StorageDir;
+import org.fejoa.library.support.Task;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -43,7 +44,7 @@ public class AccessStoreTest extends TestCase {
 
     public void testSimple() throws Exception {
         // set up
-        FejoaContext context = new FejoaContext(TEST_DIR);
+        FejoaContext context = new FejoaContext(TEST_DIR, null);
         StorageDir serverDir = context.getPlainStorage("server");
 
         // create token

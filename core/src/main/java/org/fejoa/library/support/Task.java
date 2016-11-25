@@ -8,6 +8,8 @@
 package org.fejoa.library.support;
 
 
+import java.util.concurrent.Executor;
+
 public class Task<Update, Result> {
     public interface ICancelFunction {
         void cancel();
@@ -23,11 +25,7 @@ public class Task<Update, Result> {
         void onException(Exception exception);
     }
 
-    public interface IScheduler {
-        void run(Runnable runnable);
-    }
-
-    static public class LooperThreadScheduler implements IScheduler {
+    static public class LooperThreadScheduler implements Executor {
         final private LooperThread thread;
 
         public LooperThreadScheduler(LooperThread thread) {
@@ -35,21 +33,21 @@ public class Task<Update, Result> {
         }
 
         @Override
-        public void run(Runnable runnable) {
+        public void execute(Runnable runnable) {
             thread.post(runnable);
         }
     }
 
-    static public class NewThreadScheduler implements IScheduler {
+    static public class NewThreadScheduler implements Executor {
         @Override
-        public void run(Runnable runnable) {
+        public void execute(Runnable runnable) {
             new Thread(runnable).start();
         }
     }
 
-    static public class CurrentThreadScheduler implements IScheduler {
+    static public class CurrentThreadScheduler implements Executor {
         @Override
-        public void run(Runnable runnable) {
+        public void execute(Runnable runnable) {
             runnable.run();
         }
     }
@@ -57,8 +55,8 @@ public class Task<Update, Result> {
     private boolean canceled = false;
     private ITaskFunction<Update, Result> taskFunction;
     private IObserver<Update, Result> observable;
-    private IScheduler startScheduler = new NewThreadScheduler();
-    private IScheduler observerScheduler = new CurrentThreadScheduler();
+    private Executor startScheduler = new NewThreadScheduler();
+    private Executor observerScheduler = new CurrentThreadScheduler();
 
     public Task(ITaskFunction<Update, Result> taskFunction) {
         this.taskFunction = taskFunction;
@@ -72,12 +70,12 @@ public class Task<Update, Result> {
         this.taskFunction = taskFunction;
     }
 
-    public Task<Update, Result> setStartScheduler(IScheduler startScheduler) {
+    public Task<Update, Result> setStartScheduler(Executor startScheduler) {
         this.startScheduler = startScheduler;
         return this;
     }
 
-    public Task<Update, Result> setObserverScheduler(IScheduler observerScheduler) {
+    public Task<Update, Result> setObserverScheduler(Executor observerScheduler) {
         this.observerScheduler = observerScheduler;
         return this;
     }
@@ -86,7 +84,7 @@ public class Task<Update, Result> {
         this.observable = observable;
 
         final Task<Update, Result> that = this;
-        startScheduler.run(new Runnable() {
+        startScheduler.execute(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -113,7 +111,7 @@ public class Task<Update, Result> {
     }
 
     public void onProgress(final Update update) {
-        observerScheduler.run(new Runnable() {
+        observerScheduler.execute(new Runnable() {
             @Override
             public void run() {
                 observable.onProgress(update);
@@ -122,7 +120,7 @@ public class Task<Update, Result> {
     }
 
     public void onResult(final Result result) {
-        observerScheduler.run(new Runnable() {
+        observerScheduler.execute(new Runnable() {
             @Override
             public void run() {
                 observable.onResult(result);
@@ -131,7 +129,7 @@ public class Task<Update, Result> {
     }
 
     public void onException(final Exception exception) {
-        observerScheduler.run(new Runnable() {
+        observerScheduler.execute(new Runnable() {
             @Override
             public void run() {
                 observable.onException(exception);

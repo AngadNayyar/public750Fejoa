@@ -285,7 +285,7 @@ public class RepositoryTest extends RepositoryTestBase {
         IRepoChunkAccessors accessors = getRepoChunkAccessors(chunkStore);
         Repository repository = new Repository(directory, branch, accessors, simpleCommitCallback);
 
-        final StorageDir storageDir = new StorageDir(repository, "");
+        final StorageDir storageDir = new StorageDir(repository, "", null);
         System.out.println("1) Before put call");
         CompletableFuture<Void> putReadJob = storageDir.putStringAsync("test", "content").whenCompleteAsync(
                 new BiConsumer<Void, Throwable>() {

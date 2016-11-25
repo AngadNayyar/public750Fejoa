@@ -108,7 +108,7 @@ public class Session {
     }
 
     public FejoaContext getContext(String serverUser) {
-        return new FejoaContext(getServerUserDir(serverUser));
+        return new FejoaContext(getServerUserDir(serverUser), null);
     }
 
     public UserDataSettings getUserDataSettings(String serverUser) throws Exception {
