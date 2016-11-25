@@ -12,6 +12,7 @@ import org.fejoa.chunkstore.HashValue;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.support.LooperThread;
 
+import javax.imageio.IIOException;
 import java.io.IOException;
 import java.util.Collection;
 
@@ -47,7 +48,12 @@ public class AsyncDatabase implements IDatabase {
         try {
             return hasFileAsync(path).get();
         } catch (Exception e) {
-            throw new IOException(e.getCause());
+            if (e.getCause() instanceof IOException)
+                throw (IOException)e.getCause();
+            else if (e.getCause() instanceof CryptoException)
+                throw (CryptoException)e.getCause();
+            else
+                throw new RuntimeException("Unexpected Exception");
         }
     }
 
@@ -56,7 +62,12 @@ public class AsyncDatabase implements IDatabase {
         try {
             return openAsync(path, mode).get();
         } catch (Exception e) {
-            throw new IOException(e.getCause());
+            if (e.getCause() instanceof IOException)
+                throw (IOException)e.getCause();
+            else if (e.getCause() instanceof CryptoException)
+                throw (CryptoException)e.getCause();
+            else
+                throw new RuntimeException("Unexpected Exception");
         }
     }
 
@@ -65,7 +76,12 @@ public class AsyncDatabase implements IDatabase {
         try {
             return readBytesAsync(path).get();
         } catch (Exception e) {
-            throw new IOException(e.getCause());
+            if (e.getCause() instanceof IOException)
+                throw (IOException)e.getCause();
+            else if (e.getCause() instanceof CryptoException)
+                throw (CryptoException)e.getCause();
+            else
+                throw new RuntimeException("Unexpected Exception");
         }
     }
 
@@ -74,7 +90,12 @@ public class AsyncDatabase implements IDatabase {
         try {
             putBytesAsync(path, data).get();
         } catch (Exception e) {
-            throw new IOException(e.getCause());
+            if (e.getCause() instanceof IOException)
+                throw (IOException)e.getCause();
+            else if (e.getCause() instanceof CryptoException)
+                throw (CryptoException)e.getCause();
+            else
+                throw new RuntimeException("Unexpected Exception");
         }
     }
 
@@ -83,7 +104,12 @@ public class AsyncDatabase implements IDatabase {
         try {
             removeAsync(path).get();
         } catch (Exception e) {
-            throw new IOException(e.getCause());
+            if (e.getCause() instanceof IOException)
+                throw (IOException)e.getCause();
+            else if (e.getCause() instanceof CryptoException)
+                throw (CryptoException)e.getCause();
+            else
+                throw new RuntimeException("Unexpected Exception");
         }
     }
 
@@ -92,7 +118,12 @@ public class AsyncDatabase implements IDatabase {
         try {
             return listFilesAsync(path).get();
         } catch (Exception e) {
-            throw new IOException(e.getCause());
+            if (e.getCause() instanceof IOException)
+                throw (IOException)e.getCause();
+            else if (e.getCause() instanceof CryptoException)
+                throw (CryptoException)e.getCause();
+            else
+                throw new RuntimeException("Unexpected Exception");
         }
     }
 
@@ -101,7 +132,12 @@ public class AsyncDatabase implements IDatabase {
         try {
             return listDirectoriesAsync(path).get();
         } catch (Exception e) {
-           throw new IOException(e.getCause());
+            if (e.getCause() instanceof IOException)
+                throw (IOException)e.getCause();
+            else if (e.getCause() instanceof CryptoException)
+                throw (CryptoException)e.getCause();
+            else
+                throw new RuntimeException("Unexpected Exception");
         }
     }
 
@@ -110,7 +146,12 @@ public class AsyncDatabase implements IDatabase {
         try {
             return getDiffAsync(baseCommit, endCommit).get();
         } catch (Exception e) {
-            throw new IOException(e.getCause());
+            if (e.getCause() instanceof IOException)
+                throw (IOException)e.getCause();
+            else if (e.getCause() instanceof CryptoException)
+                throw (CryptoException)e.getCause();
+            else
+                throw new RuntimeException("Unexpected Exception");
         }
     }
 
@@ -119,7 +160,10 @@ public class AsyncDatabase implements IDatabase {
         try {
             return getHashAsync(path).get();
         } catch (Exception e) {
-            throw new CryptoException(e.getMessage());
+            if (e.getCause() instanceof CryptoException)
+                throw (CryptoException)e.getCause();
+            else
+                throw new RuntimeException("Unexpected Exception");
         }
     }
 
@@ -128,7 +172,10 @@ public class AsyncDatabase implements IDatabase {
         try {
             return commitAsync(message, signature).get();
         } catch (Exception e) {
-            throw new IOException(e.getMessage());
+            if (e.getCause() instanceof IOException)
+                throw (IOException)e.getCause();
+            else
+                throw new RuntimeException("Unexpected Exception");
         }
     }
 
