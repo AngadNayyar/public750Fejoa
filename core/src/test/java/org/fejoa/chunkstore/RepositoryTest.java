@@ -7,11 +7,17 @@
  */
 package org.fejoa.chunkstore;
 
+import java8.util.concurrent.CompletableFuture;
+import java8.util.function.BiConsumer;
+import java8.util.function.Function;
 import org.fejoa.library.crypto.CryptoException;
+import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.support.StreamHelper;
 
 import java.io.*;
+import java.nio.file.NoSuchFileException;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 
 public class RepositoryTest extends RepositoryTestBase {
@@ -267,5 +273,43 @@ public class RepositoryTest extends RepositoryTestBase {
         assertEquals(0, repository.listFiles("file1").size());
         assertEquals(0, repository.listDirectories("file1").size());
         assertEquals(0, repository.listDirectories("dir1/file2").size());
+    }
+
+    public void testRepositoryAsync() throws IOException, CryptoException, InterruptedException, ExecutionException {
+        String branch = "repoBranch";
+        String name = "repoTreeBuilder";
+        File directory = new File("RepoTestAsync");
+        cleanUpFiles.add(directory.getName());
+        directory.mkdirs();
+
+        ChunkStore chunkStore = createChunkStore(directory, name);
+        IRepoChunkAccessors accessors = getRepoChunkAccessors(chunkStore);
+        Repository repository = new Repository(directory, branch, accessors, simpleCommitCallback);
+
+        final StorageDir storageDir = new StorageDir(repository, "");
+        System.out.println("1) Before put call");
+        CompletableFuture<Void> job = storageDir.putStringAsync("test", "content");
+        job.whenCompleteAsync(new BiConsumer<Void, Throwable>() {
+            @Override
+            public void accept(Void aVoid, Throwable throwable) {
+                System.out.println("3) put done");
+                storageDir.readStringAsync("test").whenComplete(new BiConsumer<String, Throwable>() {
+                    @Override
+                    public void accept(String s, Throwable throwable) {
+                        assertEquals("content", s);
+                    }
+                });
+            }
+        });
+        System.out.println("2) After put call");
+
+        try {
+            storageDir.readBytesAsync("invalidPath").get();
+            assertTrue(false);
+        } catch (ExecutionException e) {
+            assertTrue(e.getCause() instanceof NoSuchFileException);
+        }
+        
+        job.get();
     }
 }
