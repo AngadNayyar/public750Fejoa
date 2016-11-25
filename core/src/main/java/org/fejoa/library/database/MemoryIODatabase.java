@@ -17,9 +17,9 @@ import java.io.IOException;
 import java.util.*;
 
 
-class MemorySyncRandomDataAccess implements ISyncRandomDataAccess {
+class MemoryRandomDataAccess implements ISyncRandomDataAccess {
     interface IIOCallback {
-        void onClose(MemorySyncRandomDataAccess that);
+        void onClose(MemoryRandomDataAccess that);
     }
 
     private byte[] buffer;
@@ -29,7 +29,7 @@ class MemorySyncRandomDataAccess implements ISyncRandomDataAccess {
     private ByteArrayInputStream inputStream = null;
     private ByteArrayOutputStream outputStream = null;
 
-    public MemorySyncRandomDataAccess(byte[] buffer, IIOSyncDatabase.Mode mode, IIOCallback callback) {
+    public MemoryRandomDataAccess(byte[] buffer, IIOSyncDatabase.Mode mode, IIOCallback callback) {
         this.buffer = buffer;
         this.mode = mode;
         this.callback = callback;
@@ -108,7 +108,6 @@ class MemorySyncRandomDataAccess implements ISyncRandomDataAccess {
 }
 
 public class MemoryIODatabase implements IIOSyncDatabase {
-
     static class Dir {
         final private Dir parent;
         final private String name;
@@ -234,9 +233,9 @@ public class MemoryIODatabase implements IIOSyncDatabase {
                 throw new FileNotFoundException("File not found: " + path);
             existingBytes = new byte[0];
         }
-        return new MemorySyncRandomDataAccess(existingBytes, mode, new MemorySyncRandomDataAccess.IIOCallback() {
+        return new MemoryRandomDataAccess(existingBytes, mode, new MemoryRandomDataAccess.IIOCallback() {
             @Override
-            public void onClose(MemorySyncRandomDataAccess that) {
+            public void onClose(MemoryRandomDataAccess that) {
                 if (!that.getMode().has(Mode.WRITE))
                     return;
                 root.put(validate(path), that.getData());

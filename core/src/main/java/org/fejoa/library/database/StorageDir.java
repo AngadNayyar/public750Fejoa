@@ -205,12 +205,11 @@ public class StorageDir extends IOStorageDir {
     }
 
     public StorageDir(IDatabase database, String baseDir) {
-        super(new StorageDirCache(database), baseDir);
-
+        super(AsyncInterfaceUtil.fakeAsync(new StorageDirCache(database)), baseDir);
     }
 
     private StorageDirCache getStorageDirCache() {
-        return (StorageDirCache)this.database;
+        return (StorageDirCache)((AsyncInterfaceUtil.FakeIODatabase)this.database).getSyncDatabase();
     }
 
     public void setCommitSignature(ICommitSignature commitSignature) {

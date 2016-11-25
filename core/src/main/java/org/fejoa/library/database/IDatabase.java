@@ -16,13 +16,13 @@ import java.io.*;
 
 public interface IDatabase extends IIODatabase {
     CompletableFuture<HashValue> getHashAsync(String path);
-    HashValue getHash(String path) throws CryptoException;
+    HashValue getHash(String path) throws CryptoException, IOException;
 
     String getBranch();
     HashValue getTip() throws IOException;
 
     CompletableFuture<HashValue> commitAsync(String message, ICommitSignature signature);
-    HashValue commit(String message, ICommitSignature signature) throws IOException;
+    HashValue commit(String message, ICommitSignature signature) throws IOException, CryptoException;
 
     CompletableFuture<DatabaseDiff> getDiffAsync(HashValue baseCommit, HashValue endCommit);
     DatabaseDiff getDiff(HashValue baseCommit, HashValue endCommit) throws IOException, CryptoException;

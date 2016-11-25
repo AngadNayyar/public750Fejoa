@@ -23,7 +23,7 @@ public class MovableStorage {
 
     public MovableStorage(IOStorageDir storageDir) {
         if (storageDir == null)
-            this.storageDir = new IOStorageDir(new MemoryIODatabase(), "");
+            this.storageDir = new IOStorageDir(AsyncInterfaceUtil.fakeAsync(new MemoryIODatabase()), "");
         else
             this.storageDir = storageDir;
     }
