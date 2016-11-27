@@ -146,11 +146,11 @@ public class IOStorageDir {
     }
 
     public CompletableFuture<IRandomDataAccess> openAsync(String path, IIOSyncDatabase.Mode mode) {
-        return database.openAsync(path, mode);
+        return database.openAsync(getRealPath(path), mode);
     }
 
     public CompletableFuture<Void> putBytesAsync(String path, byte[] data) {
-        return database.putBytesAsync(path, data);
+        return database.putBytesAsync(getRealPath(path), data);
     }
 
     public CompletableFuture<Void> putStringAsync(String path, String data) {
@@ -170,11 +170,11 @@ public class IOStorageDir {
     }
 
     public CompletableFuture<byte[]> readBytesAsync(String path) {
-        return database.readBytesAsync(path);
+        return database.readBytesAsync(getRealPath(path));
     }
 
     public CompletableFuture<String> readStringAsync(String path) {
-        return database.readBytesAsync(path).thenApply(new Function<byte[], String>() {
+        return readBytesAsync(path).thenApply(new Function<byte[], String>() {
             @Override
             public String apply(byte[] bytes) {
                 return new String(bytes);
