@@ -18,6 +18,8 @@ public interface ISyncRandomDataAccess {
     void seek(long position) throws IOException, CryptoException;
     void write(byte[] data) throws IOException;
     int read(byte[] buffer) throws IOException, CryptoException;
+    void write(byte[] data, int offset, int length) throws IOException;
+    int read(byte[] buffer, int offset, int length) throws IOException, CryptoException;
     void flush() throws IOException;
     void close() throws IOException, CryptoException;
 }

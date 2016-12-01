@@ -203,17 +203,27 @@ public class AsyncDatabase implements IDatabase {
 
         @Override
         public void write(byte[] data) throws IOException {
+            write(data, 0, data.length);
+        }
+
+        @Override
+        public int read(byte[] buffer) throws IOException, CryptoException {
+            return read(buffer, 0, buffer.length);
+        }
+
+        @Override
+        public void write(byte[] data, int offset, int length) throws IOException {
             try {
-                writeAsync(data, true).get();
+                writeAsync(data, offset, length, true).get();
             } catch (Exception e) {
                 throw new IOException(e);
             }
         }
 
         @Override
-        public int read(byte[] buffer) throws IOException {
+        public int read(byte[] buffer, int offset, int length) throws IOException, CryptoException {
             try {
-                return readAsync(buffer, true).get();
+                return readAsync(buffer, offset, length, true).get();
             } catch (Exception e) {
                 throw new IOException(e);
             }
@@ -237,13 +247,14 @@ public class AsyncDatabase implements IDatabase {
             }
         }
 
-        private CompletableFuture<Void> writeAsync(final byte[] data, boolean runNext) {
+        private CompletableFuture<Void> writeAsync(final byte[] data, final int offset, final int length,
+                                                   boolean runNext) {
             final CompletableFuture<Void> future = new CompletableFuture<>();
             looperThread.post(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        syncRandomDataAccess.write(data);
+                        syncRandomDataAccess.write(data, offset, length);
                         future.complete(null);
                     } catch (IOException e) {
                         future.completeExceptionally(e);
@@ -253,13 +264,14 @@ public class AsyncDatabase implements IDatabase {
             return future;
         }
 
-        private CompletableFuture<Integer> readAsync(final byte[] buffer, boolean runNext) {
+        private CompletableFuture<Integer> readAsync(final byte[] buffer, final int offset, final int length,
+                                                     boolean runNext) {
             final CompletableFuture<Integer> future = new CompletableFuture<>();
             looperThread.post(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        future.complete(syncRandomDataAccess.read(buffer));
+                        future.complete(syncRandomDataAccess.read(buffer, offset, length));
                     } catch (Exception e) {
                         future.completeExceptionally(e);
                     }
@@ -302,12 +314,22 @@ public class AsyncDatabase implements IDatabase {
 
         @Override
         public CompletableFuture<Void> writeAsync(byte[] data) {
-            return writeAsync(data, false);
+            return writeAsync(data, 0, data.length);
         }
 
         @Override
         public CompletableFuture<Integer> readAsync(byte[] buffer) {
-            return readAsync(buffer, false);
+            return readAsync(buffer, 0, buffer.length);
+        }
+
+        @Override
+        public CompletableFuture<Void> writeAsync(byte[] data, int offset, int length) {
+            return writeAsync(data, offset, length, false);
+        }
+
+        @Override
+        public CompletableFuture<Integer> readAsync(byte[] buffer, int offset, int length) {
+            return readAsync(buffer, offset, length, false);
         }
 
         @Override

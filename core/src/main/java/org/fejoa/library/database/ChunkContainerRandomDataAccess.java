@@ -118,15 +118,25 @@ public class ChunkContainerRandomDataAccess implements ISyncRandomDataAccess {
 
     @Override
     public void write(byte[] data) throws IOException {
-        prepareForWrite();
-        outputStream.write(data);
-        position += data.length;
+        write(data, 0, data.length);
     }
 
     @Override
     public int read(byte[] buffer) throws IOException, CryptoException {
+        return read(buffer, 0, buffer.length);
+    }
+
+    @Override
+    public void write(byte[] data, int offset, int length) throws IOException {
+        prepareForWrite();
+        outputStream.write(data, offset, length);
+        position += length;
+    }
+
+    @Override
+    public int read(byte[] buffer, int offset, int length) throws IOException, CryptoException {
         prepareForRead();
-        int read = inputStream.read(buffer);
+        int read = inputStream.read(buffer, offset, length);
         position += read;
         return read;
     }

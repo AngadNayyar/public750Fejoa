@@ -25,7 +25,7 @@ class MemoryRandomDataAccess implements ISyncRandomDataAccess {
     private byte[] buffer;
     final private IIOSyncDatabase.Mode mode;
     final private IIOCallback callback;
-    private long position = 0;
+    private int position = 0;
     private ByteArrayInputStream inputStream = null;
     private ByteArrayOutputStream outputStream = null;
 
@@ -61,24 +61,35 @@ class MemoryRandomDataAccess implements ISyncRandomDataAccess {
             inputStream = null;
         else
             flush();
-        this.position = position;
+        this.position = (int)position;
     }
 
     @Override
     public void write(byte[] data) throws IOException {
+        write(data, 0, data.length);
+    }
+
+    @Override
+    public int read(byte[] buffer) throws IOException, CryptoException {
+        return read(buffer, 0, buffer.length);
+    }
+
+    @Override
+    public void write(byte[] data, int offset, int length) throws IOException {
         if (!mode.has(IIOSyncDatabase.Mode.WRITE))
             throw new IOException("Read only");
         if (inputStream != null)
             inputStream = null;
         if (outputStream == null) {
             outputStream = new ByteArrayOutputStream();
-            outputStream.write(buffer, 0, (int)position);
+            outputStream.write(buffer, 0, position);
         }
-        outputStream.write(data);
+        outputStream.write(data, offset, length);
+        position += length;
     }
 
     @Override
-    public int read(byte[] buffer) throws IOException, CryptoException {
+    public int read(byte[] buffer, int offset, int length) throws IOException, CryptoException {
         if (!mode.has(IIOSyncDatabase.Mode.READ))
             throw new IOException("Not in read mode");
 
@@ -89,13 +100,18 @@ class MemoryRandomDataAccess implements ISyncRandomDataAccess {
             inputStream = new ByteArrayInputStream(this.buffer);
             inputStream.skip(position);
         }
-        return inputStream.read(buffer);
+        int read = inputStream.read(buffer, offset, length);
+        position += read;
+        return read;
     }
 
     @Override
     public void flush() throws IOException {
         if (outputStream == null)
             return;
+        // if we didn't overwrite the whole buffer copy the remaining bytes
+        if (position < this.buffer.length)
+            outputStream.write(buffer, position, buffer.length - position);
         this.buffer = outputStream.toByteArray();
         outputStream = null;
     }

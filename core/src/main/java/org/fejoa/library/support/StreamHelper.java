@@ -14,7 +14,7 @@ import java.io.*;
 
 
 public class StreamHelper {
-    static public int BUFFER_SIZE = 1024;
+    static public int BUFFER_SIZE = 8 * 1024;
 
     static public void copyBytes(InputStream inputStream, OutputStream outputStream, int size) throws IOException {
         int bufferLength = BUFFER_SIZE;
@@ -36,6 +36,14 @@ public class StreamHelper {
     }
 
     static public void copy(ISyncRandomDataAccess inputStream, OutputStream outputStream) throws IOException,
+            CryptoException {
+        byte[] buffer = new byte[BUFFER_SIZE];
+        int length;
+        while ((length = inputStream.read(buffer)) > 0)
+            outputStream.write(buffer, 0, length);
+    }
+
+    static public void copy(InputStream inputStream, ISyncRandomDataAccess outputStream) throws IOException,
             CryptoException {
         byte[] buffer = new byte[BUFFER_SIZE];
         int length;

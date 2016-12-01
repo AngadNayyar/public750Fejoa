@@ -16,6 +16,7 @@ import org.fejoa.library.support.StreamHelper;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.concurrent.ExecutionException;
 
 import static org.fejoa.library.database.IIOSyncDatabase.Mode.READ;
 import static org.fejoa.library.database.IIOSyncDatabase.Mode.TRUNCATE;
@@ -143,6 +144,19 @@ public class IOStorageDir {
         }
         for (String dir : listDirectories(currentDir))
             copyTo(target, StorageLib.appendDir(currentDir, dir));
+    }
+
+    public IRandomDataAccess open(String path, IIOSyncDatabase.Mode mode) throws IOException, CryptoException {
+        try {
+            return database.openAsync(getRealPath(path), mode).get();
+        } catch (Exception e) {
+            if (e.getCause() instanceof IOException)
+                throw (IOException)e.getCause();
+            else if (e.getCause() instanceof CryptoException)
+                throw (CryptoException)e.getCause();
+            else
+                throw new RuntimeException("Unexpected Exception");
+        }
     }
 
     public CompletableFuture<IRandomDataAccess> openAsync(String path, IIOSyncDatabase.Mode mode) {

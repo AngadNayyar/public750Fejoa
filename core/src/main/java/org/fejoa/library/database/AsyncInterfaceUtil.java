@@ -35,12 +35,22 @@ public class AsyncInterfaceUtil {
 
             @Override
             public void write(byte[] data) throws IOException {
-                syncRandomDataAccess.write(data);
+                write(data, 0, data.length);
             }
 
             @Override
             public int read(byte[] buffer) throws IOException, CryptoException {
-                return syncRandomDataAccess.read(buffer);
+                return read(buffer, 0, buffer.length);
+            }
+
+            @Override
+            public void write(byte[] data, int offset, int length) throws IOException {
+                syncRandomDataAccess.write(data, offset, length);
+            }
+
+            @Override
+            public int read(byte[] buffer, int offset, int length) throws IOException, CryptoException {
+                return syncRandomDataAccess.read(buffer, offset, length);
             }
 
             @Override
@@ -55,9 +65,19 @@ public class AsyncInterfaceUtil {
 
             @Override
             public CompletableFuture<Void> writeAsync(byte[] data) {
+               return writeAsync(data, 0, data.length);
+            }
+
+            @Override
+            public CompletableFuture<Integer> readAsync(byte[] buffer) {
+                return readAsync(buffer, 0, buffer.length);
+            }
+
+            @Override
+            public CompletableFuture<Void> writeAsync(byte[] data, int offset, int length) {
                 CompletableFuture<Void> future = new CompletableFuture();
                 try {
-                    write(data);
+                    write(data, offset, length);
                     future.complete(null);
                 } catch (Exception e) {
                     future.completeExceptionally(e);
@@ -66,10 +86,10 @@ public class AsyncInterfaceUtil {
             }
 
             @Override
-            public CompletableFuture<Integer> readAsync(byte[] buffer) {
+            public CompletableFuture<Integer> readAsync(byte[] buffer, int offset, int length) {
                 CompletableFuture<Integer> future = new CompletableFuture();
                 try {
-                    future.complete(read(buffer));
+                    future.complete(read(buffer, offset, length));
                 } catch (Exception e) {
                     future.completeExceptionally(e);
                 }

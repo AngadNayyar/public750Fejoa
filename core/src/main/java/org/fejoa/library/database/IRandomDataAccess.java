@@ -13,6 +13,8 @@ import java8.util.concurrent.CompletableFuture;
 public interface IRandomDataAccess extends ISyncRandomDataAccess {
     CompletableFuture<Void> writeAsync(byte[] data);
     CompletableFuture<Integer> readAsync(byte[] buffer);
+    CompletableFuture<Void> writeAsync(byte[] data, int offset, int length);
+    CompletableFuture<Integer> readAsync(byte[] buffer, int offset, int length);
 
     CompletableFuture<Void> flushAsync();
     CompletableFuture<Void> closeAsync();
