@@ -57,7 +57,7 @@ public class PullRequest {
                     inputStream.readFully(buffer);
                     PutResult<HashValue> result = transaction.put(buffer);
                     if (!result.key.equals(hashValue))
-                        throw new IOException("Hash miss match.");
+                        throw new IOException("Hash miss match. Expected:" + hashValue + ", Got: " + result.key);
                 }
             }
         });
