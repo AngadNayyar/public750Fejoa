@@ -34,8 +34,8 @@ class SyncRepository implements ISyncDatabase {
     final private CommitCache commitCache;
     final private ChunkSplitter chunkSplitter = new RabinSplitter();
 
-    public SyncRepository(File dir, String branch, IRepoChunkAccessors chunkAccessors, ICommitCallback commitCallback)
-            throws IOException, CryptoException {
+    public SyncRepository(File dir, String branch, HashValue commit, IRepoChunkAccessors chunkAccessors,
+                          ICommitCallback commitCallback) throws IOException, CryptoException {
         this.dir = dir;
         this.branch = branch;
         this.accessors = chunkAccessors;
@@ -55,6 +55,14 @@ class SyncRepository implements ISyncDatabase {
         }
         this.treeAccessor = new TreeAccessor(root, transaction, useCompression());
         commitCache = new CommitCache(this);
+
+        if (commit != null && !commit.isZero())
+            setHeadCommit(commit);
+    }
+
+    public SyncRepository(File dir, String branch, IRepoChunkAccessors chunkAccessors, ICommitCallback commitCallback)
+            throws IOException, CryptoException {
+        this(dir, branch, null, chunkAccessors, commitCallback);
     }
 
     public SyncRepository(SyncRepository parent, CommitBox headCommit) throws IOException, CryptoException {
@@ -71,6 +79,10 @@ class SyncRepository implements ISyncDatabase {
 
     public CommitBox getHeadCommit() {
         return headCommit;
+    }
+
+    private void setHeadCommit(HashValue headCommit) throws IOException, CryptoException {
+        setHeadCommit(commitCache.getCommit(headCommit));
     }
 
     private void setHeadCommit(CommitBox headCommit) throws IOException, CryptoException {

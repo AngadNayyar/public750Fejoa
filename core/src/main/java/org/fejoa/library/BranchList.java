@@ -21,7 +21,7 @@ import java.util.List;
 public class BranchList extends MovableStorageList<BranchInfo> {
     final private RemoteList remoteList;
 
-    public BranchList(IOStorageDir storageDir, RemoteList remoteList) throws IOException, CryptoException {
+    public BranchList(IOStorageDir storageDir, RemoteList remoteList) {
         super(storageDir);
         this.remoteList = remoteList;
     }

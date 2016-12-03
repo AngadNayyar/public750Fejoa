@@ -145,8 +145,8 @@ public class StorageDir extends IOStorageDir {
         super(storageDir, baseDir, absoluteBaseDir);
     }
 
-    public StorageDir(IDatabase database, String baseDir, Executor listenerExecuter) {
-        super(new StorageDirCache(database, listenerExecuter), baseDir);
+    public StorageDir(IDatabase database, String baseDir, Executor listenerExecutor) {
+        super(new StorageDirCache(database, listenerExecutor), baseDir);
     }
 
     private StorageDirCache getStorageDirCache() {

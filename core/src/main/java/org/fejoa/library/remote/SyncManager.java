@@ -95,6 +95,12 @@ public class SyncManager {
         serverWorkerMap.clear();
     }
 
+    static public Task<Void, ChunkStorePullJob.Result> sync(ConnectionManager connectionManager, StorageDir storageDir,
+                                                            Remote remote, AuthInfo authInfo,
+                                                            final Task.IObserver<TaskUpdate, String> observer) {
+        return Syncer.sync(connectionManager, storageDir, remote, authInfo, observer);
+    }
+
     static public Task<Void, ChunkStorePullJob.Result> pull(ConnectionManager connectionManager,
                                                             final StorageDir storageDir,
                                                             Remote remote, AuthInfo authInfo,
@@ -274,7 +280,7 @@ class Syncer {
             observer.onResult(null);
     }
 
-    static private Task<Void, ChunkStorePullJob.Result> sync(ConnectionManager connectionManager, StorageDir storageDir,
+    static public Task<Void, ChunkStorePullJob.Result> sync(ConnectionManager connectionManager, StorageDir storageDir,
                                                              Remote remote, AuthInfo authInfo,
                                                              final Task.IObserver<TaskUpdate, String> observer) {
         if (storageDir.getDatabase() instanceof Repository) {

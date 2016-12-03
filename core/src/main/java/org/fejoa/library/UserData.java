@@ -55,7 +55,7 @@ public class UserData extends StorageDirObject {
         if (findBranchInfo(keyStore.getStorageDir().getBranch(), USER_DATA_CONTEXT) == null)
             branchList.add(BranchInfo.create(keyStore.getStorageDir().getBranch(), "KeyStore", USER_DATA_CONTEXT));
 
-        myself = new ContactPrivate(context, new StorageDir(storageDir, MYSELF_PATH));
+        myself = new ContactPrivate(context, new StorageDir(storageDir, MYSELF_PATH), remoteStore, branchList);
         contactStore = new ContactStore(context, new StorageDir(storageDir, CONTACT_PATH));
         configStore = new ConfigStore(context, new StorageDir(storageDir, CONFIG_PATH), this);
     }
@@ -223,12 +223,18 @@ public class UserData extends StorageDirObject {
     }
 
     public StorageDir getStorageDir(BranchInfo branchInfo) throws IOException, CryptoException {
+        return getStorageDir(branchInfo, null);
+    }
+
+    public StorageDir getStorageDir(BranchInfo branchInfo, HashValue rev) throws IOException, CryptoException {
         SymmetricKeyData symmetricKeyData = getKeyData(branchInfo);
 
         SigningKeyPair keyPair = getMyself().getSignatureKeys().getDefault();
         ICommitSignature commitSignature = new DefaultCommitSignature(context, keyPair);
 
-        return context.getStorage(branchInfo.getBranch(), symmetricKeyData, commitSignature);
+        if (rev == null || rev.isZero())
+            return context.getStorage(branchInfo.getBranch(), symmetricKeyData, commitSignature);
+        return context.getStorage(branchInfo.getBranch(), rev, symmetricKeyData, commitSignature);
     }
 
     public IncomingCommandQueue getIncomingCommandQueue() throws IOException, CryptoException {

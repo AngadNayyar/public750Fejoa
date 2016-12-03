@@ -8,6 +8,8 @@
 package org.fejoa.filestorage;
 
 import org.fejoa.chunkstore.HashValue;
+import org.fejoa.library.database.IIOSyncDatabase;
+import org.fejoa.library.database.IRandomDataAccess;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.support.StorageLib;
 import org.fejoa.library.support.StreamHelper;
@@ -44,12 +46,12 @@ public class CheckoutDir {
         this.destination = destination;
     }
 
-    public Task<Update, Result> checkOut() {
+    public Task<Update, Result> checkOut(final boolean overWriteLocalChanges) {
         Task<Update, Result> task = new Task<>(new Task.ITaskFunction<Update, Result>() {
             @Override
             public void run(Task<Update, Result> task) throws Exception {
-                performCheckOut(task, "");
-                index.commit();
+                performCheckOut(task, "", overWriteLocalChanges);
+                index.commit(storageDir.getTip());
                 task.onResult(new Result());
             }
 
@@ -67,7 +69,7 @@ public class CheckoutDir {
             public void run(Task<Update, Result> task) throws Exception {
                 performCheckIn(task, "");
                 storageDir.commit();
-                index.commit();
+                index.commit(storageDir.getTip());
                 task.onResult(new Result());
             }
 
@@ -79,7 +81,8 @@ public class CheckoutDir {
         return task;
     }
 
-    private void performCheckOut(Task<Update, Result> task, String dir) throws IOException, JSONException,
+    private void performCheckOut(Task<Update, Result> task, String dir, boolean overWriteLocalChanges)
+            throws IOException, JSONException,
             CryptoException {
         Collection<String> files = storageDir.listFiles(dir);
         // checkout files
@@ -97,12 +100,14 @@ public class CheckoutDir {
             File outFile = new File(targetDir, file);
 
             if (indexedFiles.contains(file) && !needsCheckout(outFile,  storageDir.getHash(filePath),
-                    index.get(filePath)))
+                    index.get(filePath), overWriteLocalChanges))
                 continue;
 
             outFile.createNewFile();
             BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(outFile, false));
-            outputStream.write(storageDir.readBytes(filePath));
+            IRandomDataAccess randomDataAccess = storageDir.open(filePath, IIOSyncDatabase.Mode.READ);
+            StreamHelper.copy(randomDataAccess, outputStream);
+            randomDataAccess.close();
             outputStream.close();
 
             HashValue hash = storageDir.getHash(filePath);
@@ -115,7 +120,7 @@ public class CheckoutDir {
         for (String subDir : subDirs) {
             if (isBlackListed(subDir))
                 continue;
-            performCheckOut(task, StorageLib.appendDir(dir, subDir));
+            performCheckOut(task, StorageLib.appendDir(dir, subDir), overWriteLocalChanges);
         }
     }
 
@@ -136,9 +141,9 @@ public class CheckoutDir {
                 if (checkoutFileChanged(checkedOutFile, index.get(filePath))) {
                     // write to database
                     BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(checkedOutFile));
-                    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                    IRandomDataAccess outputStream = storageDir.open(filePath, IIOSyncDatabase.Mode.WRITE);
                     StreamHelper.copy(inputStream, outputStream);
-                    storageDir.putBytes(filePath, outputStream.toByteArray());
+                    outputStream.close();
                     index.update(filePath, new Index.Entry(storageDir.getHash(filePath), checkedOutFile));
                     task.onProgress(new Update(checkedOutFile));
                 }
@@ -204,7 +209,8 @@ public class CheckoutDir {
         return false;
     }
 
-    private boolean needsCheckout(File outFile, HashValue inDatabaseHash, Index.Entry entry) throws IOException {
+    private boolean needsCheckout(File outFile, HashValue inDatabaseHash, Index.Entry entry,
+                                  boolean overWriteLocalChanges) throws IOException {
         if (entry == null)
             return true;
         if (!outFile.exists())
@@ -212,6 +218,8 @@ public class CheckoutDir {
         if (!inDatabaseHash.equals(entry.getHash()))
             return true;
 
+        if (!overWriteLocalChanges)
+            return false;
         return checkoutFileChanged(outFile, entry);
     }
 }

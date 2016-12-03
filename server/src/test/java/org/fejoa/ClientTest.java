@@ -20,7 +20,6 @@ import org.fejoa.library.support.LooperThread;
 import org.fejoa.library.support.Task;
 import org.fejoa.server.CookiePerPortManager;
 import org.fejoa.server.JettyServer;
-import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
@@ -435,7 +434,7 @@ public class ClientTest extends TestCase {
             final BranchInfo contactBranch = client2Contact.getBranchList().getEntries().iterator().next();
             BranchInfo.Location location = contactBranch.getLocationEntries().iterator().next();
 
-            client1.pullContactBranch(new Remote(USER_NAME_2, SERVER_URL_2), location,
+            client1.pullBranch(new Remote(USER_NAME_2, SERVER_URL_2), location,
                     new SimpleObserver(new Runnable() {
                         @Override
                         public void run() {

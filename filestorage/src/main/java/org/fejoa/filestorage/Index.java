@@ -9,13 +9,14 @@ package org.fejoa.filestorage;
 
 import org.fejoa.chunkstore.Config;
 import org.fejoa.chunkstore.HashValue;
+import org.fejoa.chunkstore.Repository;
+import org.fejoa.library.FejoaContext;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.crypto.CryptoException;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.Collection;
 
 
@@ -79,10 +80,13 @@ public class Index {
         }
     }
 
+    final private File indexDir;
     final private StorageDir storageDir;
 
-    public Index(StorageDir storageDir) {
-        this.storageDir = storageDir;
+    public Index(FejoaContext context, File indexDir, String branch) throws IOException, CryptoException {
+        this.indexDir = indexDir;
+        indexDir.mkdirs();
+        this.storageDir = context.getPlainStorage(indexDir, branch);
     }
 
     public void update(String filePath, Entry entry) throws IOException, JSONException {
@@ -112,7 +116,27 @@ public class Index {
         return storageDir.listDirectories(dir);
     }
 
-    public void commit() throws IOException {
+    private void setRev(HashValue rev) throws IOException {
+        RandomAccessFile randomAccessFile = new RandomAccessFile(new File(indexDir, "rev"), "rw");
+        randomAccessFile.setLength(0);
+        randomAccessFile.write(rev.toHex().getBytes());
+        randomAccessFile.close();
+    }
+
+    public HashValue getRev() throws IOException {
+        RandomAccessFile randomAccessFile;
+        try {
+            randomAccessFile = new RandomAccessFile(new File(indexDir, "rev"), "r");
+            String revHex = randomAccessFile.readLine();
+            randomAccessFile.close();
+            return HashValue.fromHex(revHex);
+        } catch (FileNotFoundException e) {
+            return Config.newDataHash();
+        }
+    }
+
+    public void commit(HashValue currentRev) throws IOException {
         this.storageDir.commit();
+        setRev(currentRev);
     }
 }

@@ -58,7 +58,7 @@ public class ChunkStorePullJob extends JsonRemoteJob<ChunkStorePullJob.Result> {
         RemotePipe pipe = new RemotePipe(header, remoteRequest, null);
         BoxPointer remoteTip = pullRequest.pull(pipe, branch);
         if (remoteTip == null)
-            return new Result(Errors.ERROR, "uncommited changes", remoteTip, oldTip);
+            return new Result(Errors.ERROR, "uncommitted changes", remoteTip, oldTip);
 
         return new Result(Errors.DONE, "ok", remoteTip, oldTip);
     }

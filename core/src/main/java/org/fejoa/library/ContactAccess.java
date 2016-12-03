@@ -7,6 +7,7 @@
  */
 package org.fejoa.library;
 
+import java8.util.concurrent.CompletableFuture;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.database.MovableStorage;
@@ -30,6 +31,10 @@ public class ContactAccess extends MovableStorage {
 
     public void setContact(ContactPublic contactPublic) throws IOException {
         storageDir.writeString(CONTACT_ID_KEY, contactPublic.getId());
+    }
+
+    public CompletableFuture<String> getContact() {
+        return storageDir.readStringAsync(CONTACT_ID_KEY);
     }
 
     public void setAccessToken(AccessToken token) throws IOException, CryptoException {

@@ -231,16 +231,16 @@ public class Client {
                 observer);
     }
 
-    public void pullContactBranch(Remote remote, BranchInfo.Location location,
-                                  final Task.IObserver<Void, ChunkStorePullJob.Result> observer)
+    public void pullBranch(Remote remote, BranchInfo.Location location,
+                           final Task.IObserver<Void, ChunkStorePullJob.Result> observer)
             throws IOException, CryptoException {
         AuthInfo authInfo = location.getAuthInfo(context);
-        if (!(authInfo instanceof AuthInfo.Token))
-            throw new IOException("AuthInfo.Token expected");
-        AccessTokenContact token = ((AuthInfo.Token) authInfo).getToken();
-        if ((token.getAccessRights().getEntries().get(0).getRights()
-                & BranchAccessRight.PULL) == 0)
-            throw new IOException("missing rights!");
+        if (authInfo instanceof AuthInfo.Token) {
+            AccessTokenContact token = ((AuthInfo.Token) authInfo).getToken();
+            if ((token.getAccessRights().getEntries().get(0).getRights()
+                    & BranchAccessRight.PULL) == 0)
+                throw new IOException("missing rights!");
+        }
 
         BranchInfo branchInfo = location.getBranchInfo();
         final StorageDir contactBranchDir = getContext().getStorage(branchInfo.getBranch(),
@@ -248,6 +248,12 @@ public class Client {
 
         SyncManager.pull(getConnectionManager(), contactBranchDir,
                 remote, authInfo, observer);
+    }
+
+    public Task<Void, ChunkStorePullJob.Result> sync(StorageDir storageDir,
+                                                     Remote remote, AuthInfo authInfo,
+                                                     final Task.IObserver<TaskUpdate, String> observer) {
+        return SyncManager.sync(getConnectionManager(), storageDir, remote, authInfo, observer);
     }
 
     public MigrationManager getMigrationManager() {

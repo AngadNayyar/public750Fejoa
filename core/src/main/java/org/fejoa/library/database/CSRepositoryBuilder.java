@@ -26,8 +26,8 @@ import java.util.Arrays;
 
 public class CSRepositoryBuilder {
 
-    static public Repository openOrCreate(final FejoaContext context, File dir, String branch, SymmetricKeyData keyData)
-            throws IOException, CryptoException {
+    static public Repository openOrCreate(final FejoaContext context, File dir, String branch, HashValue commit,
+                                          SymmetricKeyData keyData) throws IOException, CryptoException {
         ChunkStore chunkStore;
         if (ChunkStore.exists(dir, branch))
             chunkStore = ChunkStore.open(dir, branch);
@@ -36,7 +36,12 @@ public class CSRepositoryBuilder {
         IRepoChunkAccessors accessors = getRepoChunkAccessors(context, chunkStore, keyData);
         ICommitCallback commitCallback = getCommitCallback(context, keyData);
 
-        return new Repository(dir, branch, accessors, commitCallback);
+        return new Repository(dir, branch, commit, accessors, commitCallback);
+    }
+
+    static public Repository openOrCreate(final FejoaContext context, File dir, String branch, SymmetricKeyData keyData)
+            throws IOException, CryptoException {
+        return openOrCreate(context, dir, branch, null, keyData);
     }
 
     private static ICommitCallback getCommitCallback(final FejoaContext context,

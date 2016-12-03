@@ -17,6 +17,11 @@ import java.util.Collection;
 
 
 public class Repository extends AsyncDatabase {
+    public Repository(File dir, String branch, HashValue commit, IRepoChunkAccessors chunkAccessors,
+                      ICommitCallback commitCallback) throws IOException, CryptoException {
+        super(new SyncRepository(dir, branch, commit, chunkAccessors, commitCallback));
+    }
+
     public Repository(File dir, String branch, IRepoChunkAccessors chunkAccessors,
                       ICommitCallback commitCallback) throws IOException, CryptoException {
         super(new SyncRepository(dir, branch, chunkAccessors, commitCallback));

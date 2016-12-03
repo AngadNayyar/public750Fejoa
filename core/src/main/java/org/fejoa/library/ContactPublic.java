@@ -48,11 +48,13 @@ public class ContactPublic extends Contact<PublicKeyItem, PublicKeyItem> {
         return keyItem.getKey();
     }
 
+    @Override
     public RemoteList getRemotes() {
         return new RemoteList(this, REMOTES_DIR);
     }
 
-    public BranchList getBranchList() throws IOException, CryptoException {
+    @Override
+    public BranchList getBranchList() {
         return new BranchList(new IOStorageDir(storageDir, BRANCHES_PATH), getRemotes());
     }
 }

@@ -16,7 +16,10 @@ import java.security.PublicKey;
 
 
 public class ContactPrivate extends Contact<SigningKeyPair, EncryptionKeyPair> implements IContactPrivate {
-    protected ContactPrivate(FejoaContext context, StorageDir dir) {
+    final private RemoteList remoteList;
+    final private BranchList branchList;
+
+    protected ContactPrivate(FejoaContext context, StorageDir dir, RemoteList remoteList, BranchList branchList) {
         super(context, new StorageDirList.AbstractEntryIO<SigningKeyPair>() {
             @Override
             public String getId(SigningKeyPair entry) {
@@ -38,6 +41,9 @@ public class ContactPrivate extends Contact<SigningKeyPair, EncryptionKeyPair> i
                 return EncryptionKeyPair.open(dir);
             }
         }, dir);
+
+        this.remoteList = remoteList;
+        this.branchList = branchList;
     }
 
     @Override
@@ -52,5 +58,15 @@ public class ContactPrivate extends Contact<SigningKeyPair, EncryptionKeyPair> i
 
     static public byte[] sign(FejoaContext context, SigningKeyPair key, byte[] data) throws CryptoException {
         return context.getCrypto().sign(data, key.getKeyPair().getPrivate(), key.getSignatureSettings());
+    }
+
+    @Override
+    public RemoteList getRemotes() {
+        return remoteList;
+    }
+
+    @Override
+    public BranchList getBranchList() {
+        return branchList;
     }
 }

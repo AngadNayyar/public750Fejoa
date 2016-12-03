@@ -64,8 +64,8 @@ public class CheckoutDirTest extends TestCase {
         cleanUpDirs.add(destination);
 
         FejoaContext context = new FejoaContext(databasePath, null);
-        StorageDir indexDatabase = context.getPlainStorage("testBranchIndex");
-        Index index = new Index(indexDatabase);
+        File indexDir = new File(destination, ".index");
+        Index index = new Index(context, indexDir, "testBranchIndex");
 
         StorageDir storageDir = context.getPlainStorage("testBranch");
 
@@ -77,7 +77,7 @@ public class CheckoutDirTest extends TestCase {
 
         List<CheckoutDir.Update> updates = new ArrayList<>();
         CheckoutDir checkoutDir = new CheckoutDir(storageDir, index, new File(destination));
-        Task<CheckoutDir.Update, CheckoutDir.Result> task = checkoutDir.checkOut();
+        Task<CheckoutDir.Update, CheckoutDir.Result> task = checkoutDir.checkOut(true);
         task.setStartScheduler(new Task.CurrentThreadScheduler());
         task.start(createObserver(updates));
         assertEquals(2, updates.size());

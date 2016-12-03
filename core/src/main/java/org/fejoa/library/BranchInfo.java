@@ -19,24 +19,6 @@ import java.io.IOException;
 import java.util.Collection;
 
 
-class ContactAccessList extends MovableStorageList<ContactAccess> {
-    public ContactAccessList(MovableStorageContainer parent, String subDir) {
-        super(parent, subDir);
-    }
-
-    @Override
-    protected ContactAccess readObject(IOStorageDir storageDir) throws IOException, CryptoException {
-        return new ContactAccess(storageDir);
-    }
-
-    public ContactAccess add(ContactPublic contactPublic, AccessToken accessToken) throws IOException, CryptoException {
-        ContactAccess contactAccess = new ContactAccess(contactPublic);
-        add(contactPublic.getId(), contactAccess);
-        contactAccess.setAccessToken(accessToken);
-        return contactAccess;
-    }
-}
-
 public class BranchInfo extends MovableStorageContainer {
     public class Location extends MovableStorage {
         private AuthInfo authInfo;
