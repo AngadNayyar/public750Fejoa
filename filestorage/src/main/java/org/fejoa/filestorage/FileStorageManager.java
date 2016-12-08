@@ -11,9 +11,8 @@ import org.fejoa.chunkstore.HashValue;
 import org.fejoa.library.*;
 import org.fejoa.library.command.AccessCommandHandler;
 import org.fejoa.library.crypto.CryptoException;
-import org.fejoa.library.database.IOStorageDir;
-import org.fejoa.library.database.MovableStorageList;
-import org.fejoa.library.database.StorageDir;
+import org.fejoa.library.crypto.CryptoHelper;
+import org.fejoa.library.database.*;
 import org.fejoa.library.remote.TaskUpdate;
 import org.fejoa.library.support.StorageLib;
 import org.fejoa.library.support.Task;
@@ -21,34 +20,32 @@ import org.json.JSONException;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
+import java.util.concurrent.ExecutionException;
 
 
 public class FileStorageManager {
     final static public String STORAGE_CONTEXT = "org.fejoa.filestorage";
     final private Client client;
-    final private MovableStorageList<ContactFileStorage> storageList;
+    final private ContactStorageList storageList;
     final private AppContext appContext;
 
     public FileStorageManager(final Client client) {
         this.client = client;
         appContext = client.getUserData().getConfigStore().getAppContext(STORAGE_CONTEXT);
-        storageList = new MovableStorageList<ContactFileStorage>(appContext.getStorageDir()) {
-            @Override
-            protected ContactFileStorage readObject(IOStorageDir storageDir) throws IOException, CryptoException {
-                return ContactFileStorage.open(storageDir, client.getUserData());
-            }
-        };
+        storageList = new ContactStorageList(client.getUserData());
+        storageList.setTo(appContext.getStorageDir());
     }
 
     public void addAccessGrantedHandler(AccessCommandHandler.IContextHandler handler) {
         appContext.addAccessGrantedHandler(client.getIncomingCommandManager(), handler);
     }
 
-    public MovableStorageList<ContactFileStorage> getContactFileStorageList() {
+    public ContactStorageList getContactFileStorageList() {
         return storageList;
     }
 
-    public ContactFileStorage getOwnFileStorage() throws IOException, CryptoException {
+    public ContactStorageList.ContactStorage getOwnFileStorage() throws IOException, CryptoException {
         return getContactFileStorageList().get(client.getUserData().getMyself().getId());
     }
 
@@ -68,35 +65,64 @@ public class FileStorageManager {
         branchInfo.addLocation(remote.getId(), context.getRootAuthInfo(remote));
         userData.addBranch(branchInfo);
 
+        // test
+
+
         // config entry
         IContactPublic myself = userData.getMyself();
-        addContactStorage(myself, branchInfo.getBranch(), file.getPath());
+        addContactStorage(myself, branchInfo, file.getPath());
     }
 
-    public void addContactStorage(IContactPublic contact, String branch, String checkoutPath) throws IOException, CryptoException {
-        ContactFileStorage contactFileStorage = storageList.get(contact.getId());
-        FileStorageEntry fileStorageEntry = new FileStorageEntry(client.getContext());
-        contactFileStorage.getStorageList().add(fileStorageEntry.getId(), fileStorageEntry);
-        fileStorageEntry.setTo(checkoutPath, branch);
+    public String getProfile() {
+        return "my_device";
+    }
+
+    public void addContactStorage(IContactPublic contact, BranchInfo branchInfo, String checkoutPath)
+            throws IOException, CryptoException {
+        String branch = branchInfo.getBranch();
+        ContactStorageList.ContactStorage contactStorage = storageList.get(contact.getId());
+        ContactStorageList.Store store = contactStorage.getStores().get(branch);
+        ContactStorageList.CheckOutProfiles checkOutProfiles;
+        try {
+            checkOutProfiles = store.getCheckOutProfiles().get();
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
+        ContactStorageList.CheckOutList checkOutList = checkOutProfiles.ensureCheckOut(getProfile());
+        ContactStorageList.CheckOutEntry checkOutEntry = new ContactStorageList.CheckOutEntry();
+        checkOutList.getCheckOutEntries().add(checkOutEntry);
+        checkOutEntry.setCheckOutPath(checkoutPath);
+        Collection<BranchInfo.Location> locations = branchInfo.getLocationEntries();
+        for (BranchInfo.Location location : locations)
+            checkOutEntry.getRemoteIds().add(location.getRemoteId());
+
+        try {
+            store.setCheckOutProfile(checkOutProfiles);
+        } catch (JSONException e) {
+            throw new IOException(e);
+        }
+
+        storageList.flush();
+
         client.getUserData().commit(true);
     }
 
-    public void grantAccess(FileStorageEntry entry, int accessRights, ContactPublic contactPublic)
+    public void grantAccess(String branch, int accessRights, ContactPublic contactPublic)
             throws IOException, JSONException, CryptoException {
-        client.grantAccess(entry.getBranch(), STORAGE_CONTEXT, accessRights, contactPublic);
+        client.grantAccess(branch, STORAGE_CONTEXT, accessRights, contactPublic);
     }
 
-    public void sync(FileStorageEntry entry, BranchInfo.Location location, boolean overWriteLocalChanges,
+    public void sync(ContactStorageList.CheckOutEntry entry, BranchInfo.Location location, boolean overWriteLocalChanges,
                      Task.IObserver<CheckoutDir.Update, CheckoutDir.Result> observer)
             throws Exception {
-        String path = entry.getPath().get();
+        String path = entry.getCheckOutPath();
         if (path.equals("")) {
             String branchName = location.getBranchInfo().getBranch();
             path = StorageLib.appendDir(client.getContext().getHomeDir().getPath(), branchName);
         }
         File destination = new File(path);
         File indexDir = new File(destination, ".index");
-        Index index = new Index(client.getContext(), indexDir, entry.getBranch());
+        Index index = new Index(client.getContext(), indexDir, location.getBranchInfo().getBranch());
         HashValue rev = index.getRev();
         UserData userData = client.getUserData();
         BranchInfo branchInfo = location.getBranchInfo();
