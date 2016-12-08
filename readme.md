@@ -5,4 +5,4 @@ Fejoa is a data sharing platform to share data with contacts at the same or a di
 
 To preserve the privacy of users, the data in Fejoa is concealed from the service provider by employing encryption techniques.
 
-Find more information on: [Page](https://czeidler.gitlab.io/fejoapage/)
+Find more information on: [https://czeidler.gitlab.io/fejoapage](https://czeidler.gitlab.io/fejoapage/)
