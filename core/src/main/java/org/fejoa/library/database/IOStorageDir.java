@@ -213,4 +213,12 @@ public class IOStorageDir {
             }
         });
     }
+
+    public CompletableFuture<Collection<String>> listFilesAsync(String path) {
+        return database.listFilesAsync(getRealPath(path));
+    }
+
+    public CompletableFuture<Collection<String>> listDirectoriesAsync(String path) {
+        return database.listDirectoriesAsync(getRealPath(path));
+    }
 }
