@@ -11,7 +11,6 @@ import org.fejoa.chunkstore.HashValue;
 import org.fejoa.library.*;
 import org.fejoa.library.command.AccessCommandHandler;
 import org.fejoa.library.crypto.CryptoException;
-import org.fejoa.library.crypto.CryptoHelper;
 import org.fejoa.library.database.*;
 import org.fejoa.library.remote.TaskUpdate;
 import org.fejoa.library.support.StorageLib;
@@ -21,7 +20,6 @@ import org.json.JSONException;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.concurrent.ExecutionException;
 
 
 public class FileStorageManager {
@@ -82,6 +80,11 @@ public class FileStorageManager {
         String branch = branchInfo.getBranch();
         ContactStorageList.ContactStorage contactStorage = storageList.get(contact.getId());
         ContactStorageList.Store store = contactStorage.getStores().get(branch);
+        addContactStorage(store, branchInfo, checkoutPath);
+    }
+
+    public void addContactStorage(ContactStorageList.Store store, BranchInfo branchInfo, String checkoutPath)
+            throws IOException, CryptoException {
         ContactStorageList.CheckOutProfiles checkOutProfiles;
         try {
             checkOutProfiles = store.getCheckOutProfiles().get();
@@ -121,12 +124,13 @@ public class FileStorageManager {
             path = StorageLib.appendDir(client.getContext().getHomeDir().getPath(), branchName);
         }
         File destination = new File(path);
-        File indexDir = new File(destination, ".index");
+        File chunkStoreDir = new File(destination, ".chunkstore");
+        File indexDir = new File(chunkStoreDir, ".index");
         Index index = new Index(client.getContext(), indexDir, location.getBranchInfo().getBranch());
         HashValue rev = index.getRev();
         UserData userData = client.getUserData();
         BranchInfo branchInfo = location.getBranchInfo();
-        final StorageDir branchStorage = userData.getStorageDir(branchInfo, rev);
+        final StorageDir branchStorage = userData.getStorageDir(chunkStoreDir, branchInfo, rev);
         // TODO better check if we need to check in, i.e. if tip is zero try to pull first!
         if (!rev.isZero() || branchStorage.getTip().isZero()) {
             // try to check in first

@@ -169,6 +169,8 @@ public class CheckoutDir {
     }
 
     private boolean isBlackListed(String dirName) {
+        if (dirName.equals(".chunkstore"))
+            return true;
         if (dirName.equals(".index"))
             return true;
         return false;
