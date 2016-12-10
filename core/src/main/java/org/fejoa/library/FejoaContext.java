@@ -74,24 +74,26 @@ public class FejoaContext {
     }
 
     public StorageDir getPlainStorage(File path, String branch) throws IOException, CryptoException {
-        return getNew(path, branch, null, null);
+        return getStorage(path, branch, null,null, null);
+    }
+
+    public StorageDir getStorage(String branch, HashValue rev, SymmetricKeyData cryptoKeyData,
+                                 ICommitSignature commitSignature) throws IOException, CryptoException {
+        return getStorage(getChunkStoreDir(), branch, rev, cryptoKeyData, commitSignature);
     }
 
     public StorageDir getStorage(String branch, SymmetricKeyData cryptoKeyData, ICommitSignature commitSignature)
             throws IOException, CryptoException {
-        return getNew(getChunkStoreDir(), branch, cryptoKeyData, commitSignature);
-    }
-
-    public StorageDir getStorage(String branch, HashValue rev, SymmetricKeyData cryptoKeyData,
-                                 ICommitSignature commitSignature)
-            throws IOException, CryptoException {
-        if (rev == null || rev.isZero())
-            return getStorage(branch, cryptoKeyData, commitSignature);
-        return getStorage(getChunkStoreDir(), branch, rev, cryptoKeyData, commitSignature);
+        return getStorage(getChunkStoreDir(), branch, null, cryptoKeyData, commitSignature);
     }
 
     public StorageDir getStorage(File path, String branch, HashValue rev, SymmetricKeyData cryptoKeyData,
-                                 ICommitSignature commitSignature) throws IOException, CryptoException {
+                                  ICommitSignature commitSignature) throws IOException, CryptoException {
+        StorageDir dir = secureStorageDirs.get(path.getPath() + ":" + branch);
+        if (dir != null && dir.getBranch().equals(branch))
+            return new StorageDir(dir);
+
+        // not found create one
         path.mkdirs();
 
         Repository repository = CSRepositoryBuilder.openOrCreate(this, path, branch, rev, cryptoKeyData);
@@ -112,23 +114,6 @@ public class FejoaContext {
 
     private File getChunkStoreDir() {
         return new File(homeDir, ".chunkstore");
-    }
-
-    private StorageDir getNew(File pathFile, String branch, SymmetricKeyData cryptoKeyData,
-                             ICommitSignature commitSignature) throws IOException, CryptoException {
-        StorageDir dir = secureStorageDirs.get(pathFile.getPath() + ":" + branch);
-        if (dir != null && dir.getBranch().equals(branch))
-            return new StorageDir(dir);
-
-        // not found create one
-        pathFile.mkdirs();
-
-        Repository repository = CSRepositoryBuilder.openOrCreate(this, pathFile, branch, cryptoKeyData);
-        StorageDir storageDir = new StorageDir(repository, "", contextExecutor);
-        secureStorageDirs.put(pathFile.getPath() + ":" + branch, storageDir);
-        storageDir = new StorageDir(storageDir);
-        storageDir.setCommitSignature(commitSignature);
-        return storageDir;
     }
 
     public void setUserDataId(String id) throws IOException {

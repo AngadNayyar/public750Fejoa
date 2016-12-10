@@ -18,6 +18,7 @@ import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.command.IncomingCommandQueue;
 import org.json.JSONException;
 
+import java.io.File;
 import java.io.IOException;
 
 
@@ -227,13 +228,18 @@ public class UserData extends StorageDirObject {
     }
 
     public StorageDir getStorageDir(BranchInfo branchInfo, HashValue rev) throws IOException, CryptoException {
+        return getStorageDir(null, branchInfo, rev);
+    }
+
+    public StorageDir getStorageDir(File repoPath, BranchInfo branchInfo, HashValue rev)
+            throws IOException, CryptoException {
         SymmetricKeyData symmetricKeyData = getKeyData(branchInfo);
 
         SigningKeyPair keyPair = getMyself().getSignatureKeys().getDefault();
         ICommitSignature commitSignature = new DefaultCommitSignature(context, keyPair);
 
-        if (rev == null || rev.isZero())
-            return context.getStorage(branchInfo.getBranch(), symmetricKeyData, commitSignature);
+        if (repoPath != null)
+            return context.getStorage(repoPath, branchInfo.getBranch(), rev, symmetricKeyData, commitSignature);
         return context.getStorage(branchInfo.getBranch(), rev, symmetricKeyData, commitSignature);
     }
 
