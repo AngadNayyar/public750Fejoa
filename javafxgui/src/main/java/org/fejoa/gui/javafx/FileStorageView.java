@@ -14,24 +14,30 @@ import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Orientation;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.stage.DirectoryChooser;
+import javafx.stage.Window;
 import javafx.util.Callback;
 import org.fejoa.filestorage.*;
 import org.fejoa.gui.IStatusManager;
 import org.fejoa.gui.StatusManagerMessenger;
 import org.fejoa.library.*;
 import org.fejoa.library.command.AccessCommandHandler;
+import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.database.DBObjectList;
 import org.fejoa.library.database.DatabaseDiff;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.support.Task;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.concurrent.Executor;
 
@@ -183,17 +189,19 @@ class FileStorageTreeView extends TreeView<TreeObject> {
 
 }
 
-
 class FileStorageInfoView extends VBox {
+    final private UserData userData;
     final private Label checkOutDirInfo = new Label();
     final private ListView<String> sharedWithList = new ListView<>();
 
-    public FileStorageInfoView() {
+    public FileStorageInfoView(UserData userData) {
+        this.userData = userData;
         HBox pathLayout = new HBox();
         pathLayout.getChildren().add(new Label("Checkout path:"));
         pathLayout.getChildren().add(checkOutDirInfo);
 
         getChildren().add(pathLayout);
+        getChildren().add(new Label("Shared with:"));
         getChildren().add(sharedWithList);
     }
 
@@ -208,17 +216,59 @@ class FileStorageInfoView extends VBox {
             if (contactAccessList.size() > 0)
                 sharedWithList.setVisible(true);
             for (ContactAccess contactAccess : contactAccessList) {
-                contactAccess.getContact().thenAccept(new Consumer<String>() {
+                contactAccess.getContact().thenAcceptAsync(new Consumer<String>() {
                     @Override
-                    public void accept(String s) {
-                        sharedWithList.getItems().add(s);
+                    public void accept(String contactId) {
+                        Remote remote = userData.getContactStore().getContactList().get(contactId).getRemotes()
+                                .getDefault();
+                        sharedWithList.getItems().add(remote.toAddress() + " (" + contactId + ")");
                     }
-                });
+                }, new JavaFXScheduler());
             }
         } catch (Exception e) {
 
         }
 
+    }
+}
+
+class StoreView extends VBox {
+    public StoreView(final FileStorageManager fileStorageManager, final ContactStorageList.Store store) {
+        HBox layout = new HBox();
+        Label checkoutLabel = new Label("Checkout Dir:");
+        checkoutLabel.setAlignment(Pos.BASELINE_LEFT);
+        final TextField checkOutDir = new TextField();
+        final Button chooseDirButton = new Button("Choose Directory");
+        final Button createButton = new Button("Create");
+        chooseDirButton.setDisable(true);
+
+        layout.getChildren().addAll(checkoutLabel, checkOutDir, chooseDirButton);
+        HBox.setHgrow(checkOutDir, Priority.ALWAYS);
+
+        getChildren().addAll(new Label("Add Checkout"), layout, createButton);
+
+        chooseDirButton.setDisable(false);
+        chooseDirButton.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                DirectoryChooser directoryChooser = new DirectoryChooser();
+                File file = directoryChooser.showDialog(getScene().getWindow());
+                if (file != null)
+                    checkOutDir.setText(file.getAbsolutePath());
+            }
+        });
+
+        createButton.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                try {
+                    BranchInfo branchInfo =  store.getBranchInfo();
+                    fileStorageManager.addContactStorage(store, branchInfo, checkOutDir.getText());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 }
 
@@ -289,6 +339,7 @@ public class FileStorageView extends SplitPane {
                                 TreeItem<TreeObject> oldEntry, TreeItem<TreeObject> newEntry) {
                 syncButton.setDisable(true);
                 shareButton.setDisable(true);
+
                 setTo(null, null);
                 if (newEntry != null) {
                     final ContactStorageList.Store fileStorageEntry = getFileStorageEntry(newEntry);
@@ -296,7 +347,10 @@ public class FileStorageView extends SplitPane {
                         return;
                     boolean isOwnStorage = fileStorageEntry.getContactStorage().getContactPublic().getId().equals(
                             client.getUserData().getMyself().getId());
-                    if (newEntry.getValue().data instanceof ContactStorageList.CheckOutEntry) {
+                    if (newEntry.getValue().data instanceof ContactStorageList.Store) {
+                        setRightView(new StoreView(fileStorageManager,
+                                (ContactStorageList.Store)newEntry.getValue().data));
+                    } else if (newEntry.getValue().data instanceof ContactStorageList.CheckOutEntry) {
                         final ContactStorageList.CheckOutEntry checkOut
                                 = (ContactStorageList.CheckOutEntry)newEntry.getValue().data;
                         syncButton.setDisable(false);
@@ -346,14 +400,22 @@ public class FileStorageView extends SplitPane {
         update();
     }
 
+    private void setRightView(Node node) {
+        stackPane.getChildren().clear();
+        if (node == null)
+            return;
+        stackPane.getChildren().add(node);
+    }
+
     private void setTo(BranchInfo branchInfo, ContactStorageList.CheckOutEntry entry) {
         if (entry == null) {
-            stackPane.getChildren().clear();
+            setRightView(null);
             return;
         }
-        FileStorageInfoView infoView = new FileStorageInfoView();
+
+        FileStorageInfoView infoView = new FileStorageInfoView(client.getUserData());
         infoView.setTo(branchInfo, entry);
-        stackPane.getChildren().add(infoView);
+        setRightView(infoView);
     }
 
     private ContactStorageList.Store getFileStorageEntry(TreeItem<TreeObject> storageEntry) {
