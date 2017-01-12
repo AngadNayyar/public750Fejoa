@@ -8,6 +8,7 @@
 package org.fejoa;
 
 import junit.framework.TestCase;
+import org.fejoa.chunkstore.HashValue;
 import org.fejoa.library.*;
 import org.fejoa.library.command.*;
 import org.fejoa.library.crypto.CryptoException;
@@ -378,8 +379,8 @@ public class ClientTest extends TestCase {
         }
 
         private void waitTillClient2UploadedTheAccessStore(final int retryCount) throws IOException, CryptoException {
-            UserData userData = client2.getUserData();
-            BranchInfo accessBranchInfo = userData.findBranchInfo(userData.getAccessStore().getId(), USER_DATA_CONTEXT);
+            final UserData userData = client2.getUserData();
+            final BranchInfo accessBranchInfo = userData.findBranchInfo(userData.getAccessStore().getId(), USER_DATA_CONTEXT);
             client2.peekRemoteStatus(accessBranchInfo.getLocationEntries().iterator().next(),
                     new Task.IObserver<Void, WatchJob.Result>() {
                 @Override
@@ -393,11 +394,22 @@ public class ClientTest extends TestCase {
                         finishAndFail(result.message);
                         return;
                     }
-                    if (result.updated.size() == 0) {
-                        System.out.println("Access store updated, retry counts: " + retryCount);
-                        onTaskPerformed();
+
+                    HashValue localLogTip;
+                    try {
+                        localLogTip = userData.getContext().getStorageLogTip(accessBranchInfo.getBranch());
+                    } catch (IOException e) {
+                        finishAndFail(e.getMessage());
                         return;
                     }
+                    for (WatchJob.BranchLogTip branchLogTip : result.updated) {
+                        if (localLogTip.equals(branchLogTip.logTip)) {
+                            System.out.println("Access store updated, retry counts: " + retryCount);
+                            onTaskPerformed();
+                            return;
+                        }
+                    }
+
                     int count = retryCount + 1;
                     if (count > 10) {
                         finishAndFail("failed to check access store status: too many retries");

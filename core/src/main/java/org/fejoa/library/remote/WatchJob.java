@@ -7,6 +7,7 @@
  */
 package org.fejoa.library.remote;
 
+import org.fejoa.chunkstore.Config;
 import org.fejoa.chunkstore.HashValue;
 import org.fejoa.library.Constants;
 import org.fejoa.library.FejoaContext;
@@ -29,12 +30,26 @@ public class WatchJob extends SimpleJsonRemoteJob<WatchJob.Result> {
     static final public String STATUS_KEY = "tip";
     static final public String STATUS_ACCESS_DENIED = "denied";
     static final public String STATUS_UPDATE = "update";
+    static final public String BRANCH_LOG_TIP = "logTip";
+    static final public String BRANCH_LOG_MESSAGE = "logMessage";
     static final public String WATCH_RESULT_KEY = "watchResults";
     static final public String PEEK_KEY = "peek";
 
+    public static class BranchLogTip {
+        final public String branch;
+        final public HashValue logTip;
+        final public String logMessage;
+
+        public BranchLogTip(String branch, HashValue logTip, String logMessage) {
+            this.branch = branch;
+            this.logTip = logTip;
+            this.logMessage = logMessage;
+        }
+    }
+
     public static class Result extends RemoteJob.Result {
-        final public List<String> updated;
-        public Result(int status, String message, List<String> updated) {
+        final public List<BranchLogTip> updated;
+        public Result(int status, String message, List<BranchLogTip> updated) {
             super(status, message);
 
             this.updated = updated;
@@ -90,13 +105,19 @@ public class WatchJob extends SimpleJsonRemoteJob<WatchJob.Result> {
         if (status != Errors.DONE)
             return new WatchJob.Result(status, message, null);
 
-        List<String> updates = new ArrayList<>();
+        List<BranchLogTip> updates = new ArrayList<>();
         try {
             JSONArray statusArray = returnValue.getJSONArray(WATCH_RESULT_KEY);
             for (int i = 0; i < statusArray.length(); i++) {
                 JSONObject statusObject = statusArray.getJSONObject(i);
                 String branch = statusObject.getString(BRANCH_KEY);
-                updates.add(branch);
+                HashValue hashValue = Config.newBoxHash();
+                if (statusObject.has(BRANCH_LOG_TIP))
+                    hashValue = HashValue.fromHex(statusObject.getString(BRANCH_LOG_TIP));
+                String logMessage = "";
+                if (statusObject.has(BRANCH_LOG_MESSAGE))
+                    logMessage = statusObject.getString(BRANCH_LOG_MESSAGE);
+                updates.add(new BranchLogTip(branch, hashValue, logMessage));
             }
         } catch (JSONException e) {
             return new WatchJob.Result(Errors.EXCEPTION, e.getMessage(), null);

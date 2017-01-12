@@ -21,6 +21,10 @@ public class JsonRPC {
     static public class ArgumentSet {
         String value;
 
+        public ArgumentSet(List<Argument> arguments) {
+            this(arguments.toArray(new Argument[0]));
+        }
+
         public ArgumentSet(Argument... arguments) {
             if (arguments.length > 0) {
                 value = "{";

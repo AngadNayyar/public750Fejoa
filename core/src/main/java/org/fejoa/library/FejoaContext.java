@@ -105,7 +105,18 @@ public class FejoaContext {
     }
 
     public HashValue getStorageLogTip(String branch) throws IOException {
-        File logDir = new File(getChunkStoreDir(), "branches");
+        return getStorageLogTip(getChunkStoreDir(), branch);
+    }
+
+    public HashValue getStorageLogTip(StorageDir storageDir) throws IOException {
+        ChunkStoreBranchLog log = ((Repository)storageDir.getDatabase()).getBranchLog();
+        if (log.getLatest() == null)
+            return Config.newBoxHash();
+        return log.getLatest().getEntryId();
+    }
+
+    public HashValue getStorageLogTip(File repoDir, String branch) throws IOException {
+        File logDir = new File(repoDir, "branches");
         ChunkStoreBranchLog log = new ChunkStoreBranchLog(new File(logDir, branch));
         if (log.getLatest() == null)
             return Config.newBoxHash();

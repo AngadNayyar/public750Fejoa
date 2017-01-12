@@ -7,7 +7,6 @@
  */
 package org.fejoa.server;
 
-
 import org.fejoa.chunkstore.ChunkStoreBranchLog;
 import org.fejoa.chunkstore.Config;
 import org.fejoa.chunkstore.HashValue;
@@ -23,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 
 public class WatchHandler extends JsonRequestHandler {
     public WatchHandler() {
@@ -46,6 +46,16 @@ public class WatchHandler extends JsonRequestHandler {
         }
     }
 
+    static private class WatchResult {
+        final public Status status;
+        final public ChunkStoreBranchLog.Entry logEntry;
+
+        public WatchResult(Status status, ChunkStoreBranchLog.Entry logEntry) {
+            this.status = status;
+            this.logEntry = logEntry;
+        }
+    }
+
     @Override
     public void handle(Portal.ResponseHandler responseHandler, JsonRPCHandler jsonRPCHandler, InputStream data,
                        Session session) throws Exception {
@@ -62,7 +72,7 @@ public class WatchHandler extends JsonRequestHandler {
                     branch.getString(WatchJob.BRANCH_KEY), branch.getString(WatchJob.BRANCH_TIP_KEY)));
         }
 
-        Map<String, Status> statusMap = watch(session, peek, branchList);
+        Map<WatchEntry, WatchResult> statusMap = watch(session, peek, branchList);
 
         if (statusMap.isEmpty() && !peek) {
             // timeout
@@ -73,19 +83,25 @@ public class WatchHandler extends JsonRequestHandler {
 
         List<JsonRPC.ArgumentSet> deniedReturn = new ArrayList<>();
         List<JsonRPC.ArgumentSet> statusReturn = new ArrayList<>();
-        for (Map.Entry<String, Status> entry : statusMap.entrySet()) {
-            if (entry.getValue() == Status.ACCESS_DENIED) {
+        for (Map.Entry<WatchEntry, WatchResult> entry : statusMap.entrySet()) {
+            WatchEntry watchEntry = entry.getKey();
+            WatchResult result = entry.getValue();
+            if (result.status == Status.ACCESS_DENIED) {
                 JsonRPC.ArgumentSet argumentSet = new JsonRPC.ArgumentSet(
-                        new JsonRPC.Argument(WatchJob.BRANCH_KEY, entry.getKey()),
+                        new JsonRPC.Argument(WatchJob.BRANCH_KEY, watchEntry.branch),
                         new JsonRPC.Argument(WatchJob.STATUS_KEY, WatchJob.STATUS_ACCESS_DENIED)
                 );
                 deniedReturn.add(argumentSet);
-            } else if (entry.getValue() == Status.UPDATE) {
-                JsonRPC.ArgumentSet argumentSet = new JsonRPC.ArgumentSet(
-                        new JsonRPC.Argument(WatchJob.BRANCH_KEY, entry.getKey()),
-                        new JsonRPC.Argument(WatchJob.STATUS_KEY, WatchJob.STATUS_UPDATE)
-                );
-                statusReturn.add(argumentSet);
+            } else if (result.status == Status.UPDATE) {
+                List<JsonRPC.Argument> arguments = new ArrayList<>();
+                arguments.add(new JsonRPC.Argument(WatchJob.BRANCH_KEY, watchEntry.branch));
+                arguments.add(new JsonRPC.Argument(WatchJob.STATUS_KEY, WatchJob.STATUS_UPDATE));
+                ChunkStoreBranchLog.Entry logEntry = result.logEntry;
+                if (logEntry != null) {
+                    arguments.add(new JsonRPC.Argument(WatchJob.BRANCH_LOG_TIP, logEntry.getEntryId().toHex()));
+                    arguments.add(new JsonRPC.Argument(WatchJob.BRANCH_LOG_MESSAGE, logEntry.getMessage()));
+                }
+                statusReturn.add(new JsonRPC.ArgumentSet(arguments));
             }
         }
         if (deniedReturn.size() != 0) {
@@ -98,8 +114,8 @@ public class WatchHandler extends JsonRequestHandler {
         responseHandler.setResponseHeader(response);
     }
 
-    private Map<String, Status> watch(Session session, boolean peek, List<WatchEntry> branches) {
-        Map<String, Status> status = new HashMap<>();
+    private Map<WatchEntry, WatchResult> watch(Session session, boolean peek, List<WatchEntry> branches) {
+        Map<WatchEntry, WatchResult> status = new HashMap<>();
 
         //TODO: use a file monitor instead of polling
         final long TIME_OUT = 60 * 1000;
@@ -119,15 +135,15 @@ public class WatchHandler extends JsonRequestHandler {
                     continue;
                 }
                 if (branchLog == null) {
-                    status.put(branch, Status.ACCESS_DENIED);
+                    status.put(entry, new WatchResult(Status.ACCESS_DENIED, null));
                     continue;
                 }
                 ChunkStoreBranchLog.Entry latest = branchLog.getLatest();
                 HashValue localMessageHash = Config.newBoxHash();
                 if (latest != null)
                     localMessageHash = latest.getEntryId();
-                if (!remoteMessageHash.equals(localMessageHash))
-                    status.put(branch, Status.UPDATE);
+                if (!remoteMessageHash.equals(localMessageHash) || peek)
+                    status.put(entry, new WatchResult(Status.UPDATE, latest));
             }
             if (System.currentTimeMillis() - time > TIME_OUT)
                 break;

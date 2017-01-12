@@ -100,6 +100,14 @@ public class SyncManager {
                                                             final Task.IObserver<TaskUpdate, String> observer) {
         return Syncer.sync(connectionManager, storageDir, remote, authInfo, observer);
     }
+/*
+    static public Task<Void, WatchJob.Result> getRemoteTip(FejoaContext context, ConnectionManager connectionManager,
+                                                final StorageDir storageDir,
+                                                Remote remote, AuthInfo authInfo,
+                                                final Task.IObserver<Void, WatchJob.Result> observer) {
+        return connectionManager.submit(new WatchJob(context, watchedBranches), remote,
+                authInfo, observer);
+    }*/
 
     static public Task<Void, ChunkStorePullJob.Result> pull(ConnectionManager connectionManager,
                                                             final StorageDir storageDir,
@@ -182,11 +190,11 @@ class Watcher {
         return watchedBranches;
     }
 
-    public Collection<BranchInfo.Location> getBranchLocations(List<String> storageIdList) {
+    public Collection<BranchInfo.Location> getBranchLocations(List<WatchJob.BranchLogTip> storageIdList) {
         List<BranchInfo.Location> list = new ArrayList<>();
-        for (String id : storageIdList) {
+        for (WatchJob.BranchLogTip logTip : storageIdList) {
             for (BranchInfo.Location branchLocation : watchedBranches) {
-                if (branchLocation.getBranchInfo().getBranch().equals(id))
+                if (branchLocation.getBranchInfo().getBranch().equals(logTip.branch))
                     list.add(branchLocation);
             }
         }
