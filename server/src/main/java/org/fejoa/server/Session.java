@@ -12,6 +12,7 @@ import org.fejoa.library.BranchAccessRight;
 import org.fejoa.library.FejoaContext;
 import org.fejoa.library.UserDataSettings;
 import org.fejoa.library.command.IncomingCommandQueue;
+import org.fejoa.library.crypto.ZeroKnowledgeCompare;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.remote.AccountSettings;
 import org.json.JSONException;
@@ -25,6 +26,7 @@ import java.util.HashMap;
 
 
 public class Session {
+    final static String LOGIN_SCHNORR_VERIFIER_KEY = "loginSchnorrVerifier";
     final static String ROLES_KEY = "roles";
     static final public String ACCOUNT_INFO_FILE = "account.settings";
 
@@ -139,4 +141,11 @@ public class Session {
         }
     }
 
+    public void setLoginSchnorrVerifier(ZeroKnowledgeCompare.Verifier loginSchnorrVerifier) {
+        session.setAttribute(LOGIN_SCHNORR_VERIFIER_KEY, loginSchnorrVerifier);
+    }
+
+    public ZeroKnowledgeCompare.Verifier getLoginSchnorrVerifier() {
+        return (ZeroKnowledgeCompare.Verifier)session.getAttribute(LOGIN_SCHNORR_VERIFIER_KEY);
+    }
 }

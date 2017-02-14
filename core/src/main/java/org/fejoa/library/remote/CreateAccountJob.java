@@ -38,11 +38,11 @@ public class CreateAccountJob extends SimpleJsonRemoteJob<RemoteJob.Result> {
         this.userDataSettings = userDataSettings;
     }
 
-    static public String makeServerPassword(String password, byte[] salt, String kdfAlgorithm, int keySize,
+    static public byte[] makeServerPassword(String password, byte[] salt, String kdfAlgorithm, int keySize,
                                             int kdfIterations) throws CryptoException {
         ICryptoInterface crypto = Crypto.get();
         SecretKey secretKey = crypto.deriveKey(password, salt, kdfAlgorithm, keySize, kdfIterations);
-        return CryptoHelper.sha256HashHex(secretKey.getEncoded());
+        return CryptoHelper.sha256Hash(secretKey.getEncoded());
     }
 
     @Override
@@ -52,8 +52,8 @@ public class CreateAccountJob extends SimpleJsonRemoteJob<RemoteJob.Result> {
         String derivedPassword;
 
         try {
-            derivedPassword = makeServerPassword(password, salt, loginSettings.kdfAlgorithm, loginSettings.passwordSize,
-                    loginSettings.kdfIterations);
+            derivedPassword = CryptoHelper.toHex(makeServerPassword(password, salt, loginSettings.kdfAlgorithm,
+                    loginSettings.passwordSize, loginSettings.kdfIterations));
         } catch (CryptoException e) {
             e.printStackTrace();
             throw new IOException(e.getMessage());

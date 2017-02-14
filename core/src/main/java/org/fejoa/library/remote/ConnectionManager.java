@@ -247,7 +247,7 @@ public class ConnectionManager {
                 RemoteJob.Result result;
                 if (authInfo.authType == AuthInfo.PASSWORD) {
                     AuthInfo.Password passwordAuth = (AuthInfo.Password) authInfo;
-                    result = runJob(remoteRequest, new RootLoginJob(userAuthInfo.userName, passwordAuth.password));
+                    result = runJob(remoteRequest, new LoginJob(userAuthInfo.userName, passwordAuth.password));
                     tokenManager.addRootAccess(userAuthInfo.userName, url);
                 } else if (authInfo.authType == AuthInfo.TOKEN) {
                     AuthInfo.Token tokenAuth = (AuthInfo.Token) authInfo;
