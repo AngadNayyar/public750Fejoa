@@ -11,6 +11,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Field;
 import java.security.*;
 import java.security.spec.ECGenParameterSpec;
 import java.security.spec.KeySpec;
@@ -21,6 +22,14 @@ import javax.crypto.spec.PBEKeySpec;
 
 public class BCCryptoInterface implements ICryptoInterface {
     public BCCryptoInterface() {
+        // enable “Unlimited Strength” JCE policy
+        // This is necessary to use AES256!
+        try {
+            Field field = Class.forName("javax.crypto.JceSecurity").getDeclaredField("isRestricted");
+            field.setAccessible(true);
+            field.set(null, java.lang.Boolean.FALSE);
+        } catch (Exception ex) {
+        }
         Security.addProvider(new BouncyCastleProvider());
     }
 
