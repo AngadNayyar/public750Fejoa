@@ -32,6 +32,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Semaphore;
 
 import static org.fejoa.library.UserData.USER_DATA_CONTEXT;
+import static org.fejoa.server.JettyServer.DEFAULT_PORT;
 
 
 public class ClientTest extends TestCase {
@@ -78,11 +79,11 @@ public class ClientTest extends TestCase {
     final static String SERVER_TEST_DIR_1 = TEST_DIR + "/Server1";
     final static String SERVER_TEST_DIR_2 = TEST_DIR + "/Server2";
     final static String SERVER_TEST_DIR_3 = TEST_DIR + "/Server3";
-    final static String SERVER_URL_1 = "http://localhost:8080/";
-    final static String SERVER_URL_2 = "http://localhost:8081/";
+    final static String SERVER_URL_1 = "http://localhost:" + DEFAULT_PORT + "/";
+    final static String SERVER_URL_2 = "http://localhost:" + (DEFAULT_PORT + 1) + "/";
     final static String USER_NAME_1 = "testUser1";
     final static String USER_NAME_1_NEW = "testUser1New";
-    final static String SERVER_URL_1_NEW = "http://localhost:8082/";
+    final static String SERVER_URL_1_NEW = "http://localhost:"  + (DEFAULT_PORT + 2) + "/";
     final static String USER_NAME_2 = "testUser2";
     final static String PASSWORD = "password";
 
@@ -142,13 +143,13 @@ public class ClientTest extends TestCase {
         // allow cookies per port number in order so run multiple servers on localhost
         CookieHandler.setDefault(new CookiePerPortManager(null, CookiePolicy.ACCEPT_ALL));
 
-        server1 = new JettyServer(SERVER_TEST_DIR_1, 8080);
+        server1 = new JettyServer(SERVER_TEST_DIR_1, DEFAULT_PORT);
         server1.start();
 
-        server2 = new JettyServer(SERVER_TEST_DIR_2, 8081);
+        server2 = new JettyServer(SERVER_TEST_DIR_2, DEFAULT_PORT + 1);
         server2.start();
 
-        serverNew = new JettyServer(SERVER_TEST_DIR_3, 8082);
+        serverNew = new JettyServer(SERVER_TEST_DIR_3, DEFAULT_PORT + 2);
         serverNew.start();
 
         clientStatus1 = new ClientStatus(USER_NAME_1, SERVER_URL_1);

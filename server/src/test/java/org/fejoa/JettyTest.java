@@ -16,6 +16,8 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.fejoa.server.JettyServer.DEFAULT_PORT;
+
 
 public class JettyTest extends TestCase {
     final static String TEST_DIR = "jettyTest";
@@ -38,7 +40,7 @@ public class JettyTest extends TestCase {
         server.setDebugNoAccessControl(true);
         server.start();
 
-        remote = new Remote("", "http://localhost:8080/");
+        remote = new Remote("", "http://localhost:" + DEFAULT_PORT + "/");
         authInfo = new AuthInfo.Plain();
         observer = new Task.IObserver<Void, RemoteJob.Result>() {
             @Override

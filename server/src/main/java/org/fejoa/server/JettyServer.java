@@ -40,7 +40,8 @@ class DebugSingleton {
 }
 
 public class JettyServer {
-    final Server server;
+    final static public int DEFAULT_PORT = 8180;
+    final private Server server;
 
     public static void main(String[] args) throws Exception {
         Options options = new Options();
@@ -87,7 +88,7 @@ public class JettyServer {
     }
 
     public JettyServer(String baseDir) {
-        this(baseDir, null, 8080);
+        this(baseDir, null, DEFAULT_PORT);
     }
 
     public JettyServer(String baseDir, int port) {
