@@ -8,13 +8,17 @@
 package org.fejoa.chunkstore;
 
 import org.fejoa.library.crypto.CryptoHelper;
-import org.fejoa.library.support.FileLock;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.lang.ref.WeakReference;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 public class ChunkStore {
@@ -51,15 +55,34 @@ public class ChunkStore {
         }
     }
 
+    static class LockBucket {
+        private Map<String, WeakReference<Lock>> lockMap = new HashMap<>();
+
+        public Lock getLock(String id) {
+            WeakReference<Lock> weakObject = lockMap.get(id);
+            if (weakObject != null) {
+                Lock lock = weakObject.get();
+                if (lock != null)
+                    return lock;
+            }
+
+            // create new lock
+            Lock lock = new ReentrantLock();
+            lockMap.put(id, new WeakReference<>(lock));
+            return lock;
+        }
+    }
+
+    final static private LockBucket lockBucket = new LockBucket();
     final private BPlusTree tree;
     final private PackFile packFile;
-    final private FileLock fileLock;
+    final private Lock fileLock;
     private Transaction currentTransaction;
 
     protected ChunkStore(File dir, String name) throws FileNotFoundException {
         this.tree = new BPlusTree(new RandomAccessFile(new File(dir, name + ".idx"), "rw"));
         this.packFile = new PackFile(new RandomAccessFile(new File(dir, name + ".pack"), "rw"));
-        this.fileLock = new FileLock(new File(dir, ".lock"));
+        this.fileLock = lockBucket.getLock(dir + "/" + name);
     }
 
     static public ChunkStore create(File dir, String name) throws IOException {
