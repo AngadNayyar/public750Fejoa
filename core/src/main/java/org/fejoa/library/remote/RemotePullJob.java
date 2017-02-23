@@ -44,7 +44,7 @@ public class RemotePullJob extends SimpleJsonRemoteJob {
     @Override
     public String getJsonHeader(JsonRPC jsonRPC) throws Exception {
         return jsonRPC.call(METHOD, new JsonRPC.Argument(Constants.SERVER_USER_KEY, serverUser),
-                new JsonRPC.Argument(ACCESS_TOKEN_KEY, accessTokenContact.toJson().toString()),
+                new JsonRPC.Argument(ACCESS_TOKEN_KEY, accessTokenContact.toJson()),
                 new JsonRPC.Argument(Constants.BRANCH_KEY, branch),
                 new JsonRPC.Argument(SOURCE_USER_KEY, sourceUser),
                 new JsonRPC.Argument(SOURCE_SERVER_KEY, sourceServer));

@@ -23,7 +23,7 @@ import java.security.PrivateKey;
  */
 public class AccessTokenContact {
     final private FejoaContext context;
-    final private String rawAccessToken;
+    final private JSONObject accessToken;
 
     final private String id;
     final private CryptoSettings.Signature contactAuthKeySettings;
@@ -34,20 +34,23 @@ public class AccessTokenContact {
     final private BranchAccessRight accessRights;
 
     public AccessTokenContact(FejoaContext context, String rawAccessToken) throws CryptoException, IOException {
+        this(context, new JSONObject(rawAccessToken));
+    }
+
+    public AccessTokenContact(FejoaContext context, JSONObject accessToken) throws CryptoException, IOException {
         this.context = context;
-        this.rawAccessToken = rawAccessToken;
+        this.accessToken = accessToken;
 
         byte[] rawKey;
         try {
-            JSONObject jsonObject = new JSONObject(rawAccessToken);
-            id = jsonObject.getString(Constants.ID_KEY);
-            accessEntrySignature = DatatypeConverter.parseBase64Binary(jsonObject.getString(
+            id = accessToken.getString(Constants.ID_KEY);
+            accessEntrySignature = DatatypeConverter.parseBase64Binary(accessToken.getString(
                     AccessToken.ACCESS_ENTRY_SIGNATURE_KEY));
-            accessEntry = jsonObject.getString(AccessToken.ACCESS_ENTRY_KEY);
-            contactAuthKeySettings = JsonCryptoSettings.signatureFromJson(jsonObject.getJSONObject(
+            accessEntry = accessToken.getString(AccessToken.ACCESS_ENTRY_KEY);
+            contactAuthKeySettings = JsonCryptoSettings.signatureFromJson(accessToken.getJSONObject(
                     AccessToken.CONTACT_AUTH_KEY_SETTINGS_JSON_KEY));
             rawKey = DatatypeConverter.parseBase64Binary(
-                    jsonObject.getString(AccessToken.CONTACT_AUTH_PRIVATE_KEY_KEY));
+                    accessToken.getString(AccessToken.CONTACT_AUTH_PRIVATE_KEY_KEY));
             contactAuthKey = CryptoHelper.privateKeyFromRaw(rawKey, contactAuthKeySettings.keyType);
 
             // access rights
@@ -61,20 +64,12 @@ public class AccessTokenContact {
         return id;
     }
 
-    public String getRawAccessToken() {
-        return rawAccessToken;
-    }
-
     public JSONObject toJson() throws JSONException {
-        return new JSONObject(rawAccessToken);
+        return accessToken;
     }
 
     public String getAccessEntry() {
         return accessEntry;
-    }
-
-    public JSONObject getAccessEntryJson() throws JSONException {
-        return new JSONObject(accessEntry);
     }
 
     public BranchAccessRight getAccessRights() {

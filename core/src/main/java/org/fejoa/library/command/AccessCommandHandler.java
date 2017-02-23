@@ -66,7 +66,7 @@ public class AccessCommandHandler extends EnvelopeCommandHandler {
                 keyData = new SymmetricKeyData();
                 keyData.fromJson(command.getJSONObject(AccessCommand.BRANCH_KEY_KEY));
             }
-            String accessToken = command.getString(AccessCommand.TOKEN_KEY);
+            JSONObject accessToken = command.getJSONObject(AccessCommand.TOKEN_KEY);
             AccessTokenContact accessTokenContact = new AccessTokenContact(context, accessToken);
 
             BranchInfo branchInfo = BranchInfo.create(branch, description, branchContext);

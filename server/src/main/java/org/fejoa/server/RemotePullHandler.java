@@ -38,7 +38,7 @@ public class RemotePullHandler extends JsonRequestHandler {
         }
 
         FejoaContext context = session.getContext(serverUser);
-        AccessTokenContact accessTokenContact = new AccessTokenContact(context, params.getString(
+        AccessTokenContact accessTokenContact = new AccessTokenContact(context, params.getJSONObject(
                 RemotePullJob.ACCESS_TOKEN_KEY));
         String branch = params.getString(Constants.BRANCH_KEY);
         String sourceUser = params.getString(RemotePullJob.SOURCE_USER_KEY);

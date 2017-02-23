@@ -54,7 +54,7 @@ abstract public class AuthInfo {
         public void write(IOStorageDir dir) throws IOException {
             super.write(dir);
 
-            dir.writeString(AUTH_RAW_TOKEN_KEY, token.getRawAccessToken());
+            dir.writeString(AUTH_RAW_TOKEN_KEY, token.toJson().toString());
         }
 
         @Override
