@@ -13,6 +13,7 @@ import org.fejoa.library.crypto.CryptoHelper;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.locks.Lock;
 
 
 /**
@@ -91,12 +92,12 @@ public class ChunkStoreBranchLog {
 
     private int latestRev = 1;
     final private File logfile;
-    final private FileLock fileLock;
+    final private Lock fileLock;
     final private List<Entry> entries = new ArrayList<>();
 
     public ChunkStoreBranchLog(File logfile) throws IOException {
         this.logfile = logfile;
-        this.fileLock = new FileLock(new File(logfile.getParentFile(), logfile.getName() + ".lock"));
+        this.fileLock = ChunkStore.lockBucket.getLock(logfile.getAbsolutePath());
 
         read();
     }

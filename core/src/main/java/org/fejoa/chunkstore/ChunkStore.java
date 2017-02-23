@@ -73,7 +73,7 @@ public class ChunkStore {
         }
     }
 
-    final static private LockBucket lockBucket = new LockBucket();
+    final static protected LockBucket lockBucket = new LockBucket();
     final private BPlusTree tree;
     final private PackFile packFile;
     final private Lock fileLock;
