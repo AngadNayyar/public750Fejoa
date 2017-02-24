@@ -34,10 +34,13 @@ public class PullHandler {
         Request.writeResponseHeader(outputStream, Request.GET_CHUNKS, Request.OK);
 
         outputStream.writeLong(requestedChunks.size());
-        //TODO: check if we have all chunks before start sending them
+
         for (HashValue hashValue : requestedChunks) {
-            outputStream.write(hashValue.getBytes());
             byte[] chunk = chunkStore.getChunk(hashValue);
+            //TODO: Return error if chunk is not found
+            if (chunk == null)
+                throw new IOException("Missing Chunk: " + hashValue.toHex());
+            outputStream.write(hashValue.getBytes());
             outputStream.writeInt(chunk.length);
             outputStream.write(chunk);
         }

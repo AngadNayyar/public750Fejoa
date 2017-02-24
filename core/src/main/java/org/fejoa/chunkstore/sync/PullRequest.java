@@ -53,6 +53,7 @@ public class PullRequest {
                     HashValue hashValue = Config.newBoxHash();
                     inputStream.readFully(hashValue.getBytes());
                     int size = inputStream.readInt();
+
                     byte[] buffer = new byte[size];
                     inputStream.readFully(buffer);
                     PutResult<HashValue> result = transaction.put(buffer);
@@ -72,6 +73,12 @@ public class PullRequest {
             return new BoxPointer();
         BoxPointer remoteTip = requestRepo.getCommitCallback().commitPointerFromLog(remoteTipMessage);
         IRepoChunkAccessors.ITransaction transaction = requestRepo.getCurrentTransaction();
+
+        // TODO:
+        if (requestRepo.getCurrentTransaction().getRawAccessor().getChunk(remoteTip.getBoxHash()) != null) {
+            //Don't need to pull, we have it...
+        }
+
         GetCommitJob getCommitJob = new GetCommitJob(null, transaction, remoteTip);
         ChunkFetcher chunkFetcher = createRemotePipeFetcher(transaction.getRawAccessor(), remotePipe);
         chunkFetcher.enqueueJob(getCommitJob);

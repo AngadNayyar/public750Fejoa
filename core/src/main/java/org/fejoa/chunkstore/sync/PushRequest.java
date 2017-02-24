@@ -133,18 +133,27 @@ public class PushRequest {
         IChunkAccessor commitAccessor = transaction.getCommitAccessor();
         ChunkStore.Transaction rawTransaction = transaction.getRawAccessor();
 
-        CommitBox headCommit = repository.getHeadCommit();
+        // WARNING race condition: We have to use the commit from the branch log because we send this log entry
+        // straight to the server. This means the headCommit and the branch log entry must be in sync!
+        ChunkStoreBranchLog.Entry localLogTip = repository.getBranchLog().getLatest();
+        BoxPointer headCommitPointer = repository.getCommitCallback().commitPointerFromLog(localLogTip.getMessage());
+        CommitBox headCommit = CommitBox.read(repository.getCurrentTransaction().getCommitAccessor(), headCommitPointer);
         assert headCommit != null;
 
         CommonAncestorsFinder.Chains chainsToPush;
         ChunkStoreBranchLog.Entry remoteLogTip = LogEntryRequest.getRemoteTip(remotePipe, branch);
+
         if (remoteLogTip.getRev() > 0) { // remote has this branch
             BoxPointer remoteTip = repository.getCommitCallback().commitPointerFromLog(remoteLogTip.getMessage());
             if (!rawTransaction.contains(remoteTip.getBoxHash()))
                 return Request.PULL_REQUIRED;
 
-
-            CommitBox remoteCommit = CommitBox.read(commitAccessor, remoteTip);
+            CommitBox remoteCommit;
+            try {
+                remoteCommit = CommitBox.read(commitAccessor, remoteTip);
+            } catch (Exception e) {
+                return Request.PULL_REQUIRED;
+            }
 
             assert headCommit != null;
             chainsToPush = CommonAncestorsFinder.find(commitAccessor, remoteCommit, commitAccessor,
@@ -178,10 +187,10 @@ public class PushRequest {
         // expected remote rev
         outStream.writeInt(remoteLogTip.getRev());
         // our message
-        ChunkStoreBranchLog.Entry localLogTip = repository.getBranchLog().getLatest();
         StreamHelper.writeString(outStream, localLogTip.getEntryId().toHex());
         StreamHelper.writeString(outStream, localLogTip.getMessage());
         outStream.writeInt(chunks.size());
+
         for (HashValue chunk : chunks) {
             outStream.write(chunk.getBytes());
             byte[] buffer = rawTransaction.getChunk(chunk);
