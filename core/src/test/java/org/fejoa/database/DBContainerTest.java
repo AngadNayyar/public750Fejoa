@@ -54,7 +54,7 @@ public class DBContainerTest extends TestCase {
         DBObjectList<DBString> fileList = new DBObjectList<>(false, new DBObjectList.IValueCreator() {
             @Override
             public DBString create(String entryName) {
-                return new DBString(entryName);
+                return new DBString();
             }
         });
 
