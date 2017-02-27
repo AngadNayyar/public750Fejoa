@@ -11,6 +11,10 @@ import java8.util.concurrent.CompletableFuture;
 
 
 public class DBString extends DBObject<String> {
+    public DBString() {
+        super("");
+    }
+
     public DBString(String path) {
         super(path);
     }

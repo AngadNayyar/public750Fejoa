@@ -17,7 +17,7 @@ public class DBObjectList<T extends IDBContainerEntry> extends DBObjectContainer
     }
 
     final private IValueCreator<T> valueCreator;
-    final private DBReadObject<Collection<String>> dirContent;
+    final private DBReadableObject<Collection<String>> dirContent;
     final private Map<String, WeakReference<T>> loadedEntries = new HashMap<>();
 
     /**
@@ -28,13 +28,13 @@ public class DBObjectList<T extends IDBContainerEntry> extends DBObjectContainer
     public DBObjectList(boolean dirObjects, IValueCreator creator) {
         this.valueCreator = creator;
         if (dirObjects)
-            this.dirContent = new DBListDirs();
+            this.dirContent = new DBDirReader();
         else
-            this.dirContent = new DBListFiles();
+            this.dirContent = new DBFileReader();
         add(dirContent, "");
     }
 
-    public DBReadObject<Collection<String>> getDirContent() {
+    public DBReadableObject<Collection<String>> getDirContent() {
         return dirContent;
     }
 

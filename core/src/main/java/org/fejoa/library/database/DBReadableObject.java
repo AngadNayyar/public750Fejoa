@@ -11,16 +11,16 @@ import java8.util.concurrent.CompletableFuture;
 import java8.util.function.BiConsumer;
 
 
-public abstract class DBReadObject<T> implements IDBContainerEntry {
+public abstract class DBReadableObject<T> implements IDBContainerEntry {
     protected IOStorageDir dir;
     final protected String path;
     protected T cache;
 
-    public DBReadObject(String path) {
+    public DBReadableObject(String path) {
         this.path = path;
     }
 
-    public DBReadObject(IOStorageDir dir, String path) {
+    public DBReadableObject(IOStorageDir dir, String path) {
         this(path);
 
         setTo(dir);

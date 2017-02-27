@@ -12,17 +12,17 @@ import java8.util.concurrent.CompletableFuture;
 import java.util.Collection;
 
 
-public class DBListDirs extends DBReadObject<Collection<String>> {
-    public DBListDirs() {
+public class DBFileReader extends DBReadableObject<Collection<String>> {
+    public DBFileReader() {
         super("");
     }
 
-    public DBListDirs(IOStorageDir dir) {
+    public DBFileReader(IOStorageDir dir) {
         super(dir, "");
     }
 
     @Override
     protected CompletableFuture<Collection<String>> readFromDB(IOStorageDir dir, String path) {
-        return dir.listDirectoriesAsync(path);
+        return dir.listFilesAsync(path);
     }
 }

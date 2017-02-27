@@ -11,7 +11,7 @@ import java8.util.concurrent.CompletableFuture;
 import java8.util.function.BiConsumer;
 
 
-public abstract class DBObject<T> extends DBReadObject<T> {
+public abstract class DBObject<T> extends DBReadableObject<T> {
     private boolean dirty = false;
 
     public DBObject(String path) {
