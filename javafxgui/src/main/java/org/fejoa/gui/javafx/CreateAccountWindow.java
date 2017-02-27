@@ -56,7 +56,7 @@ public class CreateAccountWindow extends LoginWindowBase {
         grid.add(passwordField2, 1, 2);
         grid.add(new Label("Server:"), 0, 3);
         grid.add(serverField, 1, 3);
-        serverField.setText("http://localhost:8080");
+        serverField.setText("http://localhost:8180");
         mainLayout.getChildren().add(grid);
         statusLabel.setAlignment(Pos.CENTER);
         mainLayout.getChildren().add(statusLabel);
