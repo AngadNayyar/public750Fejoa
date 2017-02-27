@@ -49,7 +49,7 @@ public class ClientGui extends Application {
         // allow cookies per port number in order so run multiple servers on localhost
         CookieHandler.setDefault(new CookiePerPortManager(null, CookiePolicy.ACCEPT_ALL));
 
-        server = new JettyServer(StorageLib.appendDir(MAIN_DIR, "server"), 8080);
+        server = new JettyServer(StorageLib.appendDir(MAIN_DIR, "server"), JettyServer.DEFAULT_PORT);
         server.start();
     }
 }
