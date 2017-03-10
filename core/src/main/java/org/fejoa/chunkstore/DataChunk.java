@@ -32,9 +32,9 @@ public class DataChunk implements IChunk {
     }
 
     @Override
-    public void read(DataInputStream inputStream) throws IOException {
+    public void read(DataInputStream inputStream, long dataLength) throws IOException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        StreamHelper.copy(inputStream, outputStream);
+        StreamHelper.copyBytes(inputStream, outputStream, (int)dataLength);
         this.data = outputStream.toByteArray();
     }
 
@@ -49,7 +49,7 @@ public class DataChunk implements IChunk {
     }
 
     @Override
-    public int getDataLength() {
+    public long getDataLength() {
         return data.length;
     }
 }

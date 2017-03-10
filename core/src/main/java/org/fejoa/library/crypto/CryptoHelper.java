@@ -7,6 +7,8 @@
  */
 package org.fejoa.library.crypto;
 
+import org.bouncycastle.jcajce.provider.digest.SHA3;
+
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.xml.bind.DatatypeConverter;
@@ -45,6 +47,10 @@ public class CryptoHelper {
         return MessageDigest.getInstance("SHA-256");
     }
 
+    static public MessageDigest sha3Hash() throws NoSuchAlgorithmException {
+        return new SHA3.DigestSHA3(256);
+    }
+
     static public String sha1HashHex(byte data[]) {
         return toHex(sha1Hash(data));
     }
@@ -63,7 +69,7 @@ public class CryptoHelper {
 
     static public byte[] sha1Hash(byte data[]) {
         try {
-            MessageDigest messageDigest = MessageDigest.getInstance("SHA-1");
+            MessageDigest messageDigest = sha1Hash();
             messageDigest.reset();
             messageDigest.update(data);
             return messageDigest.digest();
@@ -75,7 +81,7 @@ public class CryptoHelper {
 
     static public byte[] sha256Hash(byte data[]) {
         try {
-            MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+            MessageDigest messageDigest = sha256Hash();
             messageDigest.reset();
             messageDigest.update(data);
             return messageDigest.digest();

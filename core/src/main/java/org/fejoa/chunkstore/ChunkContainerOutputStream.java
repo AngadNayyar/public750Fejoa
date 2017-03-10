@@ -138,10 +138,13 @@ public class ChunkContainerOutputStream extends OutputStream {
     private long position = 0;
 
     public ChunkContainerOutputStream(ChunkContainer container) throws IOException {
-        this(container, new RabinSplitter());
+        this.container = container;
+        this.chunkSplitter = container.getChunkSplitter();
+        seek(container.getDataLength());
     }
 
-    public ChunkContainerOutputStream(ChunkContainer container, ChunkSplitter chunkSplitter) throws IOException {
+    // This is only needed for debugging/testing
+    protected ChunkContainerOutputStream(ChunkContainer container, ChunkSplitter chunkSplitter) throws IOException {
         this.container = container;
         this.chunkSplitter = chunkSplitter;
         seek(container.getDataLength());

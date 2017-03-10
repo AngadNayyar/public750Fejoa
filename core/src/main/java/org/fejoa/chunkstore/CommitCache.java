@@ -34,9 +34,9 @@ public class CommitCache {
 
     public boolean isParent(HashValue commit, HashValue isParentCommit) throws IOException, CryptoException {
         CommitBox commitBox = getCommit(commit);
-        for (BoxPointer parent : commitBox.getParents()) {
-            CommitBox parentCommit = CommitBox.read(getCommitAccessor(), parent);
-            HashValue parentHash = parentCommit.dataHash();
+        for (ChunkContainerRef parent : commitBox.getParents()) {
+            CommitBox parentCommit = CommitBox.read(getCommitAccessor(parent), parent);
+            HashValue parentHash = parentCommit.getPlainHash();
             if (parentHash.equals(isParentCommit))
                 return true;
             if (isParent(parentHash, isParentCommit))
@@ -49,7 +49,7 @@ public class CommitCache {
         CommitBox head = repository.getHeadCommit();
         if (head == null)
             return null;
-        HashValue headHash = head.dataHash();
+        HashValue headHash = head.getPlainHash();
         if (!commitCache.containsKey(headHash)) {
             commitCache.put(headHash, head);
             tailList.addFirst(head);
@@ -60,9 +60,9 @@ public class CommitCache {
         while (tailList.size() > 0) {
             CommitBox currentCommit = tailList.removeFirst();
             CommitBox foundCommit = null;
-            for (BoxPointer boxPointer : currentCommit.getParents()) {
-                CommitBox parent = CommitBox.read(getCommitAccessor(), boxPointer);
-                HashValue parentHash = parent.dataHash();
+            for (ChunkContainerRef boxPointer : currentCommit.getParents()) {
+                CommitBox parent = CommitBox.read(getCommitAccessor(boxPointer), boxPointer);
+                HashValue parentHash = parent.getPlainHash();
                 if (parentHash.equals(hashValue))
                     foundCommit = parent;
                 if (!commitCache.containsKey(parentHash)) {
@@ -76,7 +76,7 @@ public class CommitCache {
         return null;
     }
 
-    private IChunkAccessor getCommitAccessor() {
-        return repository.getCurrentTransaction().getCommitAccessor();
+    private IChunkAccessor getCommitAccessor(ChunkContainerRef ref) {
+        return repository.getCurrentTransaction().getCommitAccessor(ref);
     }
 }

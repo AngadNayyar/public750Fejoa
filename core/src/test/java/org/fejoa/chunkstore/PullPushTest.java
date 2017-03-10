@@ -61,17 +61,17 @@ public class PullPushTest extends RepositoryTestBase {
                     }
 
                     @Override
-                    public IChunkAccessor getCommitAccessor() {
+                    public IChunkAccessor getCommitAccessor(ChunkContainerRef ref) {
                         return accessor;
                     }
 
                     @Override
-                    public IChunkAccessor getTreeAccessor() {
+                    public IChunkAccessor getTreeAccessor(ChunkContainerRef ref) {
                         return accessor;
                     }
 
                     @Override
-                    public IChunkAccessor getFileAccessor(String filePath) {
+                    public IChunkAccessor getFileAccessor(ChunkContainerRef ref, String filePath) {
                         return accessor;
                     }
                 };
@@ -134,14 +134,14 @@ public class PullPushTest extends RepositoryTestBase {
         final IRemotePipe senderPipe = connect(handler);
 
         PullRequest pullRequest = new PullRequest(requestRepo, null);
-        BoxPointer pulledTip = pullRequest.pull(senderPipe, branch);
+        ChunkContainerRef pulledTip = pullRequest.pull(senderPipe, branch);
 
         assertTrue(pulledTip.getBoxHash().isZero());
 
         // change the remote repo
         Map<String, DatabaseStingEntry> remoteContent = new HashMap();
         add(remoteRepo, remoteContent, new DatabaseStingEntry("testFile", "Hello World"));
-        BoxPointer boxPointer = remoteRepo.commitInternal("", null);
+        ChunkContainerRef boxPointer = remoteRepo.commitInternal("", null);
 
         pulledTip = pullRequest.pull(senderPipe, branch);
         containsContent(requestRepo, remoteContent);

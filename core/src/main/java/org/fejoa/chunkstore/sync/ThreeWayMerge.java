@@ -30,23 +30,23 @@ public class ThreeWayMerge {
     static public TreeAccessor merge(IRepoChunkAccessors.ITransaction outTransaction,
                                      IRepoChunkAccessors.ITransaction ourTransaction, CommitBox ours,
                                      IRepoChunkAccessors.ITransaction theirTransaction,
-                                     CommitBox theirs, CommitBox parent, IConflictSolver conflictSolver,
-                                     boolean compression)
+                                     CommitBox theirs, CommitBox parent, IConflictSolver conflictSolver)
             throws IOException, CryptoException {
-        IChunkAccessor ourAccessor = ourTransaction.getTreeAccessor();
-        IChunkAccessor theirAccessor = ourTransaction.getTreeAccessor();
-        FlatDirectoryBox ourRoot = FlatDirectoryBox.read(ourAccessor, ours.getTree());
-        FlatDirectoryBox theirRoot = FlatDirectoryBox.read(theirAccessor, theirs.getTree());
-        TreeIterator treeIterator = new TreeIterator(ourAccessor, ourRoot, theirAccessor, theirRoot);
+        FlatDirectoryBox ourRoot = FlatDirectoryBox.read(ourTransaction.getTreeAccessor(ours.getTree()),
+                ours.getTree());
+        FlatDirectoryBox theirRoot = FlatDirectoryBox.read(theirTransaction.getTreeAccessor(theirs.getTree()),
+                theirs.getTree());
+        TreeIterator treeIterator = new TreeIterator(ourTransaction, ourRoot, theirTransaction, theirRoot);
 
-        FlatDirectoryBox parentRoot = FlatDirectoryBox.read(ourAccessor, parent.getTree());
-        TreeAccessor parentTreeAccessor = new TreeAccessor(parentRoot, ourTransaction, compression);
-        TreeAccessor ourTreeAccessor = new TreeAccessor(FlatDirectoryBox.read(ourAccessor, ours.getTree()),
-                ourTransaction, compression);
-        TreeAccessor theirTreeAccessor = new TreeAccessor(FlatDirectoryBox.read(theirAccessor, theirs.getTree()),
-                theirTransaction, compression);
+        FlatDirectoryBox parentRoot = FlatDirectoryBox.read(ourTransaction.getTreeAccessor(parent.getTree()),
+                parent.getTree());
+        TreeAccessor parentTreeAccessor = new TreeAccessor(parentRoot, ourTransaction);
+        TreeAccessor ourTreeAccessor = new TreeAccessor(FlatDirectoryBox.read(
+                ourTransaction.getTreeAccessor(ours.getTree()), ours.getTree()), ourTransaction);
+        TreeAccessor theirTreeAccessor = new TreeAccessor(FlatDirectoryBox.read(
+                theirTransaction.getTreeAccessor(theirs.getTree()), theirs.getTree()), theirTransaction);
 
-        TreeAccessor outTree = new TreeAccessor(ourRoot, outTransaction, compression);
+        TreeAccessor outTree = new TreeAccessor(ourRoot, outTransaction);
 
         while (treeIterator.hasNext()) {
             DiffIterator.Change<FlatDirectoryBox.Entry> change = treeIterator.next();

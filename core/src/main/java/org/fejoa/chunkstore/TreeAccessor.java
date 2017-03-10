@@ -16,16 +16,14 @@ import java.util.List;
 
 
 public class TreeAccessor {
-    private boolean compress = false;
     private boolean modified = false;
     private FlatDirectoryBox root;
     private IRepoChunkAccessors.ITransaction transaction;
 
-    public TreeAccessor(FlatDirectoryBox root, IRepoChunkAccessors.ITransaction transaction, boolean compress)
+    public TreeAccessor(FlatDirectoryBox root, IRepoChunkAccessors.ITransaction transaction)
             throws IOException {
         this.transaction = transaction;
 
-        this.compress = true;
         this.root = root;
     }
 
@@ -43,9 +41,9 @@ public class TreeAccessor {
         return path;
     }
 
-    private BoxPointer write(FileBox fileBox) throws IOException, CryptoException {
+    private ChunkContainerRef write(FileBox fileBox) throws IOException, CryptoException {
         fileBox.flush();
-        return fileBox.getDataContainer().getBoxPointer();
+        return fileBox.getDataContainer().getRef();
     }
 
     public FlatDirectoryBox.Entry get(String path) throws IOException, CryptoException {
@@ -82,7 +80,7 @@ public class TreeAccessor {
             if (entry.getObject() != null) {
                 currentDir = (FlatDirectoryBox)entry.getObject();
             } else {
-                IChunkAccessor accessor = transaction.getTreeAccessor();
+                IChunkAccessor accessor = transaction.getTreeAccessor(entry.getDataPointer());
                 currentDir = FlatDirectoryBox.read(accessor, entry.getDataPointer());
                 entry.setObject(currentDir);
             }
@@ -112,8 +110,10 @@ public class TreeAccessor {
         assert fileEntry.isFile();
 
         FileBox fileBox = (FileBox)fileEntry.getObject();
-        if (fileBox == null)
-            fileBox = FileBox.read(transaction.getFileAccessor(path), fileEntry.getDataPointer());
+        if (fileBox == null) {
+            ChunkContainerRef fileRef = fileEntry.getDataPointer();
+            fileBox = FileBox.read(transaction.getFileAccessor(fileRef, path), fileRef);
+        }
         return fileBox;
     }
 
@@ -121,11 +121,11 @@ public class TreeAccessor {
         FlatDirectoryBox.Entry entry = new FlatDirectoryBox.Entry(true);
         entry.setObject(file);
         if (!file.getBoxPointer().getBoxHash().isZero())
-            entry.setDataPointer(file.getBoxPointer());
+            entry.setDataPointer(file.getDataContainer().getRef());
         put(path, entry);
     }
 
-    public FlatDirectoryBox.Entry put(String path, BoxPointer dataPointer, boolean isFile) throws IOException,
+    public FlatDirectoryBox.Entry put(String path, ChunkContainerRef dataPointer, boolean isFile) throws IOException,
             CryptoException {
         FlatDirectoryBox.Entry entry = new FlatDirectoryBox.Entry("", dataPointer, isFile);
         put(path, entry);
@@ -137,7 +137,7 @@ public class TreeAccessor {
         String[] parts = path.split("/");
         String fileName = parts[parts.length - 1];
         FlatDirectoryBox currentDir = root;
-        IChunkAccessor treeAccessor = transaction.getTreeAccessor();
+        IChunkAccessor treeAccessor = transaction.getTreeAccessor(entry.getDataPointer());
         List<FlatDirectoryBox.Entry> touchedEntries = new ArrayList<>();
         for (int i = 0; i < parts.length - 1; i++) {
             String subDir = parts[i];
@@ -191,12 +191,12 @@ public class TreeAccessor {
         return directoryBox.remove(entryName);
     }
 
-    public BoxPointer build() throws IOException, CryptoException {
+    public ChunkContainerRef build() throws IOException, CryptoException {
         modified = false;
         return build(root, "");
     }
 
-    private BoxPointer build(FlatDirectoryBox dir, String path) throws IOException, CryptoException {
+    private ChunkContainerRef build(FlatDirectoryBox dir, String path) throws IOException, CryptoException {
         for (FlatDirectoryBox.Entry child : dir.getDirs()) {
             if (child.getDataPointer() != null)
                 continue;
@@ -208,10 +208,10 @@ public class TreeAccessor {
                 continue;
             assert child.getObject() != null;
             FileBox fileBox = (FileBox)child.getObject();
-            BoxPointer dataPointer = write(fileBox);
+            ChunkContainerRef dataPointer = write(fileBox);
             child.setDataPointer(dataPointer);
         }
-        return SyncRepository.put(dir, transaction.getTreeAccessor(), compress);
+        return SyncRepository.put(dir, transaction.getTreeAccessor(dir.getRef()), dir.getRef());
     }
 
     public FlatDirectoryBox getRoot() {

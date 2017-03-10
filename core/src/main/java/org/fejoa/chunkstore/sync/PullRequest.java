@@ -67,15 +67,15 @@ public class PullRequest {
     /**
      * returns the remote tip
      */
-    public BoxPointer pull(IRemotePipe remotePipe, String branch) throws IOException, CryptoException {
+    public ChunkContainerRef pull(IRemotePipe remotePipe, String branch) throws IOException, CryptoException {
         String remoteTipMessage = LogEntryRequest.getRemoteTip(remotePipe, branch).getMessage();
         if (remoteTipMessage.equals(""))
-            return new BoxPointer();
-        BoxPointer remoteTip = requestRepo.getCommitCallback().commitPointerFromLog(remoteTipMessage);
+            return new ChunkContainerRef();
+        ChunkContainerRef remoteTip = requestRepo.getCommitCallback().commitPointerFromLog(remoteTipMessage);
         IRepoChunkAccessors.ITransaction transaction = requestRepo.getCurrentTransaction();
 
         // TODO:
-        if (requestRepo.getCurrentTransaction().getRawAccessor().getChunk(remoteTip.getBoxHash()) != null) {
+        if (requestRepo.getCurrentTransaction().getRawAccessor().getChunk(remoteTip.getBox().getBoxHash()) != null) {
             //Don't need to pull, we have it...
         }
 
@@ -88,7 +88,7 @@ public class PullRequest {
         switch (merged) {
             case MERGED:
                 requestRepo.commitInternal("Merge after pull.", commitSignature,
-                        Collections.singleton(getCommitJob.getCommitBox().getBoxPointer()));
+                        Collections.singleton(getCommitJob.getCommitBox().getRef()));
                 break;
             case FAST_FORWARD:
                 requestRepo.commitInternal("Merge after pull.", commitSignature);

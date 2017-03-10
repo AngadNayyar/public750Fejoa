@@ -43,17 +43,17 @@ class SyncRepository implements ISyncDatabase {
         this.log = getLog(dir, branch);
         this.commitCallback = commitCallback;
 
-        BoxPointer headCommitPointer = null;
+        ChunkContainerRef headCommitPointer = null;
         if (log.getLatest() != null)
             headCommitPointer = commitCallback.commitPointerFromLog(log.getLatest().getMessage());
         FlatDirectoryBox root;
         if (headCommitPointer == null) {
             root = FlatDirectoryBox.create();
         } else {
-            headCommit = CommitBox.read(transaction.getCommitAccessor(), headCommitPointer);
-            root = FlatDirectoryBox.read(transaction.getTreeAccessor(), headCommit.getTree());
+            headCommit = CommitBox.read(transaction.getCommitAccessor(headCommitPointer), headCommitPointer);
+            root = FlatDirectoryBox.read(transaction.getTreeAccessor(headCommit.getTree()), headCommit.getTree());
         }
-        this.treeAccessor = new TreeAccessor(root, transaction, useCompression());
+        this.treeAccessor = new TreeAccessor(root, transaction);
         commitCache = new CommitCache(this);
 
         if (commit != null && !commit.isZero())
@@ -71,12 +71,6 @@ class SyncRepository implements ISyncDatabase {
         setHeadCommit(headCommit);
     }
 
-    static public ChunkSplitter defaultNodeSplitter(int targetChunkSize) {
-        float kFactor = (32f) / (32 * 3 + 8);
-        return new RabinSplitter((int)(kFactor * targetChunkSize),
-                (int)(kFactor * RabinSplitter.CHUNK_1KB), (int)(kFactor * RabinSplitter.CHUNK_128KB * 5));
-    }
-
     public CommitBox getHeadCommit() {
         return headCommit;
     }
@@ -87,8 +81,9 @@ class SyncRepository implements ISyncDatabase {
 
     private void setHeadCommit(CommitBox headCommit) throws IOException, CryptoException {
         this.headCommit = headCommit;
-        FlatDirectoryBox root = FlatDirectoryBox.read(transaction.getTreeAccessor(), headCommit.getTree());
-        this.treeAccessor = new TreeAccessor(root, transaction, useCompression());
+        FlatDirectoryBox root = FlatDirectoryBox.read(transaction.getTreeAccessor(headCommit.getTree()),
+                headCommit.getTree());
+        this.treeAccessor = new TreeAccessor(root, transaction);
     }
 
     public String getBranch() {
@@ -112,7 +107,7 @@ class SyncRepository implements ISyncDatabase {
         synchronized (this) {
             if (getHeadCommit() == null)
                 return Config.newDataHash();
-            return getHeadCommit().dataHash();
+            return getHeadCommit().getPlainHash();
         }
     }
 
@@ -120,8 +115,8 @@ class SyncRepository implements ISyncDatabase {
         if (headCommit == null)
             return Collections.emptyList();
         List<HashValue> parents = new ArrayList<>();
-        for (BoxPointer parent : headCommit.getParents())
-            parents.add(parent.getDataHash());
+        for (ChunkContainerRef parent : headCommit.getParents())
+            parents.add(parent.getData().getDataHash());
         return parents;
     }
 
@@ -136,14 +131,20 @@ class SyncRepository implements ISyncDatabase {
             if (!entry.isFile())
                 throw new IOException("Not a file path.");
             FileBox fileBox = (FileBox)entry.getObject();
-            if (fileBox == null)
-                fileBox = FileBox.read(transaction.getFileAccessor(path), entry.getDataPointer());
+            if (fileBox == null) {
+                fileBox = FileBox.read(transaction.getFileAccessor(entry.getDataPointer(), path),
+                        entry.getDataPointer());
+            }
             return fileBox.getDataContainer().hash();
         }
     }
 
     static private File getBranchDir(File dir) {
         return new File(dir, "branches");
+    }
+
+    public File getDir() {
+        return dir;
     }
 
     public ICommitCallback getCommitCallback() {
@@ -156,10 +157,10 @@ class SyncRepository implements ISyncDatabase {
             if (entry == null || entry.isFile())
                 return null;
             if (entry.getObject() == null) {
-                BoxPointer dataPointer = entry.getDataPointer();
+                ChunkContainerRef dataPointer = entry.getDataPointer();
                 if (dataPointer == null)
                     throw new IOException("Unexpected null data pointer");
-                entry.setObject(FlatDirectoryBox.read(transaction.getTreeAccessor(), dataPointer));
+                entry.setObject(FlatDirectoryBox.read(transaction.getTreeAccessor(dataPointer), dataPointer));
             }
 
             return (FlatDirectoryBox)entry.getObject();
@@ -216,7 +217,7 @@ class SyncRepository implements ISyncDatabase {
         randomDataAccess.close();
     }
 
-    private BoxPointer flush() throws IOException, CryptoException {
+    private ChunkContainerRef flush() throws IOException, CryptoException {
         List<String> paths = new ArrayList<>(openHandles.keySet());
         for (String path : paths) {
             for (ChunkContainerRandomDataAccess randomDataAccess : getOpenHandles(path)) {
@@ -316,9 +317,8 @@ class SyncRepository implements ISyncDatabase {
     }
 
     private ChunkContainerRandomDataAccess createNewHandle(String path, Mode openFlags) {
-        ChunkContainer chunkContainer = new ChunkContainer(transaction.getFileAccessor(path),
-                defaultNodeSplitter(RabinSplitter.CHUNK_8KB));
-        chunkContainer.setZLibCompression(useCompression());
+        ChunkContainerRef ref = new ChunkContainerRef();
+        ChunkContainer chunkContainer = new ChunkContainer(transaction.getFileAccessor(ref, path), ref);
         ChunkContainerRandomDataAccess randomDataAccess = new ChunkContainerRandomDataAccess(chunkContainer,
                 openFlags, createIOCallback(path));
         registerHandle(path, randomDataAccess);
@@ -372,14 +372,9 @@ class SyncRepository implements ISyncDatabase {
         }
     }
 
-    public boolean useCompression() {
-        return true;
-    }
-
     private FileBox writeToFileBox(String path, byte[] data) throws IOException {
-        ChunkContainer chunkContainer = new ChunkContainer(transaction.getFileAccessor(path),
-                defaultNodeSplitter(RabinSplitter.CHUNK_8KB));
-        chunkContainer.setZLibCompression(useCompression());
+        ChunkContainerRef ref = new ChunkContainerRef();
+        ChunkContainer chunkContainer = new ChunkContainer(transaction.getFileAccessor(ref, path), ref);
 
         FileBox file = FileBox.create(chunkContainer);
         ChunkContainerOutputStream containerOutputStream = new ChunkContainerOutputStream(chunkContainer,
@@ -389,18 +384,21 @@ class SyncRepository implements ISyncDatabase {
         return file;
     }
 
-    static public BoxPointer put(TypedBlob blob, IChunkAccessor accessor, boolean compress) throws IOException,
+    static public ChunkContainerRef put(TypedBlob blob, IChunkAccessor accessor, ChunkContainerRef ref)
+            throws IOException,
             CryptoException {
-        ChunkSplitter nodeSplitter = SyncRepository.defaultNodeSplitter(RabinSplitter.CHUNK_8KB);
-        ChunkContainer chunkContainer = new ChunkContainer(accessor, nodeSplitter);
-        chunkContainer.setZLibCompression(compress);
+        ref = ref.clone();
+        ChunkContainer chunkContainer = new ChunkContainer(accessor, ref);
 
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        blob.write(new DataOutputStream(outputStream));
+        HashValue dataHash = blob.write(new DataOutputStream(outputStream), ref);
         chunkContainer.append(new DataChunk(outputStream.toByteArray()));
         chunkContainer.flush(false);
 
-        return chunkContainer.getBoxPointer();
+        assert dataHash != null;
+        ref.getData().setDataHash(dataHash);
+        blob.setRef(ref);
+        return ref;
     }
 
     private void copyMissingCommits(CommitBox commitBox,
@@ -410,15 +408,15 @@ class SyncRepository implements ISyncDatabase {
         // TODO: test
         // copy to their transaction
         ChunkStore.Transaction targetTransaction = target.getRawAccessor();
-        if (targetTransaction.contains(commitBox.getBoxPointer().getBoxHash()))
+        if (targetTransaction.contains(commitBox.getRef().getBox().getBoxHash()))
             return;
-        for (BoxPointer parent : commitBox.getParents()) {
-            CommitBox parentCommit = CommitBox.read(source.getCommitAccessor(), parent);
+        for (ChunkContainerRef parent : commitBox.getParents()) {
+            CommitBox parentCommit = CommitBox.read(source.getCommitAccessor(parent), parent);
             copyMissingCommits(parentCommit, source, target);
         }
 
         ChunkFetcher chunkFetcher = ChunkFetcher.createLocalFetcher(targetTransaction, source.getRawAccessor());
-        chunkFetcher.enqueueGetCommitJob(target, commitBox.getBoxPointer());
+        chunkFetcher.enqueueGetCommitJob(target, commitBox.getRef());
         chunkFetcher.fetch();
     }
 
@@ -435,8 +433,8 @@ class SyncRepository implements ISyncDatabase {
             if (treeAccessor.isModified()) {
                 if (headCommit != null) {
                     // do deeper check if data has been changed
-                    BoxPointer boxPointer = headCommit.getTree();
-                    BoxPointer afterBuild = flush();
+                    ChunkContainerRef boxPointer = headCommit.getTree();
+                    ChunkContainerRef afterBuild = flush();
                     if (!boxPointer.equals(afterBuild))
                         return MergeResult.UNCOMMITTED_CHANGES;
                 } else {
@@ -451,41 +449,43 @@ class SyncRepository implements ISyncDatabase {
 
                 transaction.finishTransaction();
                 transaction = new LogRepoTransaction(accessors.startTransaction());
-                log.add(commitCallback.logHash(headCommit.getBoxPointer()),
-                        commitCallback.commitPointerToLog(headCommit.getBoxPointer()), transaction.getObjectsWritten());
-                treeAccessor = new TreeAccessor(FlatDirectoryBox.read(transaction.getTreeAccessor(),
-                        otherBranch.getTree()), transaction, useCompression());
+                log.add(commitCallback.logHash(headCommit.getRef()),
+                        commitCallback.commitPointerToLog(headCommit.getRef()), transaction.getObjectsWritten());
+                treeAccessor = new TreeAccessor(FlatDirectoryBox.read(
+                        transaction.getTreeAccessor(otherBranch.getTree()),
+                        otherBranch.getTree()), transaction);
                 return MergeResult.FAST_FORWARD;
             }
-            if (headCommit.dataHash().equals(otherBranch.dataHash()))
+            if (headCommit.getPlainHash().equals(otherBranch.getPlainHash()))
                 return MergeResult.FAST_FORWARD;
-            if (commitCache.isParent(headCommit.dataHash(), otherBranch.dataHash()))
+            if (commitCache.isParent(headCommit.getPlainHash(), otherBranch.getPlainHash()))
                 return MergeResult.FAST_FORWARD;
 
-            CommonAncestorsFinder.Chains chains = CommonAncestorsFinder.find(transaction.getCommitAccessor(),
-                    headCommit, otherTransaction.getCommitAccessor(), otherBranch);
+            CommonAncestorsFinder.Chains chains = CommonAncestorsFinder.find(transaction, headCommit, otherTransaction,
+                    otherBranch);
             copyMissingCommits(headCommit, transaction, otherTransaction);
 
             CommonAncestorsFinder.SingleCommitChain shortestChain = chains.getShortestChain();
             if (shortestChain == null)
                 throw new IOException("Branches don't have common ancestor.");
-            if (shortestChain.getOldest().dataHash().equals(headCommit.dataHash())) {
+            if (shortestChain.getOldest().getPlainHash().equals(headCommit.getPlainHash())) {
                 // no local commits: just use the remote head
                 otherTransaction.finishTransaction();
                 headCommit = otherBranch;
 
                 transaction.finishTransaction();
                 transaction = new LogRepoTransaction(accessors.startTransaction());
-                log.add(commitCallback.logHash(headCommit.getBoxPointer()),
-                        commitCallback.commitPointerToLog(headCommit.getBoxPointer()), transaction.getObjectsWritten());
-                treeAccessor = new TreeAccessor(FlatDirectoryBox.read(transaction.getTreeAccessor(),
-                        otherBranch.getTree()), transaction, useCompression());
+                log.add(commitCallback.logHash(headCommit.getRef()),
+                        commitCallback.commitPointerToLog(headCommit.getRef()), transaction.getObjectsWritten());
+                treeAccessor = new TreeAccessor(FlatDirectoryBox.read(
+                        transaction.getTreeAccessor(otherBranch.getTree()),
+                        otherBranch.getTree()), transaction);
                 return MergeResult.FAST_FORWARD;
             }
 
             // merge branches
             treeAccessor = ThreeWayMerge.merge(transaction, transaction, headCommit, otherTransaction,
-                    otherBranch, shortestChain.getOldest(), ThreeWayMerge.ourSolver(), useCompression());
+                    otherBranch, shortestChain.getOldest(), ThreeWayMerge.ourSolver());
             return MergeResult.MERGED;
         }
     }
@@ -504,38 +504,39 @@ class SyncRepository implements ISyncDatabase {
             commitInternal(message, commitSignature);
             if (headCommit == null)
                 return null;
-            return headCommit.dataHash();
+            return headCommit.getPlainHash();
         }
     }
 
-    public BoxPointer commitInternal(String message, ICommitSignature commitSignature) throws IOException,
+    public ChunkContainerRef commitInternal(String message, ICommitSignature commitSignature) throws IOException,
             CryptoException {
-        return commitInternal(message, commitSignature, Collections.<BoxPointer>emptyList());
+        return commitInternal(message, commitSignature, Collections.<ChunkContainerRef>emptyList());
     }
 
-    public BoxPointer commitInternal(String message, ICommitSignature commitSignature,
-                                     Collection<BoxPointer> mergeParents) throws IOException,
+    public ChunkContainerRef commitInternal(String message, ICommitSignature commitSignature,
+                                     Collection<ChunkContainerRef> mergeParents) throws IOException,
             CryptoException {
         synchronized (this) {
             if (mergeParents.size() == 0 && !needCommit())
                 return null;
-            BoxPointer rootTree = flush();
+            ChunkContainerRef rootTree = flush();
             if (mergeParents.size() == 0 && headCommit != null && headCommit.getTree().equals(rootTree))
                 return null;
             CommitBox commitBox = CommitBox.create();
             commitBox.setTree(rootTree);
             if (headCommit != null)
-                commitBox.addParent(headCommit.getBoxPointer());
-            for (BoxPointer mergeParent : mergeParents)
+                commitBox.addParent(headCommit.getRef());
+            for (ChunkContainerRef mergeParent : mergeParents)
                 commitBox.addParent(mergeParent);
             if (commitSignature != null)
-                message = commitSignature.signMessage(message, rootTree.getDataHash(), getParents());
+                message = commitSignature.signMessage(message, rootTree.getData().getDataHash(), getParents());
             commitBox.setCommitMessage(message.getBytes());
-            BoxPointer commitPointer = put(commitBox, transaction.getCommitAccessor(), useCompression());
-            commitBox.setBoxPointer(commitPointer);
+            ChunkContainerRef ref = new ChunkContainerRef();
+            ChunkContainerRef commitPointer = put(commitBox, transaction.getCommitAccessor(ref), ref);
             headCommit = commitBox;
 
             transaction.finishTransaction();
+
             log.add(commitCallback.logHash(commitPointer), commitCallback.commitPointerToLog(commitPointer),
                     transaction.getObjectsWritten());
 
@@ -558,8 +559,7 @@ class SyncRepository implements ISyncDatabase {
 
             DatabaseDiff databaseDiff = new DatabaseDiff(baseCommitHash, endCommitHash);
 
-            IChunkAccessor treeAccessor = transaction.getTreeAccessor();
-            TreeIterator diffIterator = new TreeIterator(treeAccessor, baseCommit, treeAccessor, endCommit);
+            TreeIterator diffIterator = new TreeIterator(transaction, baseCommit, transaction, endCommit);
             while (diffIterator.hasNext()) {
                 DiffIterator.Change<FlatDirectoryBox.Entry> change = diffIterator.next();
                 switch (change.type) {

@@ -42,7 +42,7 @@ public class ChunkContainerNode implements IChunk {
             throws IOException, CryptoException {
         ChunkContainerNode node =  new ChunkContainerNode(blobAccessor, parent, parent.nodeSplitter, that);
         DataInputStream inputStream = blobAccessor.getChunk(that.getBoxPointer());
-        node.read(inputStream);
+        node.read(inputStream, that.getDataLength());
         return node;
     }
 
@@ -82,7 +82,7 @@ public class ChunkContainerNode implements IChunk {
         return pointer.getLevel() == DATA_LEVEL;
     }
 
-    public void setNodeSplitter(ChunkSplitter nodeSplitter) {
+    protected void setNodeSplitter(ChunkSplitter nodeSplitter) {
         this.nodeSplitter = nodeSplitter;
         if (this.nodeSplitter != null)
             this.nodeSplitter.reset();
@@ -93,7 +93,7 @@ public class ChunkContainerNode implements IChunk {
     }
 
     @Override
-    public int getDataLength() {
+    public long getDataLength() {
         return calculateDataLength();
     }
 
@@ -104,7 +104,7 @@ public class ChunkContainerNode implements IChunk {
             return (DataChunk)cachedChunk;
         DataInputStream inputStream = blobAccessor.getChunk(pointer.getBoxPointer());
         DataChunk dataChunk = new DataChunk();
-        dataChunk.read(inputStream);
+        dataChunk.read(inputStream, pointer.getDataLength());
         pointer.setCachedChunk(dataChunk);
         return dataChunk;
     }
@@ -122,8 +122,8 @@ public class ChunkContainerNode implements IChunk {
         return node;
     }
 
-    protected int calculateDataLength() {
-        int length = 0;
+    protected long calculateDataLength() {
+        long length = 0;
         for (IChunkPointer pointer : slots)
             length += pointer.getDataLength();
         return length;
@@ -174,13 +174,18 @@ public class ChunkContainerNode implements IChunk {
     }
 
     @Override
-    public void read(DataInputStream inputStream) throws IOException {
+    public void read(DataInputStream inputStream, long dataLength) throws IOException {
         slots.clear();
-        int nSlots = inputStream.readInt();
-        for (int i = 0; i < nSlots; i++) {
+        long dataLengthRead = 0;
+        while (dataLengthRead < dataLength) {
             IChunkPointer pointer = new ChunkPointer(that.getLevel() - 1);
             pointer.read(inputStream);
+            dataLengthRead += pointer.getDataLength();
             addBlobPointer(pointer);
+        }
+        if (dataLengthRead != dataLength) {
+            throw new IOException("Chunk container node addresses " + dataLengthRead + " bytes but " + dataLength
+                    + " bytes expected");
         }
         onDisk = true;
     }
@@ -188,9 +193,9 @@ public class ChunkContainerNode implements IChunk {
     protected void writeHeader(DataOutputStream outputStream) throws IOException {
 
     }
+
     @Override
     public void write(DataOutputStream outputStream) throws IOException {
-        outputStream.writeInt(slots.size());
         for (int i = 0; i < slots.size(); i++) {
             IChunkPointer pointer = slots.get(i);
             pointer.write(outputStream);
@@ -399,7 +404,7 @@ public class ChunkContainerNode implements IChunk {
         return new HashValue(CryptoHelper.sha256Hash(getData()));
     }
 
-    public BoxPointer getBoxPointer() {
+    protected BoxPointer getBoxPointer() {
         return that.getBoxPointer();
     }
 

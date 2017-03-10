@@ -102,7 +102,7 @@ public class ChunkContainerTest extends TestCase {
         return getSimpleAccessor(chunkStore);
     }
 
-    private ChunkContainer prepareContainer(String dirName, String name, ChunkSplitter nodeSplitter)
+    private ChunkContainer prepareContainer(String dirName, String name, ChunkContainerRef ref)
             throws IOException,
             CryptoException {
         cleanUpFiles.add(dirName);
@@ -112,12 +112,12 @@ public class ChunkContainerTest extends TestCase {
         final ChunkStore chunkStore = ChunkStore.create(dir, name);
 
         IChunkAccessor accessor = getAccessor(chunkStore);
-        ChunkContainer chunkContainer = new ChunkContainer(accessor, nodeSplitter);
+        ChunkContainer chunkContainer = new ChunkContainer(accessor, ref);
 
         return chunkContainer;
     }
 
-    private ChunkContainer openContainer(String dirName, String name, BoxPointer pointer)
+    private ChunkContainer openContainer(String dirName, String name, ChunkContainerRef pointer)
             throws IOException, CryptoException {
         final ChunkStore chunkStore = ChunkStore.open(new File(dirName), name);
         IChunkAccessor accessor = getAccessor(chunkStore);
@@ -138,8 +138,9 @@ public class ChunkContainerTest extends TestCase {
     public void testAppend() throws Exception {
         final String dirName = "testContainerDir";
         final String name = "test";
-        final ChunkSplitter chunkSplitter = new FixedBlockSplitter(64);
-        ChunkContainer chunkContainer = prepareContainer(dirName, name, chunkSplitter);
+        ChunkContainerRef ref = new ChunkContainerRef();
+        ref.getData().getContainerHeader().setFixedSizeChunking(177);
+        ChunkContainer chunkContainer = prepareContainer(dirName, name, ref);
 
         chunkContainer.append(new DataChunk("Hello".getBytes()));
         chunkContainer.append(new DataChunk(" World!".getBytes()));
@@ -167,7 +168,7 @@ public class ChunkContainerTest extends TestCase {
 
         // load
         System.out.println("Load:");
-        BoxPointer rootPointer = chunkContainer.getBoxPointer();
+        ChunkContainerRef rootPointer = chunkContainer.getRef();
 
         chunkContainer = openContainer(dirName, name, rootPointer);
         System.out.println(chunkContainer.printAll());
@@ -179,7 +180,7 @@ public class ChunkContainerTest extends TestCase {
         printStream(inputStream);
 
         // test output stream
-        chunkContainer = prepareContainer(dirName, name, chunkSplitter);
+        chunkContainer = prepareContainer(dirName, name, ref);
         ChunkContainerOutputStream containerOutputStream = new ChunkContainerOutputStream(chunkContainer, splitter);
         containerOutputStream.write("Chunk1".getBytes());
         containerOutputStream.flush();
@@ -195,8 +196,9 @@ public class ChunkContainerTest extends TestCase {
     public void testEditing() throws Exception {
         final String dirName = "testContainerDir";
         final String name = "test";
-        final ChunkSplitter chunkSplitter = new FixedBlockSplitter(64);
-        ChunkContainer chunkContainer = prepareContainer(dirName, name, chunkSplitter);
+        ChunkContainerRef ref = new ChunkContainerRef();
+        ref.getData().getContainerHeader().setFixedSizeChunking(180);
+        ChunkContainer chunkContainer = prepareContainer(dirName, name, ref);
 
         chunkContainer.append(new DataChunk("Hello".getBytes()));
         System.out.println(chunkContainer.printAll());
@@ -219,8 +221,9 @@ public class ChunkContainerTest extends TestCase {
         final String dirName = "testHashDir";
         final String name = "test";
         final ChunkSplitter dataSplitter = new FixedBlockSplitter(2);
-        final ChunkSplitter nodeSplitter = new FixedBlockSplitter(64);
-        ChunkContainer chunkContainer = prepareContainer(dirName, name, nodeSplitter);
+        ChunkContainerRef ref = new ChunkContainerRef();
+        ref.getData().getContainerHeader().setFixedSizeChunking(180);
+        ChunkContainer chunkContainer = prepareContainer(dirName, name, ref);
 
         chunkContainer.append(new DataChunk("11".getBytes()));
         chunkContainer.append(new DataChunk("22".getBytes()));
@@ -231,7 +234,7 @@ public class ChunkContainerTest extends TestCase {
         chunkContainer.flush(false);
         System.out.println(chunkContainer.printAll());
 
-        ChunkHash chunkHash = new ChunkHash(dataSplitter, nodeSplitter);
+        ChunkHash chunkHash = new ChunkHash(dataSplitter, chunkContainer.getNodeSplitter());
         chunkHash.update("11".getBytes());
         chunkHash.update("44".getBytes());
         chunkHash.update("22".getBytes());
@@ -265,8 +268,9 @@ public class ChunkContainerTest extends TestCase {
         final String name = "test";
         final String dataString = "1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|";
         final ChunkSplitter dataSplitter = createByteTriggerSplitter((byte)'|');
-        final ChunkSplitter nodeSplitter = new RabinSplitter(128, 48);
-        ChunkContainer chunkContainer = prepareContainer(dirName, name, nodeSplitter);
+        ChunkContainerRef ref = new ChunkContainerRef();
+        ref.getContainerHeader().setRabinChunking(256, 180);
+        ChunkContainer chunkContainer = prepareContainer(dirName, name, ref);
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         for (byte c : dataString.getBytes()) {
             outputStream.write(c);
@@ -286,7 +290,7 @@ public class ChunkContainerTest extends TestCase {
         assertEquals(newString, "1|2|3|i4|4|5|6|7|8|9|10|11|12|13|14|15|");
         System.out.println(chunkContainer.printAll());
 
-        ChunkHash chunkHash = new ChunkHash(dataSplitter, nodeSplitter);
+        ChunkHash chunkHash = new ChunkHash(dataSplitter, chunkContainer.getNodeSplitter());
         chunkHash.update(newString.getBytes());
         assertTrue(Arrays.equals(chunkContainer.hash().getBytes(), chunkHash.digest()));
     }
@@ -295,8 +299,9 @@ public class ChunkContainerTest extends TestCase {
         final String dirName = "testSeekOutputStreamDir";
         final String name = "test";
         final ChunkSplitter dataSplitter = createByteTriggerSplitter((byte)'|');
-        final ChunkSplitter nodeSplitter = new RabinSplitter(128, 48);
-        ChunkContainer chunkContainer = prepareContainer(dirName, name, nodeSplitter);
+        ChunkContainerRef ref = new ChunkContainerRef();
+        ref.getContainerHeader().setRabinChunking(256, 180);
+        ChunkContainer chunkContainer = prepareContainer(dirName, name, ref);
         ChunkContainerOutputStream outputStream = new ChunkContainerOutputStream(chunkContainer, dataSplitter);
         outputStream.write("1|2|3|4|".getBytes());
         outputStream.close();
@@ -312,7 +317,7 @@ public class ChunkContainerTest extends TestCase {
         assertEquals("1|2|3|4|5|6|", toString(new ChunkContainerInputStream(chunkContainer)));
 
         // overwrite + append: "1|2|3|4|" -> "1|2|3|i|5|6|"
-        chunkContainer = prepareContainer(dirName, name, nodeSplitter);
+        chunkContainer = prepareContainer(dirName, name, ref);
         outputStream = new ChunkContainerOutputStream(chunkContainer, dataSplitter);
         outputStream.write("1|2|3|4|".getBytes());
         outputStream.close();
@@ -323,7 +328,7 @@ public class ChunkContainerTest extends TestCase {
         assertEquals("1|2|3|i|5|6|", toString(new ChunkContainerInputStream(chunkContainer)));
 
         // overwrite + append: "1|2|3|4|" -> "1|2|iii|5|6|"
-        chunkContainer = prepareContainer(dirName, name, nodeSplitter);
+        chunkContainer = prepareContainer(dirName, name, ref);
         outputStream = new ChunkContainerOutputStream(chunkContainer, dataSplitter);
         outputStream.write("1|2|3|4|".getBytes());
         outputStream.close();
@@ -334,7 +339,7 @@ public class ChunkContainerTest extends TestCase {
         assertEquals("1|2|iii|5|6|", toString(new ChunkContainerInputStream(chunkContainer)));
 
         //"1|2|3|4|" -> "1|i|i|4|"
-        chunkContainer = prepareContainer(dirName, name, nodeSplitter);
+        chunkContainer = prepareContainer(dirName, name, ref);
         outputStream = new ChunkContainerOutputStream(chunkContainer, dataSplitter);
         outputStream.write("1|2|3|4|".getBytes());
         outputStream.close();
@@ -344,7 +349,7 @@ public class ChunkContainerTest extends TestCase {
         outputStream.close();
         assertEquals("1|i|i|4|", toString(new ChunkContainerInputStream(chunkContainer)));
         // try again but with a shorter overwrite:
-        chunkContainer = prepareContainer(dirName, name, nodeSplitter);
+        chunkContainer = prepareContainer(dirName, name, ref);
         outputStream = new ChunkContainerOutputStream(chunkContainer, dataSplitter);
         outputStream.write("1|2|3|4|".getBytes());
         outputStream.close();
@@ -355,7 +360,7 @@ public class ChunkContainerTest extends TestCase {
         assertEquals("1|i|i|4|", toString(new ChunkContainerInputStream(chunkContainer)));
 
         //"1|222|3|" -> "1|i|i|3|"
-        chunkContainer = prepareContainer(dirName, name, nodeSplitter);
+        chunkContainer = prepareContainer(dirName, name, ref);
         outputStream = new ChunkContainerOutputStream(chunkContainer, dataSplitter);
         outputStream.write("1|222|3|".getBytes());
         outputStream.close();
@@ -365,7 +370,7 @@ public class ChunkContainerTest extends TestCase {
         outputStream.close();
         assertEquals("1|i|i|3|", toString(new ChunkContainerInputStream(chunkContainer)));
         // try again but with a shorter overwrite:
-        chunkContainer = prepareContainer(dirName, name, nodeSplitter);
+        chunkContainer = prepareContainer(dirName, name, ref);
         outputStream = new ChunkContainerOutputStream(chunkContainer, dataSplitter);
         outputStream.write("1|222|3|".getBytes());
         outputStream.close();
@@ -376,7 +381,7 @@ public class ChunkContainerTest extends TestCase {
         assertEquals("1|i|i|3|", toString(new ChunkContainerInputStream(chunkContainer)));
 
         //"1|222|3|" -> "1|i|2|3|"
-        chunkContainer = prepareContainer(dirName, name, nodeSplitter);
+        chunkContainer = prepareContainer(dirName, name, ref);
         outputStream = new ChunkContainerOutputStream(chunkContainer, dataSplitter);
         outputStream.write("1|222|3|".getBytes());
         outputStream.close();
@@ -387,7 +392,7 @@ public class ChunkContainerTest extends TestCase {
         assertEquals("1|i|2|3|", toString(new ChunkContainerInputStream(chunkContainer)));
 
         //"1|2222|3|" -> "1|2i|2|3|"
-        chunkContainer = prepareContainer(dirName, name, nodeSplitter);
+        chunkContainer = prepareContainer(dirName, name, ref);
         outputStream = new ChunkContainerOutputStream(chunkContainer, dataSplitter);
         outputStream.write("1|2222|3|".getBytes());
         outputStream.close();
@@ -398,7 +403,7 @@ public class ChunkContainerTest extends TestCase {
         assertEquals("1|2i|2|3|", toString(new ChunkContainerInputStream(chunkContainer)));
 
         //"1|222|3|" -> "1|2i2|3|"
-        chunkContainer = prepareContainer(dirName, name, nodeSplitter);
+        chunkContainer = prepareContainer(dirName, name, ref);
         outputStream = new ChunkContainerOutputStream(chunkContainer, dataSplitter);
         outputStream.write("1|222|3|".getBytes());
         outputStream.close();
@@ -420,22 +425,23 @@ public class ChunkContainerTest extends TestCase {
 
         final String dirName = "testSeekOutputStreamEditingLarge";
         final String name = "test";
-        final ChunkSplitter dataSplitter = new RabinSplitter(RabinSplitter.CHUNK_8KB, 128);
-        final ChunkSplitter nodeSplitter = new RabinSplitter(RabinSplitter.CHUNK_8KB, 128);
-        ChunkHash chunkHash = new ChunkHash(dataSplitter, nodeSplitter);
-        chunkHash.update(data);
-        final HashValue dataHash = new HashValue(chunkHash.digest());
-
-        ChunkContainer chunkContainer = prepareContainer(dirName, name, nodeSplitter);
-        ChunkContainerOutputStream outputStream = new ChunkContainerOutputStream(chunkContainer, dataSplitter);
+        ChunkContainerRef ref = new ChunkContainerRef();
+        ref.getContainerHeader().setRabinChunking(ChunkContainerHeader.ChunkingType.RABIN_SPLITTER_2K_8K);
+        ChunkContainer chunkContainer = prepareContainer(dirName, name, ref);
+        ChunkContainerOutputStream outputStream = new ChunkContainerOutputStream(chunkContainer,
+                chunkContainer.getChunkSplitter());
         outputStream.write(data);
         outputStream.close();
         chunkContainer.flush(false);
 
+        ChunkHash chunkHash = new ChunkHash(chunkContainer.getChunkSplitter(), chunkContainer.getNodeSplitter());
+        chunkHash.update(data);
+        final HashValue dataHash = new HashValue(chunkHash.digest());
+
         // verify
-        chunkContainer = openContainer(dirName, name, chunkContainer.getBoxPointer());
+        chunkContainer = openContainer(dirName, name, chunkContainer.getRef());
         Iterator<ChunkContainer.DataChunkPointer> iter = chunkContainer.getChunkIterator(0);
-        chunkHash = new ChunkHash(dataSplitter, nodeSplitter);
+        chunkHash = new ChunkHash(chunkContainer.getChunkSplitter(), chunkContainer.getNodeSplitter());
         while (iter.hasNext()) {
             ChunkContainer.DataChunkPointer pointer = iter.next();
             chunkHash.update(pointer.getDataChunk().getData());

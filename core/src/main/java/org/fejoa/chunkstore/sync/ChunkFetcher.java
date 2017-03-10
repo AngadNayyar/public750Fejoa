@@ -57,9 +57,9 @@ abstract class Job {
 
 abstract class RootObjectJob extends Job {
     final protected IChunkAccessor accessor;
-    final protected BoxPointer boxPointer;
+    final protected ChunkContainerRef boxPointer;
 
-    public RootObjectJob(Job parent, IChunkAccessor accessor, BoxPointer pointer) {
+    public RootObjectJob(Job parent, IChunkAccessor accessor, ChunkContainerRef pointer) {
         super(parent);
 
         this.accessor = accessor;
@@ -68,7 +68,7 @@ abstract class RootObjectJob extends Job {
 
     @Override
     public Collection<HashValue> getRequestedChunks() {
-        return Collections.singleton(boxPointer.getBoxHash());
+        return Collections.singleton(boxPointer.getBox().getBoxHash());
     }
 }
 
@@ -104,7 +104,7 @@ class GetChunkContainerNodeJob extends Job {
 
 class GetChunkContainerJob extends RootObjectJob {
     protected ChunkContainer chunkContainer;
-    public GetChunkContainerJob(Job parent, IChunkAccessor accessor, BoxPointer pointer) {
+    public GetChunkContainerJob(Job parent, IChunkAccessor accessor, ChunkContainerRef pointer) {
         super(parent, accessor, pointer);
     }
 
@@ -120,8 +120,8 @@ class GetCommitJob extends GetChunkContainerJob {
     private IRepoChunkAccessors.ITransaction transaction;
     private CommitBox commitBox;
 
-    public GetCommitJob(Job parent, IRepoChunkAccessors.ITransaction transaction, BoxPointer pointer) {
-        super(parent, transaction.getCommitAccessor(), pointer);
+    public GetCommitJob(Job parent, IRepoChunkAccessors.ITransaction transaction, ChunkContainerRef pointer) {
+        super(parent, transaction.getCommitAccessor(pointer), pointer);
         this.transaction = transaction;
     }
 
@@ -138,8 +138,8 @@ class GetCommitJob extends GetChunkContainerJob {
         commitBox = CommitBox.read(chunkContainer);
 
         ChunkStore.Transaction rawTransaction = transaction.getRawAccessor();
-        for (BoxPointer parent : commitBox.getParents()) {
-            if (rawTransaction.contains(parent.getBoxHash()))
+        for (ChunkContainerRef parent : commitBox.getParents()) {
+            if (rawTransaction.contains(parent.getBox().getBoxHash()))
                 continue;
             chunkFetcher.enqueueJob(new GetCommitJob(this, transaction, parent));
         }
@@ -152,8 +152,8 @@ class GetDirJob extends GetChunkContainerJob {
     final private IRepoChunkAccessors.ITransaction transaction;
     final private String path;
 
-    public GetDirJob(Job parent, IRepoChunkAccessors.ITransaction transaction, BoxPointer pointer, String path) {
-        super(parent, transaction.getTreeAccessor(), pointer);
+    public GetDirJob(Job parent, IRepoChunkAccessors.ITransaction transaction, ChunkContainerRef pointer, String path) {
+        super(parent, transaction.getTreeAccessor(pointer), pointer);
 
         this.transaction = transaction;
         this.path = path;
@@ -168,11 +168,12 @@ class GetDirJob extends GetChunkContainerJob {
 
         ChunkStore.Transaction rawTransaction = transaction.getRawAccessor();
         for (FlatDirectoryBox.Entry entry : directoryBox.getEntries()) {
-            if (rawTransaction.contains(entry.getDataPointer().getBoxHash()))
+            if (rawTransaction.contains(entry.getDataPointer().getBox().getBoxHash()))
                 continue;
             if (entry.isFile()) {
                 chunkFetcher.enqueueJob(new GetChunkContainerJob(this,
-                        transaction.getFileAccessor(path + "/" + entry.getName()), entry.getDataPointer()));
+                        transaction.getFileAccessor(entry.getDataPointer(), path + "/" + entry.getName()),
+                        entry.getDataPointer()));
             } else {
                 chunkFetcher.enqueueJob(new GetDirJob(this, transaction, entry.getDataPointer(),
                         path + "/" + entry.getName()));
@@ -222,7 +223,7 @@ public class ChunkFetcher {
         this.fetcherBackend = fetcherBackend;
     }
 
-    public void enqueueGetCommitJob(IRepoChunkAccessors.ITransaction transaction, BoxPointer commitPointer) {
+    public void enqueueGetCommitJob(IRepoChunkAccessors.ITransaction transaction, ChunkContainerRef commitPointer) {
         enqueueJob(new GetCommitJob(null, transaction, commitPointer));
     }
 

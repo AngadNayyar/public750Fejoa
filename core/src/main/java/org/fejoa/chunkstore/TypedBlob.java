@@ -7,58 +7,81 @@
  */
 package org.fejoa.chunkstore;
 
-
 import org.fejoa.library.crypto.CryptoException;
-import org.fejoa.library.crypto.CryptoHelper;
 
 import java.io.*;
-import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+
+/**
+ * Blob to be written to a ChunkContainer.
+ */
 abstract public class TypedBlob {
     final protected short type;
+    private ChunkContainerRef ref;
 
     protected TypedBlob(short type) {
         this.type = type;
     }
 
-    public void read(DataInputStream inputStream) throws IOException {
-        short t = inputStream.readShort();
-        assert t == type;
-        readInternal(inputStream);
+    public ChunkContainerRef getRef() {
+        return ref;
     }
 
-    abstract protected void readInternal(DataInputStream inputStream) throws IOException;
-    abstract protected void writeInternal(DataOutputStream outputStream) throws IOException, CryptoException;
+    public void setRef(ChunkContainerRef ref) {
+        this.ref = ref;
+    }
 
-    public void write(DataOutputStream outputStream) throws IOException, CryptoException {
+    abstract protected void readInternal(DataInputStream inputStream, MessageDigest messageDigest) throws IOException;
+
+    /**
+     * Write the blob content to the outputStream.
+     *
+     * @param outputStream
+     * @return the HashValue associated with the plain data.
+     * @throws IOException
+     * @throws CryptoException
+     */
+    abstract protected HashValue writeInternal(DataOutputStream outputStream, MessageDigest messageDigest)
+            throws IOException, CryptoException;
+
+    public void read(DataInputStream inputStream, ChunkContainerRef ref) throws IOException {
+        this.ref = ref;
+        short t = inputStream.readShort();
+        assert t == type;
+        MessageDigest messageDigest;
+        try {
+            messageDigest = ref.getDataMessageDigest();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IOException(e);
+        }
+        readInternal(inputStream, messageDigest);
+    }
+
+    /**
+     *
+     * @param outputStream
+     * @return the HashValue associated with the plain data.
+     * @throws IOException
+     * @throws CryptoException
+     */
+    public HashValue write(DataOutputStream outputStream, ChunkContainerRef ref)
+            throws IOException, CryptoException {
+        this.ref = ref;
         outputStream.writeShort(type);
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         DataOutputStream dataOut = new DataOutputStream(byteArrayOutputStream);
-        writeInternal(dataOut);
+        MessageDigest messageDigest;
+        try {
+            messageDigest = ref.getDataMessageDigest();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IOException(e);
+        }
+        HashValue dataHash = writeInternal(dataOut, messageDigest);
         dataOut.close();
         byte[] data = byteArrayOutputStream.toByteArray();
         outputStream.write(data);
-    }
-
-    public HashValue rawHash() throws IOException, CryptoException {
-        MessageDigest messageDigest;
-        try {
-            messageDigest = CryptoHelper.sha256Hash();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-            throw new RuntimeException();
-        }
-
-        DigestOutputStream digestOutputStream = new DigestOutputStream(new OutputStream() {
-            @Override
-            public void write(int i) throws IOException {
-
-            }
-        }, messageDigest);
-        DataOutputStream outputStream = new DataOutputStream(digestOutputStream);
-        write(outputStream);
-        return new HashValue(messageDigest.digest());
+        return dataHash;
     }
 }

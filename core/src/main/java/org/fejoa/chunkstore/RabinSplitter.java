@@ -47,7 +47,7 @@ public class RabinSplitter extends ChunkSplitter {
     final private int maxChunkSize;
 
     public RabinSplitter(int targetChunkSize, int minChunkSize) {
-        this(targetChunkSize, minChunkSize, 2 * targetChunkSize);
+        this(targetChunkSize, minChunkSize, Integer.MAX_VALUE);
     }
 
     public RabinSplitter(int targetChunkSize, int minChunkSize, int maxChunkSize) {

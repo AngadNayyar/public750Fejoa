@@ -37,8 +37,8 @@ public class StorageDirDiffView extends ListView<String>{
             CommitBox baseCommit = repository.getCommitCache().getCommit(startCommit);
             CommitBox endCommit = repository.getCommitCache().getCommit(parent);
 
-            IChunkAccessor treeAccessor = repository.getCurrentTransaction().getTreeAccessor();
-            TreeIterator diffIterator = new TreeIterator(treeAccessor, endCommit, treeAccessor, baseCommit);
+            IRepoChunkAccessors.ITransaction transaction = repository.getCurrentTransaction();
+            TreeIterator diffIterator = new TreeIterator(transaction, endCommit, transaction, baseCommit);
             while (diffIterator.hasNext()) {
                 DiffIterator.Change<FlatDirectoryBox.Entry> change = diffIterator.next();
                 switch (change.type) {

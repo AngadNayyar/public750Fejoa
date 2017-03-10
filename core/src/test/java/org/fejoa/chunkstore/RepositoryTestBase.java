@@ -11,6 +11,7 @@ import junit.framework.TestCase;
 import org.apache.commons.codec.binary.Base64;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.crypto.CryptoHelper;
+import org.fejoa.library.database.CSRepositoryBuilder;
 import org.fejoa.library.support.StorageLib;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -39,19 +40,19 @@ public class RepositoryTestBase extends TestCase {
         }
 
         String content;
-        BoxPointer boxPointer;
+        ChunkContainerRef boxPointer;
     }
 
     static class TestDirectory {
         Map<String, TestFile> files = new HashMap<>();
         Map<String, TestDirectory> dirs = new HashMap<>();
-        BoxPointer boxPointer;
+        ChunkContainerRef boxPointer;
     }
 
     static class TestCommit {
         String message;
         TestDirectory directory;
-        BoxPointer boxPointer;
+        ChunkContainerRef boxPointer;
     }
 
     protected class DatabaseStingEntry {
@@ -64,51 +65,7 @@ public class RepositoryTestBase extends TestCase {
         }
     }
 
-    protected ICommitCallback simpleCommitCallback = new ICommitCallback() {
-        static final String DATA_HASH_KEY = "dataHash";
-        static final String BOX_HASH_KEY = "boxHash";
-        static final String IV_KEY = "iv";
-
-        @Override
-        public HashValue logHash(BoxPointer commitPointer) {
-            try {
-                MessageDigest digest = CryptoHelper.sha256Hash();
-                digest.update(commitPointer.getBoxHash().getBytes());
-                digest.update(commitPointer.getIV());
-                return new HashValue(digest.digest());
-            } catch (NoSuchAlgorithmException e) {
-                throw new RuntimeException("Missing sha256");
-            }
-        }
-
-        @Override
-        public String commitPointerToLog(BoxPointer commitPointer) {
-            JSONObject jsonObject = new JSONObject();
-            try {
-                jsonObject.put(DATA_HASH_KEY, commitPointer.getDataHash().toHex());
-                jsonObject.put(BOX_HASH_KEY, commitPointer.getBoxHash().toHex());
-                jsonObject.put(IV_KEY, Base64.encodeBase64String(commitPointer.getIV()));
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-            String jsonString = jsonObject.toString();
-            return Base64.encodeBase64String(jsonString.getBytes());
-        }
-
-        @Override
-        public BoxPointer commitPointerFromLog(String logEntry) {
-            String jsonString = new String(Base64.decodeBase64(logEntry));
-            try {
-                JSONObject jsonObject = new JSONObject(jsonString);
-                return new BoxPointer(HashValue.fromHex(jsonObject.getString(DATA_HASH_KEY)),
-                        HashValue.fromHex(jsonObject.getString(BOX_HASH_KEY)),
-                        Base64.decodeBase64(jsonObject.getString(IV_KEY)));
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-            return null;
-        }
-    };
+    protected ICommitCallback simpleCommitCallback = CSRepositoryBuilder.getSimpleCommitCallback();
 
     protected void add(Repository database, Map<String, DatabaseStingEntry> content, DatabaseStingEntry entry)
             throws Exception {

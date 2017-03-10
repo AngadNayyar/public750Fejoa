@@ -14,7 +14,7 @@ import java.io.IOException;
 
 public interface IChunkPointer {
     int getPointerLength();
-    int getDataLength();
+    long getDataLength();
     BoxPointer getBoxPointer();
     void setBoxPointer(BoxPointer boxPointer);
     void read(DataInputStream inputStream) throws IOException;

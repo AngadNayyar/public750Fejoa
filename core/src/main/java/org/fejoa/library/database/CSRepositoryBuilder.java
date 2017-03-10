@@ -7,7 +7,6 @@
  */
 package org.fejoa.library.database;
 
-import org.fejoa.library.Constants;
 import org.fejoa.library.FejoaContext;
 import org.fejoa.library.SymmetricKeyData;
 import org.fejoa.library.crypto.CryptoException;
@@ -15,17 +14,16 @@ import org.fejoa.library.crypto.CryptoHelper;
 import org.fejoa.library.crypto.ICryptoInterface;
 import org.apache.commons.codec.binary.Base64;
 import org.fejoa.chunkstore.*;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.zip.DeflaterOutputStream;
+import java.util.zip.InflaterInputStream;
 
 
 public class CSRepositoryBuilder {
-
     static public Repository openOrCreate(final FejoaContext context, File dir, String branch, HashValue commit,
                                           SymmetricKeyData keyData) throws IOException, CryptoException {
         ChunkStore chunkStore;
@@ -44,8 +42,8 @@ public class CSRepositoryBuilder {
         return openOrCreate(context, dir, branch, null, keyData);
     }
 
-    private static ICommitCallback getCommitCallback(final FejoaContext context,
-                                                                SymmetricKeyData keyData) {
+    static public ICommitCallback getCommitCallback(final FejoaContext context,
+                                                     SymmetricKeyData keyData) {
         if (keyData == null)
             return getSimpleCommitCallback();
         if (keyData instanceof SymmetricKeyData)
@@ -53,12 +51,42 @@ public class CSRepositoryBuilder {
         throw new RuntimeException("Don't know how to create the commit callback.");
     }
 
-    static final String DATA_HASH_KEY = "dataHash";
-    static final String BOX_HASH_KEY = "boxHash";
-    static final String BOX_IV_KEY = "boxIV";
+    final static private int DATA_TAG = 0;
+    final static private int BOX_TAG = 1;
+
+    private static byte[] commitPointerToLog(ChunkContainerRef commitPointer) throws IOException {
+        ProtocolBufferLight buffer = new ProtocolBufferLight();
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        commitPointer.getData().write(outputStream);
+        buffer.put(DATA_TAG, outputStream.toByteArray());
+
+        outputStream = new ByteArrayOutputStream();
+        commitPointer.getBox().write(outputStream);
+        buffer.put(BOX_TAG, outputStream.toByteArray());
+
+        return buffer.toByteArray();
+    }
+
+    private static ChunkContainerRef commitPointerFromLog(byte[] bytes) throws IOException {
+        ProtocolBufferLight buffer = new ProtocolBufferLight(bytes);
+        ChunkContainerRef ref = new ChunkContainerRef();
+        byte[] dataBytes = buffer.getBytes(DATA_TAG);
+        if (dataBytes == null)
+            throw new IOException("Missing data part");
+        ref.getData().read(new ByteArrayInputStream(dataBytes));
+
+        byte[] boxBytes = buffer.getBytes(BOX_TAG);
+        if (boxBytes == null)
+            throw new IOException("Missing data part");
+        ref.getBox().read(new ByteArrayInputStream(boxBytes));
+        return ref;
+    }
+
+    static final int TAG_IV = 0;
+    static final int TAG_ENCDATA = 1;
 
     private static ICommitCallback getEncCommitCallback(final FejoaContext context,
-                                                                   final SymmetricKeyData keyData) {
+                                                        final SymmetricKeyData keyData) {
         return new ICommitCallback() {
             byte[] encrypt(byte[] plain, byte[] iv) throws CryptoException {
                 ICryptoInterface cryptoInterface = context.getCrypto();
@@ -71,11 +99,11 @@ public class CSRepositoryBuilder {
             }
 
             @Override
-            public HashValue logHash(BoxPointer commitPointer) {
+            public HashValue logHash(ChunkContainerRef commitPointer) {
                 try {
                     MessageDigest digest = CryptoHelper.sha256Hash();
-                    digest.update(commitPointer.getBoxHash().getBytes());
-                    digest.update(commitPointer.getIV());
+                    digest.update(commitPointer.getBox().getBoxHash().getBytes());
+                    digest.update(commitPointer.getBox().getIV());
                     return new HashValue(digest.digest());
                 } catch (NoSuchAlgorithmException e) {
                     throw new RuntimeException("Missing sha256");
@@ -83,41 +111,30 @@ public class CSRepositoryBuilder {
             }
 
             @Override
-            public String commitPointerToLog(BoxPointer commitPointer) throws CryptoException {
-                JSONObject jsonObject = new JSONObject();
+            public String commitPointerToLog(ChunkContainerRef commitPointer) throws CryptoException {
+                ProtocolBufferLight protoBuffer = new ProtocolBufferLight();
                 try {
-                    jsonObject.put(DATA_HASH_KEY, commitPointer.getDataHash().toHex());
-                    jsonObject.put(BOX_HASH_KEY, commitPointer.getBoxHash().toHex());
-                    jsonObject.put(BOX_IV_KEY, Base64.encodeBase64String(commitPointer.getIV()));
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-                byte[] iv = context.getCrypto().generateInitializationVector(keyData.settings.ivSize);
-                String encryptedMessage = Base64.encodeBase64String(encrypt(jsonObject.toString().getBytes(), iv));
+                    byte[] buffer = CSRepositoryBuilder.commitPointerToLog(commitPointer);
 
-                JSONObject out = new JSONObject();
-                try {
-                    out.put(Constants.IV_KEY, Base64.encodeBase64String(iv));
-                    out.put(Constants.MESSAGE_KEY, encryptedMessage);
-                } catch (JSONException e) {
+                    byte[] iv = context.getCrypto().generateInitializationVector(keyData.settings.ivSize);
+                    byte[] encryptedMessage = encrypt(buffer, iv);
+                    protoBuffer.put(TAG_IV, iv);
+                    protoBuffer.put(TAG_ENCDATA, encryptedMessage);
+                    return Base64.encodeBase64String(protoBuffer.toByteArray());
+                } catch (IOException e) {
                     e.printStackTrace();
                     throw new RuntimeException("Should not happen (?)");
                 }
-                return Base64.encodeBase64String(out.toString().getBytes());
             }
 
             @Override
-            public BoxPointer commitPointerFromLog(String logEntry) throws CryptoException {
-                String jsonString = new String(Base64.decodeBase64(logEntry));
+            public ChunkContainerRef commitPointerFromLog(String logEntry) throws CryptoException {
                 try {
-                    JSONObject in = new JSONObject(jsonString);
-                    byte[] iv = Base64.decodeBase64(in.getString(Constants.IV_KEY));
-                    byte[] plain = decrypt(Base64.decodeBase64(in.getString(Constants.MESSAGE_KEY)), iv);
-                    JSONObject jsonObject = new JSONObject(new String(plain));
-                    return new BoxPointer(HashValue.fromHex(jsonObject.getString(DATA_HASH_KEY)),
-                            HashValue.fromHex(jsonObject.getString(BOX_HASH_KEY)),
-                            Base64.decodeBase64(jsonObject.getString(BOX_IV_KEY)));
-                } catch (JSONException e) {
+                    ProtocolBufferLight protoBuffer = new ProtocolBufferLight(Base64.decodeBase64(logEntry));
+                    byte[] iv = protoBuffer.getBytes(TAG_IV);
+                    byte[] plain = decrypt(protoBuffer.getBytes(TAG_ENCDATA), iv);
+                    return CSRepositoryBuilder.commitPointerFromLog(plain);
+                } catch (IOException e) {
                     e.printStackTrace();
                 }
                 return null;
@@ -125,37 +142,33 @@ public class CSRepositoryBuilder {
         };
     }
 
-    private static ICommitCallback getSimpleCommitCallback() {
+    public static ICommitCallback getSimpleCommitCallback() {
         return new ICommitCallback() {
             @Override
-            public HashValue logHash(BoxPointer commitPointer) {
-                return commitPointer.getBoxHash();
+            public HashValue logHash(ChunkContainerRef commitPointer) {
+                return commitPointer.getBox().getBoxHash();
             }
 
             @Override
-            public String commitPointerToLog(BoxPointer commitPointer) {
-                JSONObject jsonObject = new JSONObject();
+            public String commitPointerToLog(ChunkContainerRef commitPointer) {
                 try {
-                    jsonObject.put(DATA_HASH_KEY, commitPointer.getDataHash().toHex());
-                    jsonObject.put(BOX_HASH_KEY, commitPointer.getBoxHash().toHex());
-                    jsonObject.put(BOX_IV_KEY, Base64.encodeBase64String(commitPointer.getIV()));
-                } catch (JSONException e) {
+                    byte[] buffer = CSRepositoryBuilder.commitPointerToLog(commitPointer);
+                    return Base64.encodeBase64String(buffer);
+                } catch (IOException e) {
                     e.printStackTrace();
+                    assert false;
                 }
-                String jsonString = jsonObject.toString();
-                return Base64.encodeBase64String(jsonString.getBytes());
+                return null;
             }
 
             @Override
-            public BoxPointer commitPointerFromLog(String logEntry) {
-                String jsonString = new String(Base64.decodeBase64(logEntry));
+            public ChunkContainerRef commitPointerFromLog(String logEntry) {
+                byte[] logEntryBytes = Base64.decodeBase64(logEntry);
                 try {
-                    JSONObject jsonObject = new JSONObject(jsonString);
-                    return new BoxPointer(HashValue.fromHex(jsonObject.getString(DATA_HASH_KEY)),
-                            HashValue.fromHex(jsonObject.getString(BOX_HASH_KEY)),
-                            Base64.decodeBase64(jsonObject.getString(BOX_IV_KEY)));
-                } catch (JSONException e) {
+                    return CSRepositoryBuilder.commitPointerFromLog(logEntryBytes);
+                } catch (IOException e) {
                     e.printStackTrace();
+                    assert false;
                 }
                 return null;
             }
@@ -172,7 +185,8 @@ public class CSRepositoryBuilder {
 
     static private IChunkAccessor getEncryptionChunkAccessor(final FejoaContext context,
                                                              final ChunkStore.Transaction transaction,
-                                                             final SymmetricKeyData keyData) {
+                                                             final SymmetricKeyData keyData,
+                                                             final ChunkContainerRef ref) {
         return new IChunkAccessor() {
             final ICryptoInterface cryptoInterface = context.getCrypto();
 
@@ -188,17 +202,24 @@ public class CSRepositoryBuilder {
             @Override
             public DataInputStream getChunk(BoxPointer hash) throws IOException, CryptoException {
                 byte[] iv = getIv(hash.getIV());
-                return new DataInputStream(cryptoInterface.decryptSymmetric(new ByteArrayInputStream(
-                                transaction.getChunk(hash.getBoxHash())), keyData.key, iv, keyData.settings));
+                InputStream inputStream = new ByteArrayInputStream(transaction.getChunk(hash.getBoxHash()));
+                if (ref.getBoxHeader().getCompressionType() == BoxHeader.CompressionType.ZLIB_COMPRESSION)
+                    inputStream = new InflaterInputStream(inputStream);
+                return new DataInputStream(cryptoInterface.decryptSymmetric(inputStream, keyData.key, iv,
+                        keyData.settings));
             }
 
             @Override
             public PutResult<HashValue> putChunk(byte[] data, HashValue ivHash) throws IOException, CryptoException {
-                ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream();
+                OutputStream outputStream = byteOutputStream;
+                if (ref.getBoxHeader().getCompressionType() == BoxHeader.CompressionType.ZLIB_COMPRESSION)
+                    outputStream = new DeflaterOutputStream(outputStream);
                 OutputStream cryptoStream = cryptoInterface.encryptSymmetric(outputStream, keyData.key,
                         getIv(ivHash.getBytes()), keyData.settings);
                 cryptoStream.write(data);
-                return transaction.put(outputStream.toByteArray());
+                outputStream.close();
+                return transaction.put(byteOutputStream.toByteArray());
             }
 
             @Override
@@ -214,26 +235,24 @@ public class CSRepositoryBuilder {
             @Override
             public ITransaction startTransaction() throws IOException {
                 return new RepoAccessorsTransactionBase(chunkStore) {
-                    final IChunkAccessor accessor = getEncryptionChunkAccessor(context, transaction, keyData);
-
                     @Override
                     public ChunkStore.Transaction getRawAccessor() {
                         return transaction;
                     }
 
                     @Override
-                    public IChunkAccessor getCommitAccessor() {
-                        return accessor;
+                    public IChunkAccessor getCommitAccessor(ChunkContainerRef ref) {
+                        return getEncryptionChunkAccessor(context, transaction, keyData, ref);
                     }
 
                     @Override
-                    public IChunkAccessor getTreeAccessor() {
-                        return accessor;
+                    public IChunkAccessor getTreeAccessor(ChunkContainerRef ref) {
+                        return getEncryptionChunkAccessor(context, transaction, keyData, ref);
                     }
 
                     @Override
-                    public IChunkAccessor getFileAccessor(String filePath) {
-                        return accessor;
+                    public IChunkAccessor getFileAccessor(ChunkContainerRef ref, String filePath) {
+                        return getEncryptionChunkAccessor(context, transaction, keyData, ref);
                     }
                 };
             }
@@ -268,17 +287,17 @@ public class CSRepositoryBuilder {
                     }
 
                     @Override
-                    public IChunkAccessor getCommitAccessor() {
+                    public IChunkAccessor getCommitAccessor(ChunkContainerRef ref) {
                         return accessor;
                     }
 
                     @Override
-                    public IChunkAccessor getTreeAccessor() {
+                    public IChunkAccessor getTreeAccessor(ChunkContainerRef ref) {
                         return accessor;
                     }
 
                     @Override
-                    public IChunkAccessor getFileAccessor(String filePath) {
+                    public IChunkAccessor getFileAccessor(ChunkContainerRef ref, String filePath) {
                         return accessor;
                     }
                 };

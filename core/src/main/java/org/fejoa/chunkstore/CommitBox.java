@@ -7,25 +7,18 @@
  */
 package org.fejoa.chunkstore;
 
-import org.fejoa.library.crypto.CryptoHelper;
 import org.fejoa.library.crypto.CryptoException;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 
-public class CommitBox extends TypedBlob {
-    private BoxPointer that;
-    private BoxPointer tree;
-    final private List<BoxPointer> parents = new ArrayList<>();
-    final private Map<BoxPointer, CommitBox> parentCache = new HashMap<>();
+public class CommitBox extends ChunkContainerRefBox {
+    private ChunkContainerRef tree;
+    final private List<ChunkContainerRef> parents = new ArrayList<>();
     private byte[] commitMessage;
 
     private CommitBox() {
@@ -33,34 +26,35 @@ public class CommitBox extends TypedBlob {
     }
 
     static public CommitBox create() {
-        return new CommitBox();
+        CommitBox commitBox = new CommitBox();
+        commitBox.setRef(new ChunkContainerRef());
+        return commitBox;
     }
 
-    static public CommitBox read(IChunkAccessor accessor, BoxPointer pointer)
+    static public CommitBox read(IChunkAccessor accessor, ChunkContainerRef ref)
             throws IOException, CryptoException {
-        ChunkContainer chunkContainer = ChunkContainer.read(accessor, pointer);
+        ChunkContainer chunkContainer = ChunkContainer.read(accessor, ref);
         return read(chunkContainer);
     }
 
     static public CommitBox read(ChunkContainer chunkContainer)
             throws IOException, CryptoException {
         return read(BlobTypes.COMMIT, new DataInputStream(new ChunkContainerInputStream(chunkContainer)),
-                chunkContainer.getBoxPointer());
+                chunkContainer.getRef());
     }
 
-    static private CommitBox read(short type, DataInputStream inputStream, BoxPointer that) throws IOException {
+    static private CommitBox read(short type, DataInputStream inputStream, ChunkContainerRef ref) throws IOException {
         assert type == BlobTypes.COMMIT;
         CommitBox commitBox = new CommitBox();
-        commitBox.that = that;
-        commitBox.read(inputStream);
+        commitBox.read(inputStream, ref);
         return commitBox;
     }
 
-    public void setTree(BoxPointer tree) {
+    public void setTree(ChunkContainerRef tree) {
         this.tree = tree;
     }
 
-    public BoxPointer getTree() {
+    public ChunkContainerRef getTree() {
         return tree;
     }
 
@@ -72,43 +66,19 @@ public class CommitBox extends TypedBlob {
         return commitMessage;
     }
 
-    public void addParent(BoxPointer parent) {
+    public void addParent(ChunkContainerRef parent) {
         parents.add(parent);
     }
 
-    public CommitBox getParent(IChunkAccessor accessor, int i) throws IOException, CryptoException {
-        BoxPointer pointer = parents.get(i);
-        CommitBox parent = parentCache.get(pointer);
-        if (parent != null)
-            return parent;
-        parent = CommitBox.read(accessor, pointer);
-        parentCache.put(pointer, parent);
-        return parent;
-    }
-
-    public List<BoxPointer> getParents() {
+    public List<ChunkContainerRef> getParents() {
         return parents;
     }
 
-    public HashValue dataHash() {
-        try {
-            MessageDigest messageDigest = CryptoHelper.sha256Hash();
-            messageDigest.reset();
-            messageDigest.update(tree.getDataHash().getBytes());
-            for (BoxPointer parent : parents)
-                messageDigest.update(parent.getDataHash().getBytes());
-            messageDigest.update(commitMessage);
-            return new HashValue(messageDigest.digest());
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
-    }
-
     @Override
-    protected void readInternal(DataInputStream inputStream) throws IOException {
-        this.setTree(new BoxPointer());
-        this.getTree().read(inputStream);
+    protected void readPlain(DataInputStream inputStream, List<ChunkContainerRef> readRefs) throws IOException {
+        this.setTree(new ChunkContainerRef());
+        this.getTree().getData().read(inputStream);
+        readRefs.add(this.getTree());
 
         int commitMessageSize = inputStream.readInt();
         this.commitMessage = new byte[commitMessageSize];
@@ -116,23 +86,27 @@ public class CommitBox extends TypedBlob {
 
         short numberOfParents = inputStream.readShort();
         for (int i = 0; i < numberOfParents; i++) {
-            BoxPointer parent = new BoxPointer();
-            parent.read(inputStream);
+            ChunkContainerRef parent = new ChunkContainerRef();
+            parent.getData().read(inputStream);
             addParent(parent);
+            readRefs.add(parent);
         }
     }
 
     @Override
-    protected void writeInternal(DataOutputStream outputStream) throws IOException {
-        getTree().write(outputStream);
+    protected void writePlain(DataOutputStream outputStream, List<ChunkContainerRef> writtenRefs) throws IOException {
+        getTree().getData().write(outputStream);
+        writtenRefs.add(getTree());
 
         outputStream.writeInt(commitMessage.length);
         outputStream.write(commitMessage);
 
-        List<BoxPointer> parents = getParents();
+        List<ChunkContainerRef> parents = getParents();
         outputStream.writeShort(parents.size());
-        for (BoxPointer parent : parents)
-            parent.write(outputStream);
+        for (ChunkContainerRef parent : parents) {
+            parent.getData().write(outputStream);
+            writtenRefs.add(parent);
+        }
     }
 
     @Override
@@ -142,16 +116,8 @@ public class CommitBox extends TypedBlob {
         String out = "Tree: " + tree + "\n";
         out += "Commit data: " + new String(commitMessage) + "\n";
         out += "" + parents.size() + " parents: ";
-        for (int i = 0; i < parents.size(); i++)
-            out += "\n\t" + parents.get(i);
+        for (ChunkContainerRef parent : parents)
+            out += "\n\t" + parent;
         return out;
-    }
-
-    public void setBoxPointer(BoxPointer boxPointer) {
-        this.that = boxPointer;
-    }
-
-    public BoxPointer getBoxPointer() {
-        return that;
     }
 }

@@ -7,6 +7,7 @@
  */
 package org.fejoa.library.remote;
 
+import org.fejoa.chunkstore.CommitBox;
 import org.fejoa.chunkstore.HashValue;
 import org.fejoa.chunkstore.Repository;
 import org.fejoa.chunkstore.sync.RequestHandler;
@@ -314,19 +315,24 @@ class Syncer {
 
                     @Override
                     public void onResult(ChunkStorePullJob.Result result) {
-                        if (repository.getHeadCommit() == null)
-                            return;
                         if (result.status == RequestHandler.Result.ERROR.getValue()) {
-                            observer.onResult("uncommitted changes");
+                            observer.onResult("Failed to pull: " + result.message);
                             return;
                         }
                         try {
+                            CommitBox headCommit = repository.getHeadCommit();
+                            if (headCommit == null) {
+                                assert result.pulledRev.getDataHash().isZero();
+                                observer.onResult("Nothing to sync, tips are ZERO: " + id);
+                                return;
+                            }
+
                             HashValue tip = storageDir.getTip();
                             if (!result.pulledRev.getDataHash().isZero() && !result.oldTip.equals(tip))
                                 storageDir.onTipUpdated(result.oldTip, tip);
 
-                            if (repository.getHeadCommit().getBoxPointer().equals(result.pulledRev)) {
-                                observer.onResult("sync after pull: " + id);
+                            if (headCommit.getRef().getBoxPointer().equals(result.pulledRev)) {
+                                observer.onResult("Sync after pull: " + id);
                                 return;
                             }
                         } catch (IOException e) {

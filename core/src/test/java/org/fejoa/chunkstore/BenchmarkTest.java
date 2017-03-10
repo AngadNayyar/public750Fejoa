@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Random;
 
 
-public class BenchmarkTest  extends TestCase {
+public class BenchmarkTest extends TestCase {
     final List<String> cleanUpFiles = new ArrayList<String>();
     CryptoSettings settings = CryptoSettings.getDefault();
     ICryptoInterface cryptoInterface = new BCCryptoInterface();
@@ -101,7 +101,7 @@ public class BenchmarkTest  extends TestCase {
         return getSimpleAccessor(chunkStore);
     }
 
-    private ChunkContainer prepareContainer(String dirName, String name, ChunkSplitter nodeSplitter)
+    private ChunkContainer prepareContainer(String dirName, String name, ChunkContainerRef ref)
             throws IOException,
             CryptoException {
         cleanUpFiles.add(dirName);
@@ -111,17 +111,17 @@ public class BenchmarkTest  extends TestCase {
         final ChunkStore chunkStore = ChunkStore.create(dir, name);
 
         IChunkAccessor accessor = getAccessor(chunkStore);
-        ChunkContainer chunkContainer = new ChunkContainer(accessor, nodeSplitter);
+        ChunkContainer chunkContainer = new ChunkContainer(accessor, ref);
 
         return chunkContainer;
     }
 
-    private ChunkContainer openContainer(String dirName, String name, BoxPointer pointer, ChunkSplitter nodeSplitter) throws IOException,
+    private ChunkContainer openContainer(String dirName, String name, ChunkContainerRef ref)
+            throws IOException,
             CryptoException {
         final ChunkStore chunkStore = ChunkStore.open(new File(dirName), name);
         IChunkAccessor accessor = getAccessor(chunkStore);
-        ChunkContainer chunkContainer = ChunkContainer.read(accessor, pointer);
-        chunkContainer.setNodeSplitter(nodeSplitter);
+        ChunkContainer chunkContainer = ChunkContainer.read(accessor, ref);
         return chunkContainer;
     }
 
@@ -254,14 +254,13 @@ public class BenchmarkTest  extends TestCase {
             throws IOException, NoSuchAlgorithmException, CryptoException {
         final String dirName = "testWriteBenchmark";
         final String name = "test";
-        float kFactor = (32f) / (32 * 3 + 8);
         int minSize = 1024 * 2;
         int maxSize = 1024 * 512;
-        final ChunkSplitter dataSplitter = new RabinSplitter(RabinSplitter.CHUNK_8KB, minSize, maxSize);
-        final ChunkSplitter nodeSplitter = new RabinSplitter((int)(kFactor * RabinSplitter.CHUNK_8KB),
-                (int)(kFactor * minSize), (int)(kFactor * maxSize));
-        ChunkContainer chunkContainer = prepareContainer(dirName, name, nodeSplitter);
-        ChunkContainerOutputStream outputStream = new ChunkContainerOutputStream(chunkContainer, dataSplitter);
+        ChunkContainerRef ref = new ChunkContainerRef();
+        ref.getContainerHeader().setRabinChunking(minSize, maxSize);
+        ChunkContainer chunkContainer = prepareContainer(dirName, name, ref);
+        ChunkContainerOutputStream outputStream = new ChunkContainerOutputStream(chunkContainer,
+                chunkContainer.getChunkSplitter());
         // hack to avoid out of memory:
         final int copySize = 1024 * 1024 * 128;
         long startTime = System.currentTimeMillis();
@@ -281,12 +280,12 @@ public class BenchmarkTest  extends TestCase {
         chunkContainer.flush(false);
         System.out.println("Time to fill the chunk container: " + (System.currentTimeMillis() - startTime));
         assert chunkContainer.getDataLength() == data.length;
-        BoxPointer pointer = chunkContainer.getBoxPointer();
+        ChunkContainerRef pointer = chunkContainer.getRef();
 
         List<Result> results = new ArrayList<>();
         for (WriteJob job : jobList) {
-            chunkContainer = openContainer(dirName, name, pointer, nodeSplitter);
-            outputStream = new ChunkContainerOutputStream(chunkContainer, dataSplitter);
+            chunkContainer = openContainer(dirName, name, pointer);
+            outputStream = new ChunkContainerOutputStream(chunkContainer, chunkContainer.getChunkSplitter());
             System.out.println("Start write job:");
             for (WriteData writeData : job.writeDataList) {
                 System.out.println("Write data: " + writeData.toString());

@@ -1,17 +1,9 @@
 package gui;
 
-
 import javafx.application.Application;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
-import javafx.event.EventHandler;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-import javafx.stage.WindowEvent;
-import org.fejoa.chunkstore.BoxPointer;
-import org.fejoa.chunkstore.CommitBox;
-import org.fejoa.chunkstore.IRepoChunkAccessors;
-import org.fejoa.chunkstore.Repository;
+import org.fejoa.chunkstore.*;
 import org.fejoa.gui.javafx.HistoryListView;
 import org.fejoa.gui.javafx.JavaFXScheduler;
 import org.fejoa.library.FejoaContext;
@@ -51,14 +43,15 @@ public class HistoryViewTest extends Application {
 
         CommitBox branchCommit = CommitBox.create();
         branchCommit.setTree(base0.getTree());
-        branchCommit.addParent(base0.getBoxPointer());
+        branchCommit.addParent(base0.getRef());
         branchCommit.setCommitMessage("Branch Commit 1".getBytes());
         IRepoChunkAccessors.ITransaction transaction = repository.getAccessors().startTransaction();
-        BoxPointer commitPointer = Repository.put(branchCommit, transaction.getCommitAccessor(), true);
-        branchCommit.setBoxPointer(commitPointer);
+        ChunkContainerRef commitPointer = new ChunkContainerRef();
+        Repository.put(branchCommit, transaction.getCommitAccessor(commitPointer), commitPointer);
         repository.merge(transaction, branchCommit);
-        repository.commitInternal("Merge.", null, Collections.singletonList(branchCommit.getBoxPointer()));
-        storageDir.onTipUpdated(commit3.dataHash(), repository.getHeadCommit().dataHash());
+        repository.commitInternal("Merge.", null,
+                Collections.singletonList(branchCommit.getRef()));
+        storageDir.onTipUpdated(commit3.getPlainHash(), repository.getHeadCommit().getPlainHash());
 
         System.out.println(historyView.getHistoryList());
 

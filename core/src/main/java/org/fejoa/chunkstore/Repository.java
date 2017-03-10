@@ -52,12 +52,13 @@ public class Repository extends AsyncDatabase {
         return getSyncRepo().getBranchLog();
     }
 
-    public BoxPointer commitInternal(String message, ICommitSignature commitSignature,
-                               Collection<BoxPointer> mergeParents) throws IOException, CryptoException {
+    public ChunkContainerRef commitInternal(String message, ICommitSignature commitSignature,
+                               Collection<ChunkContainerRef> mergeParents) throws IOException, CryptoException {
         return getSyncRepo().commitInternal(message, commitSignature, mergeParents);
     }
 
-    public BoxPointer commitInternal(String message, ICommitSignature commitSignature) throws IOException, CryptoException {
+    public ChunkContainerRef commitInternal(String message, ICommitSignature commitSignature)
+            throws IOException, CryptoException {
         return getSyncRepo().commitInternal(message, commitSignature);
     }
 
@@ -73,9 +74,13 @@ public class Repository extends AsyncDatabase {
         return getSyncRepo().getCommitCache();
     }
 
-    public static BoxPointer put(TypedBlob blob, IChunkAccessor accessor, boolean compress)
+    public File getDir() {
+        return getSyncRepo().getDir();
+    }
+
+    public static ChunkContainerRef put(TypedBlob blob, IChunkAccessor accessor, ChunkContainerRef ref)
             throws IOException, CryptoException {
-        return SyncRepository.put(blob, accessor, compress);
+        return SyncRepository.put(blob, accessor, ref);
     }
 
     public IRepoChunkAccessors getAccessors() {

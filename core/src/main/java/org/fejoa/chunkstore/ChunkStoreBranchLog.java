@@ -7,9 +7,6 @@
  */
 package org.fejoa.chunkstore;
 
-import org.fejoa.library.support.FileLock;
-import org.fejoa.library.crypto.CryptoHelper;
-
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -130,7 +127,7 @@ public class ChunkStoreBranchLog {
                 entries.add(entry);
 
             if (entries.size() > 0)
-                latestRev = entries.get(0).rev + 1;
+                latestRev = entries.get(entries.size() - 1).rev + 1;
         } finally {
             unlock();
         }
@@ -172,7 +169,7 @@ public class ChunkStoreBranchLog {
             logfile.createNewFile();
         }
 
-        FileOutputStream outputStream = new FileOutputStream(logfile, false);
+        FileOutputStream outputStream = new FileOutputStream(logfile, true);
         try {
             entry.write(outputStream);
         } finally {

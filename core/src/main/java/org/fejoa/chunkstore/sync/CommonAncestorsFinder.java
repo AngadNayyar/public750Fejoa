@@ -7,9 +7,7 @@
  */
 package org.fejoa.chunkstore.sync;
 
-import org.fejoa.chunkstore.BoxPointer;
-import org.fejoa.chunkstore.CommitBox;
-import org.fejoa.chunkstore.IChunkAccessor;
+import org.fejoa.chunkstore.*;
 import org.fejoa.library.crypto.CryptoException;
 
 import java.io.IOException;
@@ -55,7 +53,8 @@ public class CommonAncestorsFinder {
     static public class Chains {
         final public List<SingleCommitChain> chains = new ArrayList<>();
 
-        protected void loadCommits(IChunkAccessor accessor, int numberOfCommits) throws IOException, CryptoException {
+        protected void loadCommits(IRepoChunkAccessors.ITransaction accessor, int numberOfCommits)
+                throws IOException, CryptoException {
             for (SingleCommitChain chain : new ArrayList<>(chains))
                 CommonAncestorsFinder.loadCommits(accessor, chain, numberOfCommits, this);
         }
@@ -81,28 +80,28 @@ public class CommonAncestorsFinder {
         }
     }
 
-    static private void loadCommits(IChunkAccessor accessor, SingleCommitChain commitChain,
+    static private void loadCommits(IRepoChunkAccessors.ITransaction transaction, SingleCommitChain commitChain,
                                     int numberOfCommits, Chains result) throws IOException, CryptoException {
         if (commitChain.reachedFirstCommit)
             return;
         CommitBox oldest = commitChain.getOldest();
         for (int i = 0; i < numberOfCommits; i++) {
-            List<BoxPointer> parents = oldest.getParents();
+            List<ChunkContainerRef> parents = oldest.getParents();
             if (parents.size() == 0) {
                 commitChain.reachedFirstCommit = true;
                 return;
             }
             for (int p = 1; p < parents.size(); p++) {
-                BoxPointer parent = parents.get(p);
+                ChunkContainerRef parent = parents.get(p);
                 SingleCommitChain clone = commitChain.clone();
-                CommitBox nextCommit = CommitBox.read(accessor, parent);
+                CommitBox nextCommit = CommitBox.read(transaction.getCommitAccessor(parent), parent);
                 clone.commits.add(nextCommit);
                 result.chains.add(clone);
                 // follow this chain for a bit so that we stay on the same depth level
-                loadCommits(accessor, clone, numberOfCommits - i - 1, result);
+                loadCommits(transaction, clone, numberOfCommits - i - 1, result);
             }
 
-            oldest = CommitBox.read(accessor, parents.get(0));
+            oldest = CommitBox.read(transaction.getCommitAccessor(parents.get(0)), parents.get(0));
             commitChain.commits.add(oldest);
         }
     }
@@ -111,14 +110,14 @@ public class CommonAncestorsFinder {
         //TODO: can be optimized by remembering which combinations we already checked, i.e. maintain a marker per chain
         for (CommitBox other : otherChain.commits) {
             for (CommitBox local : localChain.commits) {
-                if (local.dataHash().equals(other.dataHash()))
+                if (local.getPlainHash().equals(other.getPlainHash()))
                     return other;
             }
         }
         return null;
     }
 
-    static public Chains collectAllChains(IChunkAccessor local, CommitBox localCommit)
+    static public Chains collectAllChains(IRepoChunkAccessors.ITransaction local, CommitBox localCommit)
             throws IOException, CryptoException {
         Chains chains = new Chains();
         SingleCommitChain startCommitChain = new SingleCommitChain(localCommit);
@@ -127,8 +126,9 @@ public class CommonAncestorsFinder {
         return chains;
     }
 
-    static public Chains find(IChunkAccessor local, CommitBox localCommit,
-                              IChunkAccessor others, CommitBox othersCommit) throws IOException, CryptoException {
+    static public Chains find(IRepoChunkAccessors.ITransaction local, CommitBox localCommit,
+                              IRepoChunkAccessors.ITransaction others, CommitBox othersCommit)
+            throws IOException, CryptoException {
         assert localCommit != null;
         assert othersCommit != null;
         final int loadCommitsNumber = 3;

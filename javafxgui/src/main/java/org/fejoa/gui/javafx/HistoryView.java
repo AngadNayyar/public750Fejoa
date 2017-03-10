@@ -121,17 +121,17 @@ public class HistoryView extends SplitPane {
                 CommitBox commitBox = selectedItem.getCommitBox();
                 Repository repository = (Repository) historyView.getStorageDir().getDatabase();
                 List<HashValue> parents = new ArrayList<>();
-                IChunkAccessor commitAccessor = repository.getCurrentTransaction().getCommitAccessor();
-                for (BoxPointer parent : commitBox.getParents()) {
+                IRepoChunkAccessors.ITransaction transaction = repository.getCurrentTransaction();
+                for (ChunkContainerRef parent : commitBox.getParents()) {
                     try {
-                        CommitBox parentCommit = CommitBox.read(commitAccessor, parent);
-                        parents.add(parentCommit.dataHash());
+                        CommitBox parentCommit = CommitBox.read(transaction.getCommitAccessor(parent), parent);
+                        parents.add(parentCommit.getPlainHash());
                     } catch (Exception e) {
                         e.printStackTrace();
                         continue;
                     }
                 }
-                storageDirDiffView.setTo(repository, commitBox.dataHash(), parents);
+                storageDirDiffView.setTo(repository, commitBox.getPlainHash(), parents);
 
                 dirView.getRoot().getChildren().clear();
                 try {

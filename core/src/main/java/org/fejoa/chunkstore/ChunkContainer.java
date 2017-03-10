@@ -1,5 +1,5 @@
 /*
- * Copyright 2016.
+ * Copyright 2016-2017.
  * Distributed under the terms of the GPLv3 License.
  *
  * Authors:
@@ -14,15 +14,14 @@ import java.io.*;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.zip.DeflaterOutputStream;
-import java.util.zip.InflaterInputStream;
 
 
 class ChunkPointer implements IChunkPointer {
     // length of the "real" data, this is needed to find data for random access
     // Goal: don't rewrite previous blocks, support middle extents and make random access possible.
     // Using the data length makes this possible.
-    private int dataLength;
+    private long dataLength;
+    static final public int LENGTH_SIZE = 8;
     private BoxPointer boxPointer;
 
     private IChunk cachedChunk = null;
@@ -45,11 +44,15 @@ class ChunkPointer implements IChunkPointer {
 
     @Override
     public int getPointerLength() {
-        return BoxPointer.getPointerLength() + 4;
+        return getPointerLengthStatic();
+    }
+
+    static public int getPointerLengthStatic() {
+        return BoxPointer.getPointerLength() + LENGTH_SIZE;
     }
 
     @Override
-    public int getDataLength() {
+    public long getDataLength() {
         if (cachedChunk != null)
             dataLength = cachedChunk.getDataLength();
         return dataLength;
@@ -84,14 +87,12 @@ class ChunkPointer implements IChunkPointer {
     }
 
     public void read(DataInputStream inputStream) throws IOException {
-        int value = inputStream.readInt();
-        dataLength = value >> 1;
+        dataLength = inputStream.readLong();
         boxPointer.read(inputStream);
     }
 
     public void write(DataOutputStream outputStream) throws IOException {
-        int value = getDataLength() << 1;
-        outputStream.writeInt(value);
+        outputStream.writeLong(getDataLength());
         boxPointer.write(outputStream);
     }
 
@@ -190,61 +191,14 @@ class CacheManager {
     }
 }
 
+
 public class ChunkContainer extends ChunkContainerNode {
-
-    static public ChunkContainer read(IChunkAccessor blobAccessor, BoxPointer boxPointer)
+    static public ChunkContainer read(IChunkAccessor blobAccessor, ChunkContainerRef ref)
             throws IOException, CryptoException {
-        return new ChunkContainer(blobAccessor, boxPointer);
+        return new ChunkContainer(blobAccessor, blobAccessor.getChunk(ref.getBoxPointer()), ref);
     }
 
-    static class ChunkAccessor implements IChunkAccessor {
-        final private IChunkAccessor child;
-        private boolean compression = true;
-
-        public ChunkAccessor(IChunkAccessor child) {
-            this.child = child;
-        }
-
-        @Override
-        public DataInputStream getChunk(BoxPointer hash) throws IOException, CryptoException {
-            DataInputStream inputStream = child.getChunk(hash);
-            if (!compression)
-                return inputStream;
-            return getInputStream(inputStream);
-        }
-
-        @Override
-        public PutResult<HashValue> putChunk(byte[] data, HashValue ivHash) throws IOException, CryptoException {
-            if (compression) {
-                ByteArrayOutputStream dataOutputStream = new ByteArrayOutputStream();
-                DeflaterOutputStream outputStream = new DeflaterOutputStream(dataOutputStream);
-                outputStream.write(data);
-                outputStream.close();
-                data = dataOutputStream.toByteArray();
-            }
-            return child.putChunk(data, ivHash);
-        }
-
-        @Override
-        public void releaseChunk(HashValue data) {
-            child.releaseChunk(data);
-        }
-
-        public DataOutputStream getOutputStream(DataOutputStream outputStream) {
-            if (!compression)
-                return outputStream;
-            return new DataOutputStream(new DeflaterOutputStream(outputStream));
-        }
-
-        public DataInputStream getInputStream(DataInputStream inputStream) {
-            if (!compression)
-                return inputStream;
-            return new DataInputStream(new InflaterInputStream(inputStream));
-        }
-    }
-
-    final private ChunkAccessor chunkContainerAccessor;
-    final private Config config = new Config();
+    final private ChunkContainerRef ref;
     final private CacheManager cacheManager;
 
     /**
@@ -252,57 +206,67 @@ public class ChunkContainer extends ChunkContainerNode {
      *
      * @param blobAccessor
      */
-    public ChunkContainer(IChunkAccessor blobAccessor, ChunkSplitter nodeSplitter) {
-        super(new ChunkAccessor(blobAccessor), null, nodeSplitter, LEAF_LEVEL);
-        chunkContainerAccessor = (ChunkAccessor)this.blobAccessor;
+    public ChunkContainer(IChunkAccessor blobAccessor, ChunkContainerRef ref) {
+        super(blobAccessor, null, getNodeSplitter(ref.getData().getContainerHeader()), LEAF_LEVEL);
+        this.ref = ref;
+        setNodeSplitter(getNodeSplitter(ref.getContainerHeader()));
+        this.cacheManager = new CacheManager(this);
+    }
 
-        // reset the node splitter to get the config
-        setNodeSplitter(nodeSplitter);
+    /**
+     * Load an existing chunk container.
+     */
+    private ChunkContainer(IChunkAccessor blobAccessor, DataInputStream inputStream, ChunkContainerRef ref)
+            throws IOException {
+        super(blobAccessor, null, null, LEAF_LEVEL);
+        this.ref = ref;
+        setNodeSplitter(getNodeSplitter(ref.getContainerHeader()));
+        that.setLevel(ref.getContainerHeader().getLevel());
+        that.setBoxPointer(ref.getBoxPointer());
+        read(inputStream, ref.getContainerHeader().getDataLength());
 
         cacheManager = new CacheManager(this);
     }
 
     /**
-     * Load an existing chunk container.
-     *
-     * @param blobAccessor
-     * @param boxPointer
-     * @throws IOException
-     * @throws CryptoException
+     * Splitter for the nodes.
      */
-    private ChunkContainer(IChunkAccessor blobAccessor, BoxPointer boxPointer)
-            throws IOException, CryptoException {
-        this(blobAccessor, blobAccessor.getChunk(boxPointer));
-        that.setBoxPointer(boxPointer);
+    static private ChunkSplitter getNodeSplitter(ChunkContainerHeader header) {
+        float kFactor = getNodeToDataSplittingRatio();
+        return header.getSplitter(kFactor);
     }
 
-    private ChunkContainer(IChunkAccessor blobAccessor, DataInputStream inputStream)
-            throws IOException {
-        super(new ChunkAccessor(blobAccessor), null, null, LEAF_LEVEL);
-        chunkContainerAccessor = (ChunkAccessor)this.blobAccessor;
-        read(inputStream);
+    public ChunkSplitter getNodeSplitter() {
+        return getNodeSplitter(ref.getContainerHeader());
+    }
 
-        cacheManager = new CacheManager(this);
+    static private float getNodeToDataSplittingRatio() {
+        return  (float)Config.DATA_HASH_SIZE / ChunkPointer.getPointerLengthStatic();
+    }
+
+    public ChunkContainerRef getRef() {
+        return ref;
     }
 
     @Override
-    public void setNodeSplitter(ChunkSplitter nodeSplitter) {
-        super.setNodeSplitter(nodeSplitter);
+    public void flush(boolean childOnly) throws IOException, CryptoException {
+        super.flush(childOnly);
 
-        if (nodeSplitter == null || config == null)
-            return;
-        if (nodeSplitter instanceof RabinSplitter) {
-            config.setSplitterType(RABIN_SPLITTER_DETAILED);
-        } else if (nodeSplitter instanceof  FixedBlockSplitter) {
-            config.setSplitterType(FIXED_BLOCK_SPLITTER_DETAILED);
-        }
+        ref.getData().setDataHash(that.getBoxPointer().getDataHash());
+        ref.getBox().setBoxHash(that.getBoxPointer().getBoxHash());
+        ref.getBox().setIv(that.getBoxPointer().getIV());
+
+        ref.getContainerHeader().setLevel(getNLevels());
+        ref.getContainerHeader().setDataLength(getDataLength());
     }
 
-    public void setZLibCompression(boolean compression) {
-        if (compression)
-            config.setCompressionType(ZLIB_COMPRESSION);
-        else
-            config.setCompressionType(NO_COMPRESSION);
+    /**
+     * Splitter for the leaf nodes.
+     *
+     * The leaf nodes are split externally, i.e.by the ChunkContainerOutputStream.
+     */
+    public ChunkSplitter getChunkSplitter() {
+        return ref.getData().getContainerHeader().getSplitter(1f);
     }
 
     @Override
@@ -321,7 +285,7 @@ public class ChunkContainer extends ChunkContainerNode {
         final private IChunkPointer pointer;
         private DataChunk cachedChunk;
         final public long position;
-        final public int chunkDataLength;
+        final public long chunkDataLength;
 
         private DataChunkPointer(IChunkPointer pointer, long position) throws IOException {
             this.pointer = pointer;
@@ -335,7 +299,7 @@ public class ChunkContainer extends ChunkContainerNode {
             return cachedChunk;
         }
 
-        public int getDataLength() {
+        public long getDataLength() {
             return chunkDataLength;
         }
     }
@@ -494,127 +458,9 @@ public class ChunkContainer extends ChunkContainerNode {
         return length;
     }
 
-    @Override
-    public void read(DataInputStream inputStream) throws IOException {
-        readHeader(inputStream);
-        super.read(chunkContainerAccessor.getInputStream(inputStream));
-    }
-
-    @Override
-    public void write(DataOutputStream outputStream) throws IOException {
-        writeHeader(outputStream);
-        outputStream = chunkContainerAccessor.getOutputStream(outputStream);
-        super.write(outputStream);
-        outputStream.close();
-    }
-
-    @Override
-    protected HashValue writeNode() throws IOException, CryptoException {
-        // We are the root node and compression is handled in read() and write()
-        byte[] data = getData();
-        return chunkContainerAccessor.child.putChunk(data, rawHash()).key;
-    }
-
     public String printAll() throws Exception {
-        String string = "Header: levels=" + that.getLevel() + ", length=" + getDataLength() + "\n";
+        String string = "Levels=" + that.getLevel() + ", length=" + getDataLength() + "\n";
         string += super.printAll();
         return string;
-    }
-
-    static final public byte FIXED_BLOCK_SPLITTER_DETAILED = 0;
-    static final public byte RABIN_SPLITTER_DETAILED = 1;
-
-    static final public byte NO_COMPRESSION = 0;
-    static final public byte ZLIB_COMPRESSION = 1;
-
-    static class Config {
-        byte config = 0;
-        // 0 1 2 3 4     5 6        7
-        // {-------}     {-}       {-}
-        //  splitter compression  reserved
-        // This results in 32 splitter types, 3 compression types and on reserved bits (e.g. to extent the config by
-        // another byte).
-        static final private byte SPLITTER_MASK = (byte)0x1f;
-        static final private int SPLITTER_SHIFT = 0;
-        static final private byte COMPRESSION_MASK = (byte)0x60;
-        static final private int COMPRESSION_SHIFT = 5;
-        static final private byte RESERVED_MASK = (byte)0x80;
-        static final private int RESERVED_SHIFT = 8;
-
-        public void setSplitterType(int splitterType) {
-            if (splitterType < 0 || splitterType > 32)
-                throw new RuntimeException("invalid splitter type");
-            config &= ~SPLITTER_MASK;
-            config |= splitterType << SPLITTER_SHIFT;
-        }
-
-        public int getSplitterType() {
-            return (config & SPLITTER_MASK) >> SPLITTER_SHIFT;
-        }
-
-        public void setCompressionType(int compressionType) {
-            if (compressionType < 0 || compressionType > 4)
-                throw new RuntimeException("invalid compression type");
-            config &= ~COMPRESSION_MASK;
-            config |= compressionType << COMPRESSION_SHIFT;
-        }
-
-        public int getCompressionType() {
-            return (config & COMPRESSION_MASK) >> COMPRESSION_SHIFT;
-        }
-    }
-
-    private void readHeader(DataInputStream inputStream) throws IOException {
-        that.setLevel(inputStream.readByte());
-
-        config.config = inputStream.readByte();
-        int splitterType = config.getSplitterType();
-        switch (splitterType) {
-            case FIXED_BLOCK_SPLITTER_DETAILED:
-                int blockSize = inputStream.readInt();
-                setNodeSplitter(new FixedBlockSplitter(blockSize));
-                break;
-            case RABIN_SPLITTER_DETAILED:
-                int targetSize = inputStream.readInt();
-                int minSize = inputStream.readInt();
-                int maxSize = inputStream.readInt();
-                setNodeSplitter(new RabinSplitter(targetSize, minSize, maxSize));
-                break;
-            default:
-                throw new IOException("Unknown node splitter type.");
-        }
-        int compressionType = config.getCompressionType();
-        switch (compressionType) {
-            case NO_COMPRESSION:
-                setZLibCompression(false);
-                break;
-            case ZLIB_COMPRESSION:
-                setZLibCompression(true);
-                break;
-            default:
-                throw new IOException("Unknown compression type.");
-        }
-    }
-
-    @Override
-    protected void writeHeader(DataOutputStream outputStream) throws IOException {
-        outputStream.writeByte(that.getLevel());
-        outputStream.writeByte(config.config);
-        switch (config.getSplitterType()) {
-            case FIXED_BLOCK_SPLITTER_DETAILED:
-                FixedBlockSplitter fixedBlockSplitter = (FixedBlockSplitter) nodeSplitter;
-                outputStream.writeInt(fixedBlockSplitter.getBlockSize());
-                break;
-            case RABIN_SPLITTER_DETAILED:
-                RabinSplitter rabinSplitter = (RabinSplitter) nodeSplitter;
-                outputStream.writeInt(rabinSplitter.getTargetChunkSize());
-                outputStream.writeInt(rabinSplitter.getMinChunkSize());
-                outputStream.writeInt(rabinSplitter.getMaxChunkSize());
-                break;
-            default:
-                throw new IOException("Unsupported node splitter.");
-        }
-
-        super.writeHeader(outputStream);
     }
 }

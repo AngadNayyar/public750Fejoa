@@ -14,8 +14,8 @@ import java.io.IOException;
 
 public interface IChunk {
     HashValue hash();
-    void read(DataInputStream inputStream) throws IOException;
+    void read(DataInputStream inputStream, long dataLength) throws IOException;
     void write(DataOutputStream outputStream) throws IOException;
     byte[] getData() throws IOException;
-    int getDataLength();
+    long getDataLength();
 }

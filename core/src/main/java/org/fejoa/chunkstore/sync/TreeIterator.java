@@ -9,7 +9,7 @@ package org.fejoa.chunkstore.sync;
 
 import org.fejoa.chunkstore.CommitBox;
 import org.fejoa.chunkstore.FlatDirectoryBox;
-import org.fejoa.chunkstore.IChunkAccessor;
+import org.fejoa.chunkstore.IRepoChunkAccessors;
 import org.fejoa.library.crypto.CryptoException;
 
 import java.io.IOException;
@@ -19,21 +19,23 @@ import java.util.List;
 
 
 public class TreeIterator implements Iterator<DiffIterator.Change<FlatDirectoryBox.Entry>> {
-    final private IChunkAccessor ourAccessor;
-    final private IChunkAccessor theirAccessor;
+    final private IRepoChunkAccessors.ITransaction ourTransaction;
+    final private IRepoChunkAccessors.ITransaction theirTransaction;
     final private List<DirBoxDiffIterator> iterators = new ArrayList<>();
     private DirBoxDiffIterator current;
 
-    public TreeIterator(IChunkAccessor ourAccessor, CommitBox ours, IChunkAccessor theirAccessor,
+    public TreeIterator(IRepoChunkAccessors.ITransaction ourTransaction, CommitBox ours,
+                        IRepoChunkAccessors.ITransaction theirTransaction,
                         CommitBox theirs) throws IOException, CryptoException {
-        this(ourAccessor, ours == null ? null : FlatDirectoryBox.read(ourAccessor, ours.getTree()),
-                theirAccessor, FlatDirectoryBox.read(theirAccessor, theirs.getTree()));
+        this(ourTransaction, ours == null ? null : FlatDirectoryBox.read(ourTransaction.getTreeAccessor(ours.getTree()),
+                ours.getTree()), theirTransaction,
+                FlatDirectoryBox.read(theirTransaction.getTreeAccessor(theirs.getTree()), theirs.getTree()));
     }
 
-    public TreeIterator(IChunkAccessor ourAccessor, FlatDirectoryBox ours, IChunkAccessor theirAccessor,
-                        FlatDirectoryBox theirs) {
-        this.ourAccessor = ourAccessor;
-        this.theirAccessor = theirAccessor;
+    public TreeIterator(IRepoChunkAccessors.ITransaction ourTransaction, FlatDirectoryBox ours,
+                        IRepoChunkAccessors.ITransaction theirTransaction, FlatDirectoryBox theirs) {
+        this.ourTransaction = ourTransaction;
+        this.theirTransaction = theirTransaction;
         current = new DirBoxDiffIterator("", ours, theirs);
     }
 
@@ -47,8 +49,11 @@ public class TreeIterator implements Iterator<DiffIterator.Change<FlatDirectoryB
         DiffIterator.Change<FlatDirectoryBox.Entry> next = current.next();
         if (next.type == DiffIterator.Type.MODIFIED && !next.ours.isFile() && !next.theirs.isFile()) {
             try {
-                iterators.add(new DirBoxDiffIterator(next.path, FlatDirectoryBox.read(ourAccessor, next.ours.getDataPointer()),
-                        FlatDirectoryBox.read(theirAccessor, next.theirs.getDataPointer())));
+                iterators.add(new DirBoxDiffIterator(next.path, FlatDirectoryBox.read(
+                        ourTransaction.getTreeAccessor(next.ours.getDataPointer()),
+                        next.ours.getDataPointer()),
+                        FlatDirectoryBox.read(theirTransaction.getTreeAccessor(next.theirs.getDataPointer()),
+                                next.theirs.getDataPointer())));
             } catch (Exception e) {
                 e.printStackTrace();
             }

@@ -30,18 +30,18 @@ public class LogRepoTransaction implements IRepoChunkAccessors.ITransaction {
     }
 
     @Override
-    public IChunkAccessor getCommitAccessor() {
-        return createWrapper(childTransaction.getCommitAccessor());
+    public IChunkAccessor getCommitAccessor(ChunkContainerRef ref) {
+        return createWrapper(childTransaction.getCommitAccessor(ref));
     }
 
     @Override
-    public IChunkAccessor getTreeAccessor() {
-        return createWrapper(childTransaction.getTreeAccessor());
+    public IChunkAccessor getTreeAccessor(ChunkContainerRef ref) {
+        return createWrapper(childTransaction.getTreeAccessor(ref));
     }
 
     @Override
-    public IChunkAccessor getFileAccessor(String filePath) {
-        return createWrapper(childTransaction.getFileAccessor(filePath));
+    public IChunkAccessor getFileAccessor(ChunkContainerRef ref, String filePath) {
+        return createWrapper(childTransaction.getFileAccessor(ref, filePath));
     }
 
     @Override

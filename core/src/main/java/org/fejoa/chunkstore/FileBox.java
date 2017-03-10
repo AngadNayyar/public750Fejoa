@@ -16,26 +16,34 @@ import java.io.IOException;
 
 public class FileBox {
     private ChunkContainer dataContainer;
+    private ChunkContainerRef ref;
 
     static public FileBox create(ChunkContainer chunkContainer) {
         FileBox fileBox = new FileBox();
         fileBox.dataContainer = chunkContainer;
+        fileBox.ref = chunkContainer.getRef();
         return fileBox;
     }
 
-    static public FileBox read(IChunkAccessor accessor, BoxPointer pointer)
+    static public FileBox read(IChunkAccessor accessor, ChunkContainerRef ref)
             throws IOException, CryptoException {
         FileBox fileBox = new FileBox();
-        fileBox.readChunkContainer(accessor, pointer);
+        fileBox.readChunkContainer(accessor, ref);
         return fileBox;
+    }
+
+    public ChunkContainerRef getRef() {
+        return ref;
     }
 
     public void flush() throws IOException, CryptoException {
         dataContainer.flush(false);
     }
 
-    private void readChunkContainer(IChunkAccessor accessor, BoxPointer pointer) throws IOException, CryptoException {
-        dataContainer = ChunkContainer.read(accessor, pointer);
+    private void readChunkContainer(IChunkAccessor accessor, ChunkContainerRef ref)
+            throws IOException, CryptoException {
+        this.ref = ref;
+        dataContainer = ChunkContainer.read(accessor, ref);
     }
 
     public ChunkContainer getDataContainer() {

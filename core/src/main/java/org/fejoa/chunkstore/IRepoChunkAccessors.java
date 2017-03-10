@@ -19,15 +19,15 @@ public interface IRepoChunkAccessors {
         /**
          * Accessor to access commit chunks.
          */
-        IChunkAccessor getCommitAccessor();
+        IChunkAccessor getCommitAccessor(ChunkContainerRef ref);
         /**
          * Accessor to access the directory structure chunks.
          */
-        IChunkAccessor getTreeAccessor();
+        IChunkAccessor getTreeAccessor(ChunkContainerRef ref);
         /**
          * Accessor to access the files structure chunks.
          */
-        IChunkAccessor getFileAccessor(String filePath);
+        IChunkAccessor getFileAccessor(ChunkContainerRef ref, String filePath);
 
         void finishTransaction() throws IOException;
         void cancel();

@@ -20,9 +20,6 @@ import java.util.concurrent.ExecutionException;
 
 
 public class RepositoryTest extends RepositoryTestBase {
-    final ChunkSplitter splitter = new RabinSplitter();
-    final ChunkSplitter nodeSplitter = new RabinSplitter();
-
     private IChunkAccessor getAccessor(final ChunkStore.Transaction chunkStoreTransaction) {
         return new IChunkAccessor() {
             @Override
@@ -47,26 +44,24 @@ public class RepositoryTest extends RepositoryTestBase {
             @Override
             public ITransaction startTransaction() throws IOException {
                 return new RepoAccessorsTransactionBase(chunkStore) {
-                    final IChunkAccessor accessor = getAccessor(transaction);
-
                     @Override
                     public ChunkStore.Transaction getRawAccessor() {
                         return transaction;
                     }
 
                     @Override
-                    public IChunkAccessor getCommitAccessor() {
-                        return accessor;
+                    public IChunkAccessor getCommitAccessor(ChunkContainerRef ref) {
+                        return getAccessor(transaction);
                     }
 
                     @Override
-                    public IChunkAccessor getTreeAccessor() {
-                        return accessor;
+                    public IChunkAccessor getTreeAccessor(ChunkContainerRef ref) {
+                        return getAccessor(transaction);
                     }
 
                     @Override
-                    public IChunkAccessor getFileAccessor(String filePath) {
-                        return accessor;
+                    public IChunkAccessor getFileAccessor(ChunkContainerRef ref, String filePath) {
+                        return getAccessor(transaction);
                     }
                 };
             }
@@ -80,20 +75,21 @@ public class RepositoryTest extends RepositoryTestBase {
         return ChunkStore.create(directory, name);
     }
 
-    private BoxPointer write(IChunkAccessor accessor, TypedBlob blob) throws IOException, CryptoException {
-        ChunkContainer chunkContainer = new ChunkContainer(accessor, nodeSplitter);
+    private ChunkContainerRef write(IChunkAccessor accessor, TypedBlob blob) throws IOException, CryptoException {
+        ChunkContainerRef ref = new ChunkContainerRef();
+        ChunkContainer chunkContainer = new ChunkContainer(accessor, ref);
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        blob.write(new DataOutputStream(outputStream));
+        HashValue dataHash = blob.write(new DataOutputStream(outputStream), ref);
         chunkContainer.append(new DataChunk(outputStream.toByteArray()));
         chunkContainer.flush(false);
-
-        return chunkContainer.getBoxPointer();
+        ref.setDataHash(dataHash);
+        return ref;
     }
 
     private TestCommit writeToRepository(IRepoChunkAccessors.ITransaction accessors, TestDirectory root,
                                          String commitMessage)
             throws IOException, CryptoException {
-        BoxPointer tree = writeDir(accessors, root, "");
+        ChunkContainerRef tree = writeDir(accessors, root, "");
         CommitBox commitBox = CommitBox.create();
         commitBox.setTree(tree);
         commitBox.setCommitMessage(commitMessage.getBytes());
@@ -101,64 +97,68 @@ public class RepositoryTest extends RepositoryTestBase {
         TestCommit testCommit = new TestCommit();
         testCommit.message = commitMessage;
         testCommit.directory = root;
-        testCommit.boxPointer = write(accessors.getCommitAccessor(), commitBox);
+        testCommit.boxPointer = write(accessors.getCommitAccessor(commitBox.getRef()), commitBox);
 
         return testCommit;
     }
 
-    private FileBox writeToFileBox(IChunkAccessor accessor, String content) throws IOException, CryptoException {
-        ChunkContainer chunkContainer = new ChunkContainer(accessor,
-                SyncRepository.defaultNodeSplitter(RabinSplitter.CHUNK_8KB));
-        chunkContainer.setZLibCompression(true);
+    private FileBox writeToFileBox(IChunkAccessor accessor, ChunkContainerRef ref, String content)
+            throws IOException, CryptoException {
+        ChunkContainer chunkContainer = new ChunkContainer(accessor, ref);
         FileBox file = FileBox.create(chunkContainer);
-        ChunkContainerOutputStream containerOutputStream = new ChunkContainerOutputStream(chunkContainer, splitter);
+        ChunkContainerOutputStream containerOutputStream = new ChunkContainerOutputStream(chunkContainer);
         containerOutputStream.write(content.getBytes());
         containerOutputStream.flush();
         chunkContainer.flush(false);
         return file;
     }
 
-    private BoxPointer writeDir(IRepoChunkAccessors.ITransaction accessors, TestDirectory dir, String path)
+    private ChunkContainerRef writeDir(IRepoChunkAccessors.ITransaction accessors, TestDirectory dir, String path)
             throws IOException,
             CryptoException {
         FlatDirectoryBox directoryBox = FlatDirectoryBox.create();
         // first write child dirs recursively
         for (Map.Entry<String, TestDirectory> entry : dir.dirs.entrySet()) {
-            BoxPointer childPointer = writeDir(accessors, entry.getValue(), path + "/" + entry.getKey());
+            ChunkContainerRef childPointer = writeDir(accessors, entry.getValue(), path + "/" + entry.getKey());
             directoryBox.addDir(entry.getKey(), childPointer);
         }
 
         for (Map.Entry<String, TestFile> entry : dir.files.entrySet()) {
             TestFile testFile = entry.getValue();
-            IChunkAccessor fileAccessor = accessors.getFileAccessor(path + "/" + entry.getKey());
-            FileBox file = writeToFileBox(fileAccessor, testFile.content);
-            testFile.boxPointer = file.getDataContainer().getBoxPointer();
+            ChunkContainerRef ref = testFile.boxPointer;
+            if (ref == null)
+                ref = new ChunkContainerRef();
+            IChunkAccessor fileAccessor = accessors.getFileAccessor(ref,path + "/" + entry.getKey());
+            FileBox file = writeToFileBox(fileAccessor, ref, testFile.content);
+            testFile.boxPointer = file.getRef();
             directoryBox.addFile(entry.getKey(), testFile.boxPointer);
         }
 
-        dir.boxPointer = write(accessors.getTreeAccessor(), directoryBox);
+        dir.boxPointer = write(accessors.getTreeAccessor(directoryBox.getRef()), directoryBox);
         return dir.boxPointer;
     }
 
     private void verifyCommitInRepository(IRepoChunkAccessors.ITransaction accessors, TestCommit testCommit)
             throws IOException,
             CryptoException {
-        CommitBox commitBox = CommitBox.read(accessors.getCommitAccessor(), testCommit.boxPointer);
+        CommitBox commitBox = CommitBox.read(accessors.getCommitAccessor(testCommit.boxPointer), testCommit.boxPointer);
         assertEquals(testCommit.message, new String(commitBox.getCommitMessage()));
-        assertEquals(testCommit.directory.boxPointer.getBoxHash(), commitBox.getTree().getBoxHash());
+        assertEquals(testCommit.directory.boxPointer.getBox().getBoxHash(), commitBox.getTree().getBox().getBoxHash());
 
         verifyDirInRepository(accessors, testCommit.directory, "");
     }
 
     private void verifyDirInRepository(IRepoChunkAccessors.ITransaction accessors, TestDirectory testDir, String path)
             throws IOException, CryptoException {
-        FlatDirectoryBox directoryBox = FlatDirectoryBox.read(accessors.getTreeAccessor(), testDir.boxPointer);
+        FlatDirectoryBox directoryBox = FlatDirectoryBox.read(accessors.getTreeAccessor(testDir.boxPointer),
+                testDir.boxPointer);
         assertEquals(testDir.dirs.size() + testDir.files.size(), directoryBox.getEntries().size());
 
         for (Map.Entry<String, TestDirectory> entry : testDir.dirs.entrySet()) {
             FlatDirectoryBox.Entry dirEntry = directoryBox.getEntry(entry.getKey());
             assertNotNull(dirEntry);
-            assertEquals(entry.getValue().boxPointer.getBoxHash(), dirEntry.getDataPointer().getBoxHash());
+            assertEquals(entry.getValue().boxPointer.getBox().getBoxHash(),
+                    dirEntry.getDataPointer().getBox().getBoxHash());
 
             verifyDirInRepository(accessors, entry.getValue(), path + "/" + entry.getKey());
         }
@@ -166,9 +166,10 @@ public class RepositoryTest extends RepositoryTestBase {
             TestFile testFile = entry.getValue();
             FlatDirectoryBox.Entry dirEntry = directoryBox.getEntry(entry.getKey());
             assertNotNull(dirEntry);
-            assertEquals(testFile.boxPointer.getBoxHash(), dirEntry.getDataPointer().getBoxHash());
+            assertEquals(testFile.boxPointer.getBox().getBoxHash(), dirEntry.getDataPointer().getBox().getBoxHash());
 
-            verifyFileInRepository(accessors.getFileAccessor(path + "/" + entry.getKey()), testFile);
+            verifyFileInRepository(accessors.getFileAccessor(testFile.boxPointer, path + "/" + entry.getKey()),
+                    testFile);
         }
     }
 
@@ -242,7 +243,7 @@ public class RepositoryTest extends RepositoryTestBase {
 
         repository.commit(null);
         HashValue tip = repository.getTip();
-        assertEquals(tip, repository.getHeadCommit().dataHash());
+        assertEquals(tip, repository.getHeadCommit().getPlainHash());
 
         repository = new Repository(directory, branch, accessors, simpleCommitCallback);
         containsContent(repository, content);

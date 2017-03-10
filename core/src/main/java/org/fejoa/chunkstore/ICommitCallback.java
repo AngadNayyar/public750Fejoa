@@ -11,9 +11,9 @@ import org.fejoa.library.crypto.CryptoException;
 
 
 public interface ICommitCallback {
-    HashValue logHash(BoxPointer commitPointer);
+    HashValue logHash(ChunkContainerRef commitPointer);
 
-    String commitPointerToLog(BoxPointer commitPointer) throws CryptoException;
+    String commitPointerToLog(ChunkContainerRef commitPointer) throws CryptoException;
 
-    BoxPointer commitPointerFromLog(String logEntry) throws CryptoException;
+    ChunkContainerRef commitPointerFromLog(String logEntry) throws CryptoException;
 }

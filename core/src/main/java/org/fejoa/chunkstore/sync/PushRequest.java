@@ -49,20 +49,17 @@ public class PushRequest {
 
     private void collectDiffs(IRepoChunkAccessors.ITransaction transaction, CommitBox parent, CommitBox child,
                               final List<HashValue> list) throws IOException, CryptoException {
-        IChunkAccessor commitAccessor = transaction.getCommitAccessor();
-        IChunkAccessor dirAccessor = transaction.getTreeAccessor();
-
         // add the child commit
-        collectChunkContainer(child.getBoxPointer(), commitAccessor, list);
+        collectChunkContainer(child.getRef(), transaction.getCommitAccessor(child.getRef()), list);
 
         // diff of the commit trees
         FlatDirectoryBox parentDir = null;
         if (parent != null)
-            parentDir = FlatDirectoryBox.read(dirAccessor, parent.getTree());
-        FlatDirectoryBox nextDir = FlatDirectoryBox.read(dirAccessor, child.getTree());
+            parentDir = FlatDirectoryBox.read(transaction.getTreeAccessor(parent.getTree()), parent.getTree());
+        FlatDirectoryBox nextDir = FlatDirectoryBox.read(transaction.getTreeAccessor(child.getTree()), child.getTree());
 
         // add root dir
-        collectChunkContainer(child.getTree(), dirAccessor, list);
+        collectChunkContainer(child.getTree(), transaction.getTreeAccessor(child.getTree()), list);
 
         DirBoxDiffIterator diffIterator = new DirBoxDiffIterator("", parentDir, nextDir);
         while (diffIterator.hasNext()) {
@@ -74,7 +71,7 @@ public class PushRequest {
             if (change.theirs.isFile())
                 collectFile(transaction, change.theirs.getDataPointer(), change.path, list);
             else
-                collectWholeDir(change.path, change.theirs.getDataPointer(), transaction, dirAccessor, list);
+                collectWholeDir(change.path, change.theirs.getDataPointer(), transaction, list);
         }
     }
 
@@ -83,24 +80,24 @@ public class PushRequest {
             list.add(pointer);
     }
 
-    private void collectFile(IRepoChunkAccessors.ITransaction transaction, BoxPointer pointer, String path,
+    private void collectFile(IRepoChunkAccessors.ITransaction transaction, ChunkContainerRef pointer, String path,
                              final List<HashValue> list) throws IOException, CryptoException {
-        IChunkAccessor changeAccessor = transaction.getFileAccessor(path);
-
-        BoxPointer theirsBoxPointer = pointer;
-        collectChunkContainer(theirsBoxPointer, changeAccessor, list);
+        IChunkAccessor changeAccessor = transaction.getFileAccessor(pointer, path);
+        collectChunkContainer(pointer, changeAccessor, list);
     }
 
-    private void collectChunkContainer(BoxPointer pointer, IChunkAccessor dirAccessor, final List<HashValue> list) throws IOException, CryptoException {
+    private void collectChunkContainer(ChunkContainerRef pointer, IChunkAccessor accessor,
+                                       final List<HashValue> list) throws IOException, CryptoException {
         add(list, pointer.getBoxHash());
         // TODO: be more efficient and calculate the container diff
-        ChunkContainer chunkContainer = ChunkContainer.read(dirAccessor, pointer);
-        getChunkContainerNodeChildChunks(chunkContainer, dirAccessor, list);
+        ChunkContainer chunkContainer = ChunkContainer.read(accessor, pointer);
+        getChunkContainerNodeChildChunks(chunkContainer, accessor, list);
     }
 
-    private void collectWholeDir(String path, BoxPointer dirPointer, IRepoChunkAccessors.ITransaction transaction,
-                                 IChunkAccessor dirAccessor, final List<HashValue> list)
+    private void collectWholeDir(String path, ChunkContainerRef dirPointer,
+                                 IRepoChunkAccessors.ITransaction transaction, final List<HashValue> list)
             throws IOException, CryptoException {
+        IChunkAccessor dirAccessor = transaction.getTreeAccessor(dirPointer);
         collectChunkContainer(dirPointer, dirAccessor, list);
 
         FlatDirectoryBox dir = FlatDirectoryBox.read(dirAccessor, dirPointer);
@@ -109,7 +106,7 @@ public class PushRequest {
             if (entry.isFile())
                 collectFile(transaction, entry.getDataPointer(), childPath, list);
             else {
-                collectWholeDir(childPath, entry.getDataPointer(), transaction, dirAccessor, list);
+                collectWholeDir(childPath, entry.getDataPointer(), transaction, list);
             }
         }
     }
@@ -121,7 +118,7 @@ public class PushRequest {
         for (int i = 0; i < chain.commits.size() - 1; i++) {
             CommitBox parent = chain.commits.get(i + 1);
             CommitBox child = chain.commits.get(i);
-            if (list.contains(child.getBoxPointer()))
+            if (list.contains(child.getRef().getBoxHash()))
                 continue;
 
             collectDiffs(transaction, parent, child, list);
@@ -130,38 +127,38 @@ public class PushRequest {
 
     public int push(IRemotePipe remotePipe, IRepoChunkAccessors.ITransaction transaction, String branch)
             throws IOException, CryptoException {
-        IChunkAccessor commitAccessor = transaction.getCommitAccessor();
         ChunkStore.Transaction rawTransaction = transaction.getRawAccessor();
 
         // WARNING race condition: We have to use the commit from the branch log because we send this log entry
         // straight to the server. This means the headCommit and the branch log entry must be in sync!
         ChunkStoreBranchLog.Entry localLogTip = repository.getBranchLog().getLatest();
-        BoxPointer headCommitPointer = repository.getCommitCallback().commitPointerFromLog(localLogTip.getMessage());
-        CommitBox headCommit = CommitBox.read(repository.getCurrentTransaction().getCommitAccessor(), headCommitPointer);
+        ChunkContainerRef headCommitPointer = repository.getCommitCallback().commitPointerFromLog(localLogTip.getMessage());
+        CommitBox headCommit = CommitBox.read(repository.getCurrentTransaction().getCommitAccessor(headCommitPointer),
+                headCommitPointer);
         assert headCommit != null;
 
         CommonAncestorsFinder.Chains chainsToPush;
         ChunkStoreBranchLog.Entry remoteLogTip = LogEntryRequest.getRemoteTip(remotePipe, branch);
 
         if (remoteLogTip.getRev() > 0) { // remote has this branch
-            BoxPointer remoteTip = repository.getCommitCallback().commitPointerFromLog(remoteLogTip.getMessage());
+            ChunkContainerRef remoteTip = repository.getCommitCallback().commitPointerFromLog(remoteLogTip.getMessage());
             if (!rawTransaction.contains(remoteTip.getBoxHash()))
                 return Request.PULL_REQUIRED;
 
             CommitBox remoteCommit;
             try {
-                remoteCommit = CommitBox.read(commitAccessor, remoteTip);
+                remoteCommit = CommitBox.read(transaction.getCommitAccessor(remoteTip), remoteTip);
             } catch (Exception e) {
                 return Request.PULL_REQUIRED;
             }
 
             assert headCommit != null;
-            chainsToPush = CommonAncestorsFinder.find(commitAccessor, remoteCommit, commitAccessor,
+            chainsToPush = CommonAncestorsFinder.find(transaction, remoteCommit, transaction,
                     headCommit);
 
             boolean remoteCommitIsCommonAncestor = false;
             for (CommonAncestorsFinder.SingleCommitChain chain : chainsToPush.chains) {
-                if (chain.getOldest().dataHash().equals(remoteCommit.dataHash())) {
+                if (chain.getOldest().getPlainHash().equals(remoteCommit.getPlainHash())) {
                     remoteCommitIsCommonAncestor = true;
                     break;
                 }
@@ -169,7 +166,7 @@ public class PushRequest {
             if (!remoteCommitIsCommonAncestor)
                 return Request.PULL_REQUIRED;
         } else {
-            chainsToPush = CommonAncestorsFinder.collectAllChains(commitAccessor, headCommit);
+            chainsToPush = CommonAncestorsFinder.collectAllChains(transaction, headCommit);
             // also push the first commit so add artificial null parents
             for (CommonAncestorsFinder.SingleCommitChain chain : chainsToPush.chains)
                 chain.commits.add(chain.commits.size(), null);

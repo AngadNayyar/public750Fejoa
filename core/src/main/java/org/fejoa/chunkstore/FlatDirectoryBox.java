@@ -7,14 +7,10 @@
  */
 package org.fejoa.chunkstore;
 
-import org.fejoa.library.crypto.CryptoHelper;
 import org.fejoa.library.support.StreamHelper;
 import org.fejoa.library.crypto.CryptoException;
 
 import java.io.*;
-import java.security.DigestOutputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 
@@ -38,70 +34,76 @@ abstract class DirectoryEntry {
     }
 
     interface AttrIO {
-        void read(DataInputStream inputStream) throws IOException;
-        void write(DataOutputStream outputStream) throws IOException;
+        void read(DataInputStream inputStream, List<ChunkContainerRef> readRefs) throws IOException;
+        void write(DataOutputStream outputStream, List<ChunkContainerRef> writtenRefs) throws IOException;
     }
 
     class BasicFileAttrsIO implements AttrIO {
         @Override
-        public void read(DataInputStream inputStream) {
-
+        public void read(DataInputStream inputStream, List<ChunkContainerRef> readRefs) {
+            throw new RuntimeException("BasicFileAttrsIO not implemented");
         }
 
         @Override
-        public void write(DataOutputStream outputStream) {
-
+        public void write(DataOutputStream outputStream, List<ChunkContainerRef> writtenRefs) {
+            throw new RuntimeException("BasicFileAttrsIO not implemented");
         }
     }
 
     class DataIO implements AttrIO {
         @Override
-        public void read(DataInputStream inputStream) throws IOException {
-            dataPointer = new BoxPointer();
-            dataPointer.read(inputStream);
+        public void read(DataInputStream inputStream, List<ChunkContainerRef> readRefs) throws IOException {
+            dataPointer = new ChunkContainerRef();
+            dataPointer.getData().read(inputStream);
+            readRefs.add(dataPointer);
         }
 
         @Override
-        public void write(DataOutputStream outputStream) throws IOException {
-            dataPointer.write(outputStream);
+        public void write(DataOutputStream outputStream, List<ChunkContainerRef> writtenRefs) throws IOException {
+            dataPointer.getData().write(outputStream);
+            writtenRefs.add(dataPointer);
         }
     }
 
     class EncAttrsIO implements AttrIO {
         @Override
-        public void read(DataInputStream inputStream) throws IOException {
-            encAttrsDir = new BoxPointer();
-            encAttrsDir.read(inputStream);
+        public void read(DataInputStream inputStream, List<ChunkContainerRef> readRefs) throws IOException {
+            encAttrsDir = new ChunkContainerRef();
+            encAttrsDir.getData().read(inputStream);
+            readRefs.add(encAttrsDir);
         }
 
         @Override
-        public void write(DataOutputStream outputStream) throws IOException {
-            encAttrsDir.write(outputStream);
+        public void write(DataOutputStream outputStream, List<ChunkContainerRef> writtenRefs) throws IOException {
+            encAttrsDir.getData().write(outputStream);
+            writtenRefs.add(encAttrsDir);
         }
     }
 
     class AttrsDirIO implements AttrIO {
         @Override
-        public void read(DataInputStream inputStream) throws IOException {
-            attrsDir = new BoxPointer();
-            attrsDir.read(inputStream);
+        public void read(DataInputStream inputStream, List<ChunkContainerRef> readRefs) throws IOException {
+            attrsDir = new ChunkContainerRef();
+            attrsDir.getData().read(inputStream);
+            readRefs.add(attrsDir);
         }
 
         @Override
-        public void write(DataOutputStream outputStream) throws IOException {
-            attrsDir.write(outputStream);
+        public void write(DataOutputStream outputStream, List<ChunkContainerRef> writtenRefs) throws IOException {
+            attrsDir.getData().write(outputStream);
+            writtenRefs.add(attrsDir);
         }
     }
 
     static public int MAX_NAME_LENGTH = 1024 * 5;
 
     private String name;
-    private BoxPointer dataPointer;
-    private BoxPointer encAttrsDir;
-    private BoxPointer attrsDir;
+    private ChunkContainerRef dataPointer;
+    private ChunkContainerRef encAttrsDir;
+    private ChunkContainerRef attrsDir;
     private Object object;
 
-    public DirectoryEntry(String name, BoxPointer dataPointer) {
+    public DirectoryEntry(String name, ChunkContainerRef dataPointer) {
         this.name = name;
         this.dataPointer = dataPointer;
     }
@@ -164,68 +166,44 @@ abstract class DirectoryEntry {
         this.name = name;
     }
 
-    public BoxPointer getDataPointer() {
+    public ChunkContainerRef getDataPointer() {
         return dataPointer;
     }
 
-    public void setDataPointer(BoxPointer dataPointer) {
+    public void setDataPointer(ChunkContainerRef dataPointer) {
         this.dataPointer = dataPointer;
     }
 
-    public BoxPointer getAttrsDir() {
+    public ChunkContainerRef getAttrsDir() {
         return attrsDir;
     }
 
-    public void setAttrsDir(BoxPointer attrsDir) {
+    public void setAttrsDir(ChunkContainerRef attrsDir) {
         this.attrsDir = attrsDir;
     }
 
-    /**
-     * Write the entry to a MessageDigest.
-     *
-     * @param messageDigest
-     */
-    public void dataHash(MessageDigest messageDigest) {
-        DigestOutputStream digestOutputStream = new DigestOutputStream(new OutputStream() {
-            @Override
-            public void write(int i) throws IOException {
-
-            }
-        }, messageDigest);
-        DataOutputStream outputStream = new DataOutputStream(digestOutputStream);
-        try {
-            writePlainData(outputStream);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void writePlainData(DataOutputStream outputStream) throws IOException {
+    public void write(DataOutputStream outputStream, List<ChunkContainerRef> writtenRefs) throws IOException {
         StreamHelper.writeString(outputStream, name);
 
         byte attrs = getAttrIOs();
         outputStream.writeByte(attrs);
         for (AttrIO attrIO : getAttrIOs(attrs))
-            attrIO.write(outputStream);
+            attrIO.write(outputStream, writtenRefs);
     }
 
-    public void write(DataOutputStream outputStream) throws IOException {
-        writePlainData(outputStream);
-    }
-
-    public void read(DataInputStream inputStream) throws IOException {
+    public void read(DataInputStream inputStream, List<ChunkContainerRef> readRefs) throws IOException {
         name = StreamHelper.readString(inputStream, MAX_NAME_LENGTH);
         byte attrs = inputStream.readByte();
         for (AttrIO attrIO : getAttrIOs(attrs))
-            attrIO.read(inputStream);
+            attrIO.read(inputStream, readRefs);
     }
 }
 
-public class FlatDirectoryBox extends TypedBlob {
+public class FlatDirectoryBox extends ChunkContainerRefBox {
     public static class Entry extends DirectoryEntry {
         boolean isFile;
 
-        public Entry(String name, BoxPointer dataPointer, boolean isFile) {
+        public Entry(String name, ChunkContainerRef dataPointer, boolean isFile) {
             super(name, dataPointer);
             this.isFile = isFile;
         }
@@ -259,35 +237,39 @@ public class FlatDirectoryBox extends TypedBlob {
     }
 
     static public FlatDirectoryBox create() {
-        return new FlatDirectoryBox();
+        FlatDirectoryBox box = new FlatDirectoryBox();
+        box.setRef(new ChunkContainerRef());
+        return box;
     }
 
-    static public FlatDirectoryBox read(IChunkAccessor accessor, BoxPointer boxPointer)
+    static public FlatDirectoryBox read(IChunkAccessor accessor, ChunkContainerRef ref)
             throws IOException, CryptoException {
-        ChunkContainer chunkContainer = ChunkContainer.read(accessor, boxPointer);
+        ChunkContainer chunkContainer = ChunkContainer.read(accessor, ref);
         return read(chunkContainer);
     }
 
     static public FlatDirectoryBox read(ChunkContainer chunkContainer)
             throws IOException, CryptoException {
-        return read(BlobTypes.FLAT_DIRECTORY, new DataInputStream(new ChunkContainerInputStream(chunkContainer)));
+        return read(BlobTypes.FLAT_DIRECTORY, new DataInputStream(new ChunkContainerInputStream(chunkContainer)),
+                chunkContainer.getRef());
     }
 
-    static private FlatDirectoryBox read(short type, DataInputStream inputStream) throws IOException {
+    static private FlatDirectoryBox read(short type, DataInputStream inputStream, ChunkContainerRef ref)
+            throws IOException {
         assert type == BlobTypes.FLAT_DIRECTORY;
         FlatDirectoryBox directoryBox = new FlatDirectoryBox();
-        directoryBox.read(inputStream);
+        directoryBox.read(inputStream, ref);
         return directoryBox;
     }
 
-    public Entry addDir(String name, BoxPointer pointer) {
-        Entry entry = new Entry(name, pointer, false);
+    public Entry addDir(String name, ChunkContainerRef ref) {
+        Entry entry = new Entry(name, ref, false);
         put(name, entry);
         return entry;
     }
 
-    public Entry addFile(String name, BoxPointer pointer) {
-        Entry entry = new Entry(name, pointer, true);
+    public Entry addFile(String name, ChunkContainerRef ref) {
+        Entry entry = new Entry(name, ref, true);
         put(name, entry);
         return entry;
     }
@@ -331,44 +313,31 @@ public class FlatDirectoryBox extends TypedBlob {
     }
 
     @Override
-    protected void readInternal(DataInputStream inputStream) throws IOException {
-        long nDirs = inputStream.readLong();
-        long nFiles = inputStream.readLong();
+    protected void writePlain(DataOutputStream outputStream, List<ChunkContainerRef> writtenRefs) throws IOException {
+        Collection<Entry> dirs = getDirs();
+        Collection<Entry> files = getFiles();
+        VarInt.write(outputStream, dirs.size());
+        VarInt.write(outputStream, files.size());
+        for (Entry entry : dirs)
+            entry.write(outputStream, writtenRefs);
+        for (Entry entry : files)
+            entry.write(outputStream, writtenRefs);
+    }
+
+
+    @Override
+    protected void readPlain(DataInputStream inputStream, List<ChunkContainerRef> readRefs) throws IOException {
+        long nDirs = VarInt.read(inputStream);
+        long nFiles = VarInt.read(inputStream);
         for (long i = 0; i < nDirs; i++) {
             Entry entry = new Entry(false);
-            entry.read(inputStream);
+            entry.read(inputStream, readRefs);
             entries.put(entry.getName(), entry);
         }
         for (long i = 0; i < nFiles; i++) {
             Entry entry = new Entry(true);
-            entry.read(inputStream);
+            entry.read(inputStream, readRefs);
             entries.put(entry.getName(), entry);
-        }
-    }
-
-    @Override
-    protected void writeInternal(DataOutputStream outputStream) throws IOException {
-        Collection<Entry> dirs = getDirs();
-        Collection<Entry> files = getFiles();
-        outputStream.writeLong(dirs.size());
-        outputStream.writeLong(files.size());
-        for (Entry entry : dirs)
-            entry.write(outputStream);
-        for (Entry entry : files)
-            entry.write(outputStream);
-    }
-
-    public HashValue hash() {
-        try {
-            MessageDigest messageDigest = CryptoHelper.sha256Hash();
-            messageDigest.reset();
-            for (Entry entry : entries.values())
-                entry.dataHash(messageDigest);
-
-            return new HashValue(messageDigest.digest());
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
         }
     }
 

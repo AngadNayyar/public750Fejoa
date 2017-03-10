@@ -26,10 +26,16 @@ public class DiffMergeTest extends RepositoryTest {
          messageDigest = CryptoHelper.sha256Hash();
     }
 
-    private BoxPointer addFile(FlatDirectoryBox box, String name) {
+    private ChunkContainerRef addFile(FlatDirectoryBox box, String name) {
         HashValue dataHash = new HashValue(CryptoHelper.sha256Hash(Crypto.get().generateSalt()));
-        BoxPointer fakeFilePointer = new BoxPointer(dataHash,
+        BoxPointer fakeBox = new BoxPointer(dataHash,
                 new HashValue(CryptoHelper.sha256Hash(Crypto.get().generateSalt())), dataHash);
+
+        ChunkContainerRef fakeFilePointer = new ChunkContainerRef();
+        fakeFilePointer.setDataHash(fakeBox.getDataHash());
+        fakeFilePointer.setIV(fakeBox.getIV());
+        fakeFilePointer.setBoxHash(fakeBox.getBoxHash());
+
         box.addFile(name, fakeFilePointer);
         return fakeFilePointer;
     }
@@ -38,7 +44,7 @@ public class DiffMergeTest extends RepositoryTest {
         FlatDirectoryBox ours = FlatDirectoryBox.create();
         FlatDirectoryBox theirs = FlatDirectoryBox.create();
 
-        BoxPointer file1 = addFile(ours, "test1");
+        ChunkContainerRef file1 = addFile(ours, "test1");
         DirBoxDiffIterator iterator = new DirBoxDiffIterator("", ours, theirs);
         assertTrue(iterator.hasNext());
         DiffIterator.Change change = iterator.next();
@@ -50,7 +56,7 @@ public class DiffMergeTest extends RepositoryTest {
         iterator = new DirBoxDiffIterator("", ours, theirs);
         assertFalse(iterator.hasNext());
 
-        BoxPointer file2 = addFile(theirs, "test2");
+        ChunkContainerRef file2 = addFile(theirs, "test2");
         iterator = new DirBoxDiffIterator("", ours, theirs);
         assertTrue(iterator.hasNext());
         change = iterator.next();
@@ -59,14 +65,14 @@ public class DiffMergeTest extends RepositoryTest {
         assertFalse(iterator.hasNext());
         ours.addFile("test2", file2);
 
-        BoxPointer file3 = addFile(ours, "test3");
+        ChunkContainerRef file3 = addFile(ours, "test3");
         theirs.addFile("test3", file3);
-        BoxPointer file4 = addFile(ours, "test4");
+        ChunkContainerRef file4 = addFile(ours, "test4");
         theirs.addFile("test4", file4);
-        BoxPointer file5 = addFile(ours, "test5");
+        ChunkContainerRef file5 = addFile(ours, "test5");
         theirs.addFile("test5", file5);
 
-        BoxPointer file31 = addFile(ours, "test31");
+        ChunkContainerRef file31 = addFile(ours, "test31");
         iterator = new DirBoxDiffIterator("", ours, theirs);
         assertTrue(iterator.hasNext());
         change = iterator.next();
@@ -75,7 +81,7 @@ public class DiffMergeTest extends RepositoryTest {
         assertFalse(iterator.hasNext());
 
         theirs.addFile("test31", file31);
-        BoxPointer file41 = addFile(theirs, "test41");
+        ChunkContainerRef file41 = addFile(theirs, "test41");
         iterator = new DirBoxDiffIterator("", ours, theirs);
         assertTrue(iterator.hasNext());
         change = iterator.next();
@@ -123,17 +129,16 @@ public class DiffMergeTest extends RepositoryTest {
         mergedContent.put("file2", new DatabaseStingEntry("file2", "file2"));
 
         IRepoChunkAccessors.ITransaction transaction = accessors.startTransaction();
-        IChunkAccessor commitAccessor = transaction.getCommitAccessor();
 
         // test common ancestor finder
         CommitBox ours = repository.getHeadCommit();
         CommitBox theirs = repository2.getHeadCommit();
-        CommonAncestorsFinder.Chains chains = CommonAncestorsFinder.find(commitAccessor, ours, commitAccessor, theirs);
+        CommonAncestorsFinder.Chains chains = CommonAncestorsFinder.find(transaction, ours, transaction, theirs);
         assertTrue(chains.chains.size() == 1);
         CommonAncestorsFinder.SingleCommitChain chain = chains.chains.get(0);
         assertTrue(chain.commits.size() == 2);
         CommitBox parent = chain.commits.get(chain.commits.size() - 1);
-        assertTrue(parent.dataHash().equals(repository.getHeadCommit().dataHash()));
+        assertTrue(parent.getPlainHash().equals(repository.getHeadCommit().getPlainHash()));
 
         repository.merge(transaction, theirs);
         repository.commit("merge1", null);
