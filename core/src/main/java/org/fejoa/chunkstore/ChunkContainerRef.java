@@ -8,6 +8,7 @@
 package org.fejoa.chunkstore;
 
 import org.fejoa.library.crypto.CryptoHelper;
+import org.fejoa.library.crypto.IMessageDigestFactory;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -167,13 +168,26 @@ public class ChunkContainerRef {
         return data.getContainerHeader();
     }
 
-    public MessageDigest getDataMessageDigest() throws NoSuchAlgorithmException {
+    public IMessageDigestFactory getDataMessageDigestFactory() throws IOException {
         ChunkContainerHeader.HashType hashType = data.getContainerHeader().getHashType();
         switch (hashType) {
             case SHA_3:
-                return CryptoHelper.sha3Hash();
+                return new IMessageDigestFactory() {
+                    @Override
+                    public MessageDigest create() throws NoSuchAlgorithmException {
+                        return CryptoHelper.sha3_256Hash();
+                    }
+                };
         }
-        throw new NoSuchAlgorithmException();
+        throw new IOException("Unsupported hash type");
+    }
+
+    public MessageDigest getDataMessageDigest() throws IOException {
+        try {
+            return getDataMessageDigestFactory().create();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IOException(e);
+        }
     }
 
     @Override

@@ -206,7 +206,8 @@ public class ChunkStore {
     private PutResult<HashValue> put(byte[] data) throws IOException {
         try {
             lock();
-            HashValue hash = new HashValue(CryptoHelper.sha256Hash(data));
+            // make this configurable
+            HashValue hash = new HashValue(CryptoHelper.sha3_256Hash(data));
             // TODO make it more efficient by only using one lookup
             if (tree.get(hash.getBytes()) != null)
                 return new PutResult<>(hash, true);

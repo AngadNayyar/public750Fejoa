@@ -234,7 +234,8 @@ public class ChunkContainerTest extends TestCase {
         chunkContainer.flush(false);
         System.out.println(chunkContainer.printAll());
 
-        ChunkHash chunkHash = new ChunkHash(dataSplitter, chunkContainer.getNodeSplitter());
+        ChunkHash chunkHash = new ChunkHash(dataSplitter, chunkContainer.getNodeSplitter(),
+                ref.getDataMessageDigestFactory());
         chunkHash.update("11".getBytes());
         chunkHash.update("44".getBytes());
         chunkHash.update("22".getBytes());
@@ -290,7 +291,8 @@ public class ChunkContainerTest extends TestCase {
         assertEquals(newString, "1|2|3|i4|4|5|6|7|8|9|10|11|12|13|14|15|");
         System.out.println(chunkContainer.printAll());
 
-        ChunkHash chunkHash = new ChunkHash(dataSplitter, chunkContainer.getNodeSplitter());
+        ChunkHash chunkHash = new ChunkHash(dataSplitter, chunkContainer.getNodeSplitter(),
+                ref.getDataMessageDigestFactory());
         chunkHash.update(newString.getBytes());
         assertTrue(Arrays.equals(chunkContainer.hash().getBytes(), chunkHash.digest()));
     }
@@ -434,14 +436,16 @@ public class ChunkContainerTest extends TestCase {
         outputStream.close();
         chunkContainer.flush(false);
 
-        ChunkHash chunkHash = new ChunkHash(chunkContainer.getChunkSplitter(), chunkContainer.getNodeSplitter());
+        ChunkHash chunkHash = new ChunkHash(chunkContainer.getChunkSplitter(), chunkContainer.getNodeSplitter(),
+                ref.getDataMessageDigestFactory());
         chunkHash.update(data);
         final HashValue dataHash = new HashValue(chunkHash.digest());
 
         // verify
         chunkContainer = openContainer(dirName, name, chunkContainer.getRef());
         Iterator<ChunkContainer.DataChunkPointer> iter = chunkContainer.getChunkIterator(0);
-        chunkHash = new ChunkHash(chunkContainer.getChunkSplitter(), chunkContainer.getNodeSplitter());
+        chunkHash = new ChunkHash(chunkContainer.getChunkSplitter(), chunkContainer.getNodeSplitter(),
+                ref.getDataMessageDigestFactory());
         while (iter.hasNext()) {
             ChunkContainer.DataChunkPointer pointer = iter.next();
             chunkHash.update(pointer.getDataChunk().getData());

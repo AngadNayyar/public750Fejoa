@@ -316,7 +316,7 @@ class SyncRepository implements ISyncDatabase {
         };
     }
 
-    private ChunkContainerRandomDataAccess createNewHandle(String path, Mode openFlags) {
+    private ChunkContainerRandomDataAccess createNewHandle(String path, Mode openFlags) throws IOException {
         ChunkContainerRef ref = new ChunkContainerRef();
         ChunkContainer chunkContainer = new ChunkContainer(transaction.getFileAccessor(ref, path), ref);
         ChunkContainerRandomDataAccess randomDataAccess = new ChunkContainerRandomDataAccess(chunkContainer,

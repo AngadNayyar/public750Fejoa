@@ -1,5 +1,5 @@
 /*
- * Copyright 2014.
+ * Copyright 2014-2017.
  * Distributed under the terms of the GPLv3 License.
  *
  * Authors:
@@ -47,7 +47,7 @@ public class CryptoHelper {
         return MessageDigest.getInstance("SHA-256");
     }
 
-    static public MessageDigest sha3Hash() throws NoSuchAlgorithmException {
+    static public MessageDigest sha3_256Hash() throws NoSuchAlgorithmException {
         return new SHA3.DigestSHA3(256);
     }
 
@@ -67,12 +67,28 @@ public class CryptoHelper {
         return sha256HashHex(data.getBytes());
     }
 
+    static public String sha3_256HashHex(byte data[]) {
+        return toHex(sha3_256Hash(data));
+    }
+
+    static public byte[] hash(byte[] data, MessageDigest messageDigest) {
+        messageDigest.reset();
+        messageDigest.update(data);
+        return messageDigest.digest();
+    }
+
     static public byte[] sha1Hash(byte data[]) {
         try {
-            MessageDigest messageDigest = sha1Hash();
-            messageDigest.reset();
-            messageDigest.update(data);
-            return messageDigest.digest();
+            return hash(data, sha1Hash());
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return null;
+        }
+    }
+
+    static public byte[] sha3_256Hash(byte data[]) {
+        try {
+            return hash(data, sha3_256Hash());
         } catch (Exception e) {
             System.out.println(e.getMessage());
             return null;
@@ -81,10 +97,7 @@ public class CryptoHelper {
 
     static public byte[] sha256Hash(byte data[]) {
         try {
-            MessageDigest messageDigest = sha256Hash();
-            messageDigest.reset();
-            messageDigest.update(data);
-            return messageDigest.digest();
+            return hash(data, sha256Hash());
         } catch (Exception e) {
             System.out.println(e.getMessage());
             return null;

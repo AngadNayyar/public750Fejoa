@@ -206,8 +206,9 @@ public class ChunkContainer extends ChunkContainerNode {
      *
      * @param blobAccessor
      */
-    public ChunkContainer(IChunkAccessor blobAccessor, ChunkContainerRef ref) {
-        super(blobAccessor, null, getNodeSplitter(ref.getData().getContainerHeader()), LEAF_LEVEL);
+    public ChunkContainer(IChunkAccessor blobAccessor, ChunkContainerRef ref) throws IOException {
+        super(blobAccessor, null, getNodeSplitter(ref.getData().getContainerHeader()), LEAF_LEVEL,
+                ref.getDataMessageDigest());
         this.ref = ref;
         setNodeSplitter(getNodeSplitter(ref.getContainerHeader()));
         this.cacheManager = new CacheManager(this);
@@ -218,7 +219,7 @@ public class ChunkContainer extends ChunkContainerNode {
      */
     private ChunkContainer(IChunkAccessor blobAccessor, DataInputStream inputStream, ChunkContainerRef ref)
             throws IOException {
-        super(blobAccessor, null, null, LEAF_LEVEL);
+        super(blobAccessor, null, null, LEAF_LEVEL, ref.getDataMessageDigest());
         this.ref = ref;
         setNodeSplitter(getNodeSplitter(ref.getContainerHeader()));
         that.setLevel(ref.getContainerHeader().getLevel());
@@ -375,7 +376,7 @@ public class ChunkContainer extends ChunkContainerNode {
 
     private IChunkPointer putDataChunk(DataChunk blob) throws IOException, CryptoException {
         byte[] rawBlob = blob.getData();
-        HashValue hash = blob.hash();
+        HashValue hash = blob.hash(messageDigest);
         HashValue boxedHash = blobAccessor.putChunk(rawBlob, hash).key;
         BoxPointer boxPointer = new BoxPointer(hash, boxedHash, hash);
         return new ChunkPointer(boxPointer, rawBlob.length, blob, DATA_LEVEL);

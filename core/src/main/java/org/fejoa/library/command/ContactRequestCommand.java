@@ -1,5 +1,5 @@
 /*
- * Copyright 2015.
+ * Copyright 2015-2017.
  * Distributed under the terms of the GPLv3 License.
  *
  * Authors:
@@ -8,14 +8,16 @@
 package org.fejoa.library.command;
 
 import org.fejoa.library.crypto.CryptoException;
-import org.fejoa.library.crypto.CryptoHelper;
 import org.fejoa.library.crypto.JsonCryptoSettings;
 import org.fejoa.library.*;
+import org.fejoa.library.support.ProtocolHashHelper;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import javax.xml.bind.DatatypeConverter;
 import java.io.IOException;
+
+import static org.fejoa.library.Constants.HASH_ALGO_KEY;
 
 
 public class ContactRequestCommand {
@@ -53,13 +55,15 @@ public class ContactRequestCommand {
         object.put(SIGNING_KEY_SETTINGS_KEY, JsonCryptoSettings.toJson(signingKeyPair.getKeyTypeSettings()));
         object.put(PUBLIC_KEY_KEY, base64PublicKey);
         object.put(PUBLIC_KEY_SETTINGS_KEY, JsonCryptoSettings.toJson(publicKeyPair.getKeyTypeSettings()));
+        final String hashAlgo = ProtocolHashHelper.HASH_SHA3_256;
+        object.put(HASH_ALGO_KEY, hashAlgo);
 
         if (!reply)
             object.put(STATE, INITIAL_STATE);
         else
             object.put(STATE, REPLY_STATE);
 
-        String hash = CryptoHelper.sha256HashHex(myself.getId() + base64SignKey + base64PublicKey);
+        String hash = ProtocolHashHelper.hashHex(myself.getId() + base64SignKey + base64PublicKey, hashAlgo);
         String signature = DatatypeConverter.printBase64Binary(myself.sign(signingKeyPair, hash.getBytes()));
 
         object.put(SIGNATURE_KEY, signature);

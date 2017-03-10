@@ -25,6 +25,7 @@ public class ChunkContainerNode implements IChunk {
     static final protected int LEAF_LEVEL = DATA_LEVEL + 1;
 
     final protected IChunkPointer that;
+    final protected MessageDigest messageDigest;
     protected boolean onDisk = false;
     protected ChunkContainerNode parent;
     final protected IChunkAccessor blobAccessor;
@@ -34,31 +35,34 @@ public class ChunkContainerNode implements IChunk {
     protected ChunkSplitter nodeSplitter;
 
     static public ChunkContainerNode create(IChunkAccessor blobAccessor, ChunkContainerNode parent,
-                                            ChunkSplitter nodeSplitter, int level) {
-        return new ChunkContainerNode(blobAccessor, parent, nodeSplitter, level);
+                                            ChunkSplitter nodeSplitter, int level, MessageDigest messageDigest) {
+        return new ChunkContainerNode(blobAccessor, parent, nodeSplitter, level, messageDigest);
     }
 
     static public ChunkContainerNode read(IChunkAccessor blobAccessor, ChunkContainerNode parent, IChunkPointer that)
             throws IOException, CryptoException {
-        ChunkContainerNode node =  new ChunkContainerNode(blobAccessor, parent, parent.nodeSplitter, that);
+        ChunkContainerNode node =  new ChunkContainerNode(blobAccessor, parent, parent.nodeSplitter, that,
+                parent.messageDigest);
         DataInputStream inputStream = blobAccessor.getChunk(that.getBoxPointer());
         node.read(inputStream, that.getDataLength());
         return node;
     }
 
     protected ChunkContainerNode(IChunkAccessor blobAccessor, ChunkContainerNode parent, ChunkSplitter nodeSplitter,
-                                 int level) {
+                                 int level, MessageDigest messageDigest) {
         this.blobAccessor = blobAccessor;
         this.parent = parent;
         this.that = new ChunkPointer(null, -1, this, level);
+        this.messageDigest = messageDigest;
         setNodeSplitter(nodeSplitter);
     }
 
     private ChunkContainerNode(IChunkAccessor blobAccessor, ChunkContainerNode parent, ChunkSplitter nodeSplitter,
-                               IChunkPointer that) {
+                               IChunkPointer that, MessageDigest messageDigest) {
         this.blobAccessor = blobAccessor;
         this.parent = parent;
         this.that = that;
+        this.messageDigest = messageDigest;
         setNodeSplitter(nodeSplitter);
     }
 
@@ -233,7 +237,8 @@ public class ChunkContainerNode implements IChunk {
     }
 
     private void splitAt(int index) throws IOException {
-        ChunkContainerNode right = ChunkContainerNode.create(blobAccessor, parent, nodeSplitter, that.getLevel());
+        ChunkContainerNode right = ChunkContainerNode.create(blobAccessor, parent, nodeSplitter, that.getLevel(),
+                messageDigest);
         right.setNodeSplitter(nodeSplitter);
         while (size() > index)
             right.addBlobPointer(removeBlobPointer(index));
@@ -242,7 +247,8 @@ public class ChunkContainerNode implements IChunk {
             parent.addBlobPointer(inParentIndex + 1, right.that);
         } else {
             // move item item to new child
-            ChunkContainerNode left = ChunkContainerNode.create(blobAccessor, parent, nodeSplitter, that.getLevel());
+            ChunkContainerNode left = ChunkContainerNode.create(blobAccessor, parent, nodeSplitter, that.getLevel(),
+                    messageDigest);
             while (size() > 0)
                 left.addBlobPointer(removeBlobPointer(0));
             addBlobPointer(left.that);
@@ -353,7 +359,7 @@ public class ChunkContainerNode implements IChunk {
             if (parent != null)
                 parent.invalidate();
 
-            that.setBoxPointer(new BoxPointer(hash(), boxHash, rawHash()));
+            that.setBoxPointer(new BoxPointer(hash(messageDigest), boxHash, rawHash()));
 
             onDisk = true;
         }
@@ -376,7 +382,7 @@ public class ChunkContainerNode implements IChunk {
 
     @Override
     public String toString() {
-        String string = "Data Hash: " + hash() + "\n";
+        String string = "Data Hash: " + hash(messageDigest) + "\n";
         for (IChunkPointer pointer : slots)
             string += pointer.toString() + "\n";
         return string;
@@ -392,29 +398,28 @@ public class ChunkContainerNode implements IChunk {
         return string;
     }
 
-    @Override
     public HashValue hash() {
-        if (dataHash == null)
-            dataHash = calculateDataHash();
+        return hash(messageDigest);
+    }
 
-        return calculateDataHash();
+    @Override
+    public HashValue hash(MessageDigest messageDigest) {
+        if (dataHash == null)
+            dataHash = calculateDataHash(messageDigest);
+        // TODO: that seems wrong, why not just return dataHash?
+        return calculateDataHash(messageDigest);
     }
 
     protected HashValue rawHash() throws IOException {
-        return new HashValue(CryptoHelper.sha256Hash(getData()));
+        return new HashValue(CryptoHelper.hash(getData(), messageDigest));
     }
 
     protected BoxPointer getBoxPointer() {
         return that.getBoxPointer();
     }
 
-    private HashValue calculateDataHash() {
-        MessageDigest messageDigest = null;
-        try {
-            messageDigest = CryptoHelper.sha256Hash();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        }
+    private HashValue calculateDataHash(MessageDigest messageDigest) {
+        messageDigest.reset();
         for (IChunkPointer pointer : slots)
             messageDigest.update(pointer.getBoxPointer().getDataHash().getBytes());
         return new HashValue(messageDigest.digest());

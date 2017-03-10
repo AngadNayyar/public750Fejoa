@@ -50,12 +50,7 @@ abstract public class TypedBlob {
         this.ref = ref;
         short t = inputStream.readShort();
         assert t == type;
-        MessageDigest messageDigest;
-        try {
-            messageDigest = ref.getDataMessageDigest();
-        } catch (NoSuchAlgorithmException e) {
-            throw new IOException(e);
-        }
+        MessageDigest messageDigest = ref.getDataMessageDigest();
         readInternal(inputStream, messageDigest);
     }
 
@@ -72,12 +67,7 @@ abstract public class TypedBlob {
         outputStream.writeShort(type);
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         DataOutputStream dataOut = new DataOutputStream(byteArrayOutputStream);
-        MessageDigest messageDigest;
-        try {
-            messageDigest = ref.getDataMessageDigest();
-        } catch (NoSuchAlgorithmException e) {
-            throw new IOException(e);
-        }
+        MessageDigest messageDigest = ref.getDataMessageDigest();
         HashValue dataHash = writeInternal(dataOut, messageDigest);
         dataOut.close();
         byte[] data = byteArrayOutputStream.toByteArray();

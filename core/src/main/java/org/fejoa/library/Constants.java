@@ -24,6 +24,7 @@ public class Constants {
     static final public String SIGNATURE_KEY = "signature";
     static final public String SIGNATURE_SETTINGS_KEY = "signatureSettings";
     static final public String MESSAGE_KEY = "message";
+    static final public String HASH_ALGO_KEY = "hashAlgorithm";
 
 
     static final public String SERVER_USER_KEY = "serverUser";

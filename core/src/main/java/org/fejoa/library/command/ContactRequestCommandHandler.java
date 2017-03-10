@@ -12,6 +12,7 @@ import org.fejoa.library.crypto.CryptoSettings;
 import org.fejoa.library.crypto.ICryptoInterface;
 import org.fejoa.library.crypto.JsonCryptoSettings;
 import org.fejoa.library.*;
+import org.fejoa.library.support.ProtocolHashHelper;
 import org.json.JSONObject;
 
 import javax.xml.bind.DatatypeConverter;
@@ -128,7 +129,7 @@ public class ContactRequestCommandHandler extends EnvelopeCommandHandler {
         PublicKeyItem signingKeyItem = new PublicKeyItem(signingKey, signingKeySettings);
         PublicKeyItem publicKeyItem = new PublicKeyItem(publicKey, publicKeySettings);
 
-        String hash = CryptoHelper.sha256HashHex(id + signingKeyBase64 + publicKeyBase64);
+        String hash = ProtocolHashHelper.hashHex(id + signingKeyBase64 + publicKeyBase64, command);
         byte[] signature = DatatypeConverter.parseBase64Binary(command.getString(ContactRequestCommand.SIGNATURE_KEY));
         CryptoSettings.Signature signatureSettings = JsonCryptoSettings.signatureFromJson(command.getJSONObject(
                 ContactRequestCommand.SIGNATURE_SETTINGS_KEY));

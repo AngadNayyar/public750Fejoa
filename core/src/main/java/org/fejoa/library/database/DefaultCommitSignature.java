@@ -16,6 +16,7 @@ import org.fejoa.library.FejoaContext;
 import org.fejoa.library.SigningKeyPair;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.crypto.CryptoHelper;
+import org.fejoa.library.support.ProtocolHashHelper;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -37,9 +38,9 @@ public class DefaultCommitSignature implements ICommitSignature {
     @Override
     public String signMessage(String message, HashValue rootHashValue, Collection<HashValue> parents)
             throws CryptoException {
-        MessageDigest digest;
         try {
-            digest = CryptoHelper.sha256Hash();
+            final String hashAlgo = ProtocolHashHelper.HASH_SHA3_256;
+            MessageDigest digest = ProtocolHashHelper.getMessageDigest(hashAlgo);
             digest.update(message.getBytes());
             digest.update(rootHashValue.getBytes());
             for (HashValue parent : parents)
@@ -56,11 +57,9 @@ public class DefaultCommitSignature implements ICommitSignature {
             object.put(Constants.SIGNATURE_KEY, signature);
             object.put(Constants.SIGNATURE_SETTINGS_KEY, JsonCryptoSettings.toJson(signatureSettings));
             object.put(Constants.MESSAGE_KEY, message);
+            object.put(Constants.HASH_ALGO_KEY, hashAlgo);
 
             return object.toString();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-            throw new RuntimeException("Should not happen (?)");
         } catch (JSONException e) {
             e.printStackTrace();
             throw new RuntimeException("Should not happen (?)");

@@ -9,6 +9,7 @@ package org.fejoa.chunkstore;
 
 import junit.framework.TestCase;
 import org.fejoa.library.crypto.CryptoHelper;
+import org.fejoa.library.crypto.IMessageDigestFactory;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -20,9 +21,17 @@ import static org.fejoa.chunkstore.RabinSplitter.*;
 
 
 public class ChunkHashTest extends TestCase {
+    IMessageDigestFactory factory = new IMessageDigestFactory() {
+        @Override
+        public MessageDigest create() throws NoSuchAlgorithmException {
+            return CryptoHelper.sha3_256Hash();
+        }
+    };
+
     public void testSimple() throws NoSuchAlgorithmException {
-        MessageDigest messageDigest = CryptoHelper.sha256Hash();
-        ChunkHash chunkHash = new ChunkHash(new FixedBlockSplitter(2), new FixedBlockSplitter(64));
+        MessageDigest messageDigest = factory.create();
+        ChunkHash chunkHash = new ChunkHash(new FixedBlockSplitter(2), new FixedBlockSplitter(64),
+                factory);
 
         byte[] block1 = "11".getBytes();
         messageDigest.update(block1);
@@ -148,7 +157,7 @@ public class ChunkHashTest extends TestCase {
         int numberIt = nIgnore + 10;
         for (Integer size : fileSizes) {
             System.out.println("File size: " + size);
-            MessageDigest messageDigest = CryptoHelper.sha256Hash();
+            MessageDigest messageDigest = factory.create();
 
             byte[] data = new byte[size];
             for (int value = 0; value < data.length; value++) {
@@ -168,7 +177,8 @@ public class ChunkHashTest extends TestCase {
 
                 long time = System.currentTimeMillis() - startTime;
                 result.sha265Times.add(time);
-                System.out.println("Time sha256: " + time + " " + new HashValue(messageDigest.digest()));
+                System.out.println("Time " + messageDigest.getAlgorithm() + ": " + time + " "
+                        + new HashValue(messageDigest.digest()));
                 messageDigest.reset();
             }
 
@@ -179,7 +189,7 @@ public class ChunkHashTest extends TestCase {
                 byte[] prevHash = null;
                 ChunkHash chunkHash = new ChunkHash(new RabinSplitter(chunkSize, chunkSizeTarget.minSize, maxSize),
                         new RabinSplitter((int) (kFactor * chunkSize), (int) (kFactor * chunkSizeTarget.minSize),
-                                (int) (kFactor * maxSize)));
+                                (int) (kFactor * maxSize)), factory);
                 //ChunkHash chunkHash = new ChunkHash(new FixedBlockSplitter(1024 * 8), new FixedBlockSplitter(1024 * 8));
 
                 List<Long> chunkHashTimes = result.chunkHashTimes.get(sizeIndex);

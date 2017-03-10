@@ -10,10 +10,11 @@ package org.fejoa.chunkstore;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.security.MessageDigest;
 
 
 public interface IChunk {
-    HashValue hash();
+    HashValue hash(MessageDigest messageDigest);
     void read(DataInputStream inputStream, long dataLength) throws IOException;
     void write(DataOutputStream outputStream) throws IOException;
     byte[] getData() throws IOException;

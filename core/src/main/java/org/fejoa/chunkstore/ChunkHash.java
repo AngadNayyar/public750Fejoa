@@ -7,6 +7,8 @@
  */
 package org.fejoa.chunkstore;
 
+import org.fejoa.library.crypto.IMessageDigestFactory;
+
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -126,25 +128,22 @@ public class ChunkHash {
     final private ChunkSplitter dataSplitter;
     final private ChunkSplitter nodeSplitter;
     private Layer currentLayer;
+    final private IMessageDigestFactory messageDigestFactory;
 
-    public ChunkHash(ChunkSplitter dataSplitter, ChunkSplitter nodeSplitter) throws NoSuchAlgorithmException {
+    public ChunkHash(ChunkSplitter dataSplitter, ChunkSplitter nodeSplitter, IMessageDigestFactory messageDigestFactory)
+            throws NoSuchAlgorithmException {
         this.dataSplitter = dataSplitter;
         this.nodeSplitter = nodeSplitter;
+        this.messageDigestFactory = messageDigestFactory;
         dataSplitter.reset();
         nodeSplitter.reset();
 
         reset();
-        // test for message digest
-        getMessageDigestRaw();
-    }
-
-    private MessageDigest getMessageDigestRaw() throws NoSuchAlgorithmException {
-        return MessageDigest.getInstance("SHA-256");
     }
 
     private BufferedHash getMessageDigest() {
         try {
-            return new BufferedHash(getMessageDigestRaw());
+            return new BufferedHash(messageDigestFactory.create());
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }

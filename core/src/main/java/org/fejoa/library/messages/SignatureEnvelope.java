@@ -12,6 +12,7 @@ import org.fejoa.library.crypto.JsonCryptoSettings;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.crypto.CryptoHelper;
 import org.fejoa.library.crypto.CryptoSettings;
+import org.fejoa.library.support.ProtocolHashHelper;
 import org.fejoa.library.support.StreamHelper;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -39,7 +40,8 @@ public class SignatureEnvelope {
     static public InputStream signStream(byte[] data, boolean isRawData, IContactPrivate contactPrivate,
                                          SigningKeyPair signingKeyPair)
             throws IOException, CryptoException, JSONException {
-        byte[] hash = CryptoHelper.sha256Hash(data);
+        final String hashAlgo = ProtocolHashHelper.HASH_SHA3_256;
+        byte[] hash = ProtocolHashHelper.hash(data, hashAlgo);
         String signature = CryptoHelper.toHex(contactPrivate.sign(signingKeyPair, hash));
         JSONObject object = new JSONObject();
         object.put(Envelope.PACK_TYPE_KEY, SIGNATURE_TYPE);
@@ -47,6 +49,7 @@ public class SignatureEnvelope {
             object.put(Envelope.CONTAINS_DATA_KEY, 1);
         object.put(KEY_ID_KEY, signingKeyPair.getKeyId().toString());
         object.put(SENDER_ID_KEY, contactPrivate.getId());
+        object.put(Constants.HASH_ALGO_KEY, hashAlgo);
         object.put(SIGNATURE_KEY, signature);
         object.put(SETTINGS_KEY, JsonCryptoSettings.toJson(signingKeyPair.getSignatureSettings()));
         String header = object.toString() + "\n";
@@ -80,17 +83,17 @@ public class SignatureEnvelope {
         KeyId keyId = new KeyId(header.getString(KEY_ID_KEY));
         byte[] signature = CryptoHelper.fromHex(header.getString(SIGNATURE_KEY));
         CryptoSettings.Signature settings = JsonCryptoSettings.signatureFromJson(header.getJSONObject(SETTINGS_KEY));
-        byte[] hash = CryptoHelper.sha256Hash(data);
+        byte[] hash = ProtocolHashHelper.hash(data, header);
         if (!contact.verify(keyId, hash, signature, settings))
             throw new IOException("can't verify signature!");
 
         return new ReturnValue(new ByteArrayInputStream(data), senderId);
     }
 
-
     static public byte[] sign(byte[] data, boolean isRawData, IContactPrivate contactPrivate,
                               SigningKeyPair signingKeyPair) throws CryptoException, JSONException, IOException {
-        byte[] hash = CryptoHelper.sha256Hash(data);
+        final String hashAlgo = ProtocolHashHelper.HASH_SHA3_256;
+        byte[] hash = ProtocolHashHelper.hash(data, hashAlgo);
         String signature = CryptoHelper.toHex(contactPrivate.sign(signingKeyPair, hash));
         JSONObject object = new JSONObject();
         object.put(Envelope.PACK_TYPE_KEY, SIGNATURE_TYPE);
@@ -98,6 +101,7 @@ public class SignatureEnvelope {
             object.put(Envelope.CONTAINS_DATA_KEY, 1);
         object.put(KEY_ID_KEY, signingKeyPair.getId().toString());
         object.put(SENDER_ID_KEY, contactPrivate.getId());
+        object.put(Constants.HASH_ALGO_KEY, hashAlgo);
         object.put(SIGNATURE_KEY, signature);
         object.put(SETTINGS_KEY, JsonCryptoSettings.toJson(signingKeyPair.getSignatureSettings()));
         String header = object.toString() + "\n";
@@ -123,7 +127,7 @@ public class SignatureEnvelope {
         KeyId keyId = new KeyId(header.getString(KEY_ID_KEY));
         byte[] signature = CryptoHelper.fromHex(header.getString(SIGNATURE_KEY));
         CryptoSettings.Signature settings = JsonCryptoSettings.signatureFromJson(header.getJSONObject(SETTINGS_KEY));
-        byte[] hash = CryptoHelper.sha256Hash(data);
+        byte[] hash = ProtocolHashHelper.hash(data, header);
         if (!contact.verify(keyId, hash, signature, settings))
             throw new IOException("can't verify signature!");
 

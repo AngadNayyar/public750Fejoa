@@ -14,6 +14,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.security.MessageDigest;
 
 
 public class DataChunk implements IChunk {
@@ -27,8 +28,8 @@ public class DataChunk implements IChunk {
     }
 
     @Override
-    public HashValue hash() {
-        return new HashValue(CryptoHelper.sha256Hash(data));
+    public HashValue hash(MessageDigest messageDigest) {
+        return new HashValue(CryptoHelper.hash(data, messageDigest));
     }
 
     @Override

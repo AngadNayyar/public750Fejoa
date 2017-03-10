@@ -42,7 +42,7 @@ public class CreateAccountJob extends SimpleJsonRemoteJob<RemoteJob.Result> {
                                             int kdfIterations) throws CryptoException {
         ICryptoInterface crypto = Crypto.get();
         SecretKey secretKey = crypto.deriveKey(password, salt, kdfAlgorithm, keySize, kdfIterations);
-        return CryptoHelper.sha256Hash(secretKey.getEncoded());
+        return CryptoHelper.sha3_256Hash(secretKey.getEncoded());
     }
 
     @Override
