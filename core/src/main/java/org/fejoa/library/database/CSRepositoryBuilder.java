@@ -10,14 +10,12 @@ package org.fejoa.library.database;
 import org.fejoa.library.FejoaContext;
 import org.fejoa.library.SymmetricKeyData;
 import org.fejoa.library.crypto.CryptoException;
-import org.fejoa.library.crypto.CryptoHelper;
 import org.fejoa.library.crypto.ICryptoInterface;
 import org.apache.commons.codec.binary.Base64;
 import org.fejoa.chunkstore.*;
 
 import java.io.*;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
@@ -101,12 +99,12 @@ public class CSRepositoryBuilder {
             @Override
             public HashValue logHash(ChunkContainerRef commitPointer) {
                 try {
-                    MessageDigest digest = CryptoHelper.sha256Hash();
+                    MessageDigest digest = commitPointer.getDataMessageDigest();
                     digest.update(commitPointer.getBox().getBoxHash().getBytes());
                     digest.update(commitPointer.getBox().getIV());
                     return new HashValue(digest.digest());
-                } catch (NoSuchAlgorithmException e) {
-                    throw new RuntimeException("Missing sha256");
+                } catch (IOException e) {
+                    throw new RuntimeException("Missing hash algorithm");
                 }
             }
 
@@ -203,21 +201,21 @@ public class CSRepositoryBuilder {
             public DataInputStream getChunk(BoxPointer hash) throws IOException, CryptoException {
                 byte[] iv = getIv(hash.getIV());
                 InputStream inputStream = new ByteArrayInputStream(transaction.getChunk(hash.getBoxHash()));
+                inputStream = cryptoInterface.decryptSymmetric(inputStream, keyData.key, iv, keyData.settings);
                 if (ref.getBoxHeader().getCompressionType() == BoxHeader.CompressionType.ZLIB_COMPRESSION)
                     inputStream = new InflaterInputStream(inputStream);
-                return new DataInputStream(cryptoInterface.decryptSymmetric(inputStream, keyData.key, iv,
-                        keyData.settings));
+                return new DataInputStream(inputStream);
             }
 
             @Override
             public PutResult<HashValue> putChunk(byte[] data, HashValue ivHash) throws IOException, CryptoException {
                 ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream();
                 OutputStream outputStream = byteOutputStream;
+                outputStream = cryptoInterface.encryptSymmetric(outputStream, keyData.key,
+                        getIv(ivHash.getBytes()), keyData.settings);
                 if (ref.getBoxHeader().getCompressionType() == BoxHeader.CompressionType.ZLIB_COMPRESSION)
                     outputStream = new DeflaterOutputStream(outputStream);
-                OutputStream cryptoStream = cryptoInterface.encryptSymmetric(outputStream, keyData.key,
-                        getIv(ivHash.getBytes()), keyData.settings);
-                cryptoStream.write(data);
+                outputStream.write(data);
                 outputStream.close();
                 return transaction.put(byteOutputStream.toByteArray());
             }

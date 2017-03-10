@@ -72,7 +72,7 @@ class BoxHeaderIO {
         // compression and extension
         long compressionTypeRaw = VarInt.read(inputStream);
         int compressionTypeValue = (int)(compressionTypeRaw >> 1);
-        BoxHeader.CompressionType compressionType = BoxHeader.CompressionType.fromInt(encTypeValue);
+        BoxHeader.CompressionType compressionType = BoxHeader.CompressionType.fromInt(compressionTypeValue);
         if (compressionType == null)
             throw new IOException("Unknown enc type: " + compressionTypeValue);
 
