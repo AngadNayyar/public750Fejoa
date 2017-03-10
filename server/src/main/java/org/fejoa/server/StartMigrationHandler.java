@@ -69,15 +69,18 @@ public class StartMigrationHandler extends JsonRequestHandler {
         return true;
     }
 
-    static public JSONObject readMigrationFile(Session session, String serverUser) throws FileNotFoundException,
-            JSONException {
+    static public JSONObject readMigrationFile(Session session, String serverUser) throws JSONException {
         File migrationFile = new File(session.getServerUserDir(serverUser), MIGRATION_INFO_FILE);
-        String content = new Scanner(migrationFile).useDelimiter("\\Z").next();
+        String content;
+        try {
+            content = new Scanner(migrationFile).useDelimiter("\\Z").next();
+        } catch (FileNotFoundException e) {
+            return null;
+        }
         return new JSONObject(content);
     }
 
-    static public JSONObject readMigrationAccessToken(Session session, String serverUser) throws FileNotFoundException,
-            JSONException {
+    static public JSONObject readMigrationAccessToken(Session session, String serverUser) throws JSONException {
         return readMigrationFile(session, serverUser);
     }
 }
