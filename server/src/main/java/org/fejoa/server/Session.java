@@ -133,6 +133,8 @@ public class Session {
         } catch (IOException e) {
             // try to read token for the migration process
             JSONObject migrationToken = StartMigrationHandler.readMigrationAccessToken(this, serverUser);
+            if (migrationToken == null)
+                return null;
             AccessTokenServer accessToken = new AccessTokenServer(getContext(serverUser), migrationToken);
             if (accessToken.getId().equals(tokenId))
                 return accessToken;
