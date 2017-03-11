@@ -30,7 +30,7 @@ public class PushRequest {
     private void getChunkContainerNodeChildChunks(ChunkContainerNode node, IChunkAccessor accessor,
                                                   List<HashValue> chunks) throws IOException, CryptoException {
         for (IChunkPointer chunkPointer : node.getChunkPointers()) {
-            chunks.add(chunkPointer.getBoxPointer().getBoxHash());
+            chunks.add(chunkPointer.getChunkPointer().getBoxHash());
             if (!ChunkContainerNode.isDataPointer(chunkPointer)) {
                 ChunkContainerNode child = ChunkContainerNode.read(accessor, node, chunkPointer);
                 getChunkContainerNodeChildChunks(child, accessor, chunks);

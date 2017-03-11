@@ -198,7 +198,7 @@ public class CSRepositoryBuilder {
             }
 
             @Override
-            public DataInputStream getChunk(BoxPointer hash) throws IOException, CryptoException {
+            public DataInputStream getChunk(ChunkPointer hash) throws IOException, CryptoException {
                 byte[] iv = getIv(hash.getIV());
                 InputStream inputStream = new ByteArrayInputStream(transaction.getChunk(hash.getBoxHash()));
                 inputStream = cryptoInterface.decryptSymmetric(inputStream, keyData.key, iv, keyData.settings);
@@ -264,7 +264,7 @@ public class CSRepositoryBuilder {
                 return new RepoAccessorsTransactionBase(chunkStore) {
                     final IChunkAccessor accessor = new IChunkAccessor() {
                         @Override
-                        public DataInputStream getChunk(BoxPointer hash) throws IOException {
+                        public DataInputStream getChunk(ChunkPointer hash) throws IOException {
                             return new DataInputStream(new ByteArrayInputStream(transaction.getChunk(hash.getBoxHash())));
                         }
 

@@ -48,7 +48,7 @@ public class BenchmarkTest extends TestCase {
             ChunkStore.Transaction transaction = chunkStore.openTransaction();
 
             @Override
-            public DataInputStream getChunk(BoxPointer hash) throws IOException {
+            public DataInputStream getChunk(ChunkPointer hash) throws IOException {
                 return new DataInputStream(new ByteArrayInputStream(chunkStore.getChunk(hash.getBoxHash().getBytes())));
             }
 
@@ -73,7 +73,7 @@ public class BenchmarkTest extends TestCase {
             }
 
             @Override
-            public DataInputStream getChunk(BoxPointer hash) throws IOException, CryptoException {
+            public DataInputStream getChunk(ChunkPointer hash) throws IOException, CryptoException {
                 byte[] iv = getIv(hash.getDataHash().getBytes());
                 return new DataInputStream(cryptoInterface.decryptSymmetric(new ByteArrayInputStream(
                                 chunkStore.getChunk(hash.getBoxHash().getBytes())),
@@ -271,7 +271,7 @@ public class BenchmarkTest extends TestCase {
             // reopen to free memory
             /*outputStream.close();
             chunkContainer.flush(false);
-            BoxPointer pointer = chunkContainer.getBoxPointer();
+            ChunkPointer pointer = chunkContainer.getChunkPointer();
             chunkContainer = openContainer(dirName, name, pointer, nodeSplitter);
             outputStream = new ChunkContainerOutputStream(chunkContainer, dataSplitter);*/
             System.out.println("Fill chunk container progress: " + ((i + toWrite) / (1024 * 1024)));

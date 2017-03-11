@@ -28,7 +28,7 @@ public class DiffMergeTest extends RepositoryTest {
 
     private ChunkContainerRef addFile(FlatDirectoryBox box, String name) {
         HashValue dataHash = new HashValue(CryptoHelper.sha256Hash(Crypto.get().generateSalt()));
-        BoxPointer fakeBox = new BoxPointer(dataHash,
+        ChunkPointer fakeBox = new ChunkPointer(dataHash,
                 new HashValue(CryptoHelper.sha256Hash(Crypto.get().generateSalt())), dataHash);
 
         ChunkContainerRef fakeFilePointer = new ChunkContainerRef();

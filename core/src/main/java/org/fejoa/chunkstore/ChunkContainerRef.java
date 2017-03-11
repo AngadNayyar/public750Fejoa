@@ -132,8 +132,8 @@ public class ChunkContainerRef {
         return box;
     }
 
-    public BoxPointer getBoxPointer() {
-        return new BoxPointer(data.dataHash, box.boxHash, box.iv, getData().getContainerHeader().getDataLength());
+    public ChunkPointer getBoxPointer() {
+        return new ChunkPointer(data.dataHash, box.boxHash, box.iv, getData().getContainerHeader().getDataLength());
     }
 
     public HashValue getBoxHash() {

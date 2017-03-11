@@ -57,7 +57,7 @@ public class LogRepoTransaction implements IRepoChunkAccessors.ITransaction {
     private IChunkAccessor createWrapper(final IChunkAccessor chunkAccessor) {
         return new IChunkAccessor() {
             @Override
-            public DataInputStream getChunk(BoxPointer hash) throws IOException, CryptoException {
+            public DataInputStream getChunk(ChunkPointer hash) throws IOException, CryptoException {
                 return chunkAccessor.getChunk(hash);
             }
 

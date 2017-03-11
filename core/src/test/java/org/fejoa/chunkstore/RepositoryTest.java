@@ -23,7 +23,7 @@ public class RepositoryTest extends RepositoryTestBase {
     private IChunkAccessor getAccessor(final ChunkStore.Transaction chunkStoreTransaction) {
         return new IChunkAccessor() {
             @Override
-            public DataInputStream getChunk(BoxPointer hash) throws IOException {
+            public DataInputStream getChunk(ChunkPointer hash) throws IOException {
                 return new DataInputStream(new ByteArrayInputStream(chunkStoreTransaction.getChunk(hash.getBoxHash())));
             }
 

@@ -16,22 +16,22 @@ import java.util.Iterator;
 import java.util.Map;
 
 
-class ChunkPointer implements IChunkPointer {
-    private BoxPointer boxPointer;
+class ChunkPointerImpl implements IChunkPointer {
+    private ChunkPointer chunkPointer;
 
     private IChunk cachedChunk = null;
     protected int level;
 
-    protected ChunkPointer(int level) {
-        this.boxPointer = new BoxPointer();
+    protected ChunkPointerImpl(int level) {
+        this.chunkPointer = new ChunkPointer();
         this.level = level;
     }
 
-    protected ChunkPointer(BoxPointer hash, IChunk blob, int level) {
+    protected ChunkPointerImpl(ChunkPointer hash, IChunk blob, int level) {
         if (hash != null)
-            this.boxPointer = hash;
+            this.chunkPointer = hash;
         else
-            this.boxPointer = new BoxPointer();
+            this.chunkPointer = new ChunkPointer();
         cachedChunk = blob;
         this.level = level;
     }
@@ -42,22 +42,22 @@ class ChunkPointer implements IChunkPointer {
     }
 
     static public int getPointerLengthStatic() {
-        return BoxPointer.getPointerLength();
+        return ChunkPointer.getPointerLength();
     }
 
     @Override
     public long getDataLength() {
         if (cachedChunk != null)
-            boxPointer.setDataLength(cachedChunk.getDataLength());
-        return boxPointer.getDataLength();
+            chunkPointer.setDataLength(cachedChunk.getDataLength());
+        return chunkPointer.getDataLength();
     }
 
-    public void setBoxPointer(BoxPointer boxPointer) {
-        this.boxPointer = boxPointer;
+    public void setChunkPointer(ChunkPointer chunkPointer) {
+        this.chunkPointer = chunkPointer;
     }
 
-    public BoxPointer getBoxPointer() {
-        return boxPointer;
+    public ChunkPointer getChunkPointer() {
+        return chunkPointer;
     }
 
     @Override
@@ -81,20 +81,20 @@ class ChunkPointer implements IChunkPointer {
     }
 
     public void read(DataInputStream inputStream) throws IOException {
-        boxPointer.read(inputStream);
+        chunkPointer.read(inputStream);
     }
 
     public void write(DataOutputStream outputStream) throws IOException {
         // update the data length
-        boxPointer.setDataLength(getDataLength());
-        boxPointer.write(outputStream);
+        chunkPointer.setDataLength(getDataLength());
+        chunkPointer.write(outputStream);
     }
 
     @Override
     public String toString() {
-        String string = "l:" + boxPointer.getDataLength();
-        if (boxPointer != null)
-            string+= "," + boxPointer.toString();
+        String string = "l:" + chunkPointer.getDataLength();
+        if (chunkPointer != null)
+            string+= "," + chunkPointer.toString();
         return string;
     }
 }
@@ -217,7 +217,7 @@ public class ChunkContainer extends ChunkContainerNode {
         this.ref = ref;
         setNodeSplitter(getNodeSplitter(ref.getContainerHeader()));
         that.setLevel(ref.getContainerHeader().getLevel());
-        that.setBoxPointer(ref.getBoxPointer());
+        that.setChunkPointer(ref.getBoxPointer());
         read(inputStream, ref.getContainerHeader().getDataLength());
 
         cacheManager = new CacheManager(this);
@@ -236,7 +236,7 @@ public class ChunkContainer extends ChunkContainerNode {
     }
 
     static private float getNodeToDataSplittingRatio() {
-        return  (float)Config.DATA_HASH_SIZE / ChunkPointer.getPointerLengthStatic();
+        return  (float)Config.DATA_HASH_SIZE / ChunkPointerImpl.getPointerLengthStatic();
     }
 
     public ChunkContainerRef getRef() {
@@ -247,9 +247,9 @@ public class ChunkContainer extends ChunkContainerNode {
     public void flush(boolean childOnly) throws IOException, CryptoException {
         super.flush(childOnly);
 
-        ref.getData().setDataHash(that.getBoxPointer().getDataHash());
-        ref.getBox().setBoxHash(that.getBoxPointer().getBoxHash());
-        ref.getBox().setIv(that.getBoxPointer().getIV());
+        ref.getData().setDataHash(that.getChunkPointer().getDataHash());
+        ref.getBox().setBoxHash(that.getChunkPointer().getBoxHash());
+        ref.getBox().setIv(that.getChunkPointer().getIV());
 
         ref.getContainerHeader().setLevel(getNLevels());
         ref.getContainerHeader().setDataLength(getDataLength());
@@ -372,8 +372,8 @@ public class ChunkContainer extends ChunkContainerNode {
         byte[] rawBlob = blob.getData();
         HashValue hash = blob.hash(messageDigest);
         HashValue boxedHash = blobAccessor.putChunk(rawBlob, hash).key;
-        BoxPointer boxPointer = new BoxPointer(hash, boxedHash, hash, rawBlob.length);
-        return new ChunkPointer(boxPointer, blob, DATA_LEVEL);
+        ChunkPointer chunkPointer = new ChunkPointer(hash, boxedHash, hash, rawBlob.length);
+        return new ChunkPointerImpl(chunkPointer, blob, DATA_LEVEL);
     }
 
     static class InsertSearchResult {

@@ -87,7 +87,7 @@ class GetChunkContainerNodeJob extends Job {
     public Collection<HashValue> getRequestedChunks() {
         List<HashValue> children = new ArrayList<>();
         for (IChunkPointer pointer : node.getChunkPointers())
-            children.add(pointer.getBoxPointer().getBoxHash());
+            children.add(pointer.getChunkPointer().getBoxHash());
         return children;
     }
 

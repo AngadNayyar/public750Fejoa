@@ -34,7 +34,7 @@ public class ChunkingTest extends TestCase {
     private IChunkAccessor getAccessor(final ChunkStore chunkStore) {
         return new IChunkAccessor() {
             @Override
-            public DataInputStream getChunk(BoxPointer hash) throws IOException {
+            public DataInputStream getChunk(ChunkPointer hash) throws IOException {
                 return new DataInputStream(new ByteArrayInputStream(chunkStore.getChunk(hash.getBoxHash().getBytes())));
             }
 

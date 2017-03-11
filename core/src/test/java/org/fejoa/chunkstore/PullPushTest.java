@@ -33,7 +33,7 @@ public class PullPushTest extends RepositoryTestBase {
     private IChunkAccessor getAccessor(final ChunkStore.Transaction transaction) {
         return new IChunkAccessor() {
             @Override
-            public DataInputStream getChunk(BoxPointer hash) throws IOException {
+            public DataInputStream getChunk(ChunkPointer hash) throws IOException {
                 return new DataInputStream(new ByteArrayInputStream(transaction.getChunk(hash.getBoxHash())));
             }
 

@@ -120,7 +120,7 @@ public class TreeAccessor {
     public void put(String path, FileBox file) throws IOException, CryptoException {
         FlatDirectoryBox.Entry entry = new FlatDirectoryBox.Entry(true);
         entry.setObject(file);
-        if (!file.getBoxPointer().getBoxHash().isZero())
+        if (!file.getBoxHash().isZero())
             entry.setDataPointer(file.getDataContainer().getRef());
         put(path, entry);
     }

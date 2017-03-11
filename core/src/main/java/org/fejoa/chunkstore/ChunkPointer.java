@@ -13,7 +13,10 @@ import java.io.IOException;
 import java.util.Arrays;
 
 
-public class BoxPointer {
+/**
+ * Data class.
+ */
+public class ChunkPointer {
     final private static int LENGTH_SIZE = 8;
     final private static short IV_SIZE = 16;
 
@@ -22,14 +25,14 @@ public class BoxPointer {
     private HashValue boxHash;
     private byte[] iv;
 
-    public BoxPointer() {
+    public ChunkPointer() {
         dataHash = Config.newDataHash();
         boxHash = Config.newBoxHash();
         iv = new byte[IV_SIZE];
         dataLength = -1;
     }
 
-    public BoxPointer(HashValue data, HashValue box, byte[] iv, long length) {
+    public ChunkPointer(HashValue data, HashValue box, byte[] iv, long length) {
         assert data.size() == Config.DATA_HASH_SIZE && box.size() == Config.BOX_HASH_SIZE && iv.length == IV_SIZE;
         this.dataHash = data;
         this.boxHash = box;
@@ -37,15 +40,15 @@ public class BoxPointer {
         this.dataLength = length;
     }
 
-    public BoxPointer(HashValue data, HashValue box, byte[] iv) {
+    public ChunkPointer(HashValue data, HashValue box, byte[] iv) {
         this(data, box, iv, 0);
     }
 
-    public BoxPointer(HashValue data, HashValue box, HashValue iv) {
+    public ChunkPointer(HashValue data, HashValue box, HashValue iv) {
         this(data, box, iv, 0);
     }
 
-    public BoxPointer(HashValue data, HashValue box, HashValue iv, long length) {
+    public ChunkPointer(HashValue data, HashValue box, HashValue iv, long length) {
         this(data, box, getIv(iv.getBytes()), length);
         assert iv.getBytes().length >= IV_SIZE;
     }
@@ -56,13 +59,13 @@ public class BoxPointer {
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof BoxPointer))
+        if (!(o instanceof ChunkPointer))
             return false;
-        if (!dataHash.equals(((BoxPointer) o).dataHash))
+        if (!dataHash.equals(((ChunkPointer) o).dataHash))
             return false;
-        if (!Arrays.equals(iv, ((BoxPointer) o).getIV()))
+        if (!Arrays.equals(iv, ((ChunkPointer) o).getIV()))
             return false;
-        return boxHash.equals(((BoxPointer) o).boxHash);
+        return boxHash.equals(((ChunkPointer) o).boxHash);
     }
 
     public long getDataLength() {

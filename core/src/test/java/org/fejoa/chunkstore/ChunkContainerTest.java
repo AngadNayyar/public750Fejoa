@@ -50,7 +50,7 @@ public class ChunkContainerTest extends TestCase {
             ChunkStore.Transaction transaction = chunkStore.openTransaction();
 
             @Override
-            public DataInputStream getChunk(BoxPointer hash) throws IOException {
+            public DataInputStream getChunk(ChunkPointer hash) throws IOException {
                 return new DataInputStream(new ByteArrayInputStream(chunkStore.getChunk(hash.getBoxHash().getBytes())));
             }
 
@@ -75,7 +75,7 @@ public class ChunkContainerTest extends TestCase {
             }
 
             @Override
-            public DataInputStream getChunk(BoxPointer hash) throws IOException, CryptoException {
+            public DataInputStream getChunk(ChunkPointer hash) throws IOException, CryptoException {
                 byte[] iv = getIv(hash.getDataHash().getBytes());
                 return new DataInputStream(cryptoInterface.decryptSymmetric(new ByteArrayInputStream(
                             chunkStore.getChunk(hash.getBoxHash().getBytes())),

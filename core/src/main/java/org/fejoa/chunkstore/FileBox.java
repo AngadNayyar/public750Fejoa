@@ -50,8 +50,8 @@ public class FileBox {
         return dataContainer;
     }
 
-    public BoxPointer getBoxPointer() {
-        return dataContainer.getBoxPointer();
+    public HashValue getBoxHash() {
+        return dataContainer.getBoxPointer().getBoxHash();
     }
 
     @Override

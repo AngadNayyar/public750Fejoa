@@ -15,7 +15,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,7 +42,7 @@ public class ChunkContainerNode implements IChunk {
             throws IOException, CryptoException {
         ChunkContainerNode node =  new ChunkContainerNode(blobAccessor, parent, parent.nodeSplitter, that,
                 parent.messageDigest);
-        DataInputStream inputStream = blobAccessor.getChunk(that.getBoxPointer());
+        DataInputStream inputStream = blobAccessor.getChunk(that.getChunkPointer());
         node.read(inputStream, that.getDataLength());
         return node;
     }
@@ -52,7 +51,7 @@ public class ChunkContainerNode implements IChunk {
                                  int level, MessageDigest messageDigest) {
         this.blobAccessor = blobAccessor;
         this.parent = parent;
-        this.that = new ChunkPointer(null, this, level);
+        this.that = new ChunkPointerImpl(null, this, level);
         this.messageDigest = messageDigest;
         setNodeSplitter(nodeSplitter);
     }
@@ -106,7 +105,7 @@ public class ChunkContainerNode implements IChunk {
         IChunk cachedChunk = pointer.getCachedChunk();
         if (cachedChunk != null)
             return (DataChunk)cachedChunk;
-        DataInputStream inputStream = blobAccessor.getChunk(pointer.getBoxPointer());
+        DataInputStream inputStream = blobAccessor.getChunk(pointer.getChunkPointer());
         DataChunk dataChunk = new DataChunk();
         dataChunk.read(inputStream, pointer.getDataLength());
         pointer.setCachedChunk(dataChunk);
@@ -182,7 +181,7 @@ public class ChunkContainerNode implements IChunk {
         slots.clear();
         long dataLengthRead = 0;
         while (dataLengthRead < dataLength) {
-            IChunkPointer pointer = new ChunkPointer(that.getLevel() - 1);
+            IChunkPointer pointer = new ChunkPointerImpl(that.getLevel() - 1);
             pointer.read(inputStream);
             dataLengthRead += pointer.getDataLength();
             addBlobPointer(pointer);
@@ -262,7 +261,7 @@ public class ChunkContainerNode implements IChunk {
         int size = size();
         for (int i = 0; i < size; i++) {
             IChunkPointer child = get(i);
-            nodeSplitter.write(child.getBoxPointer().getDataHash().getBytes());
+            nodeSplitter.write(child.getChunkPointer().getDataHash().getBytes());
             if (nodeSplitter.isTriggered()) {
                 if (i == size - 1) // all good
                     return;
@@ -283,7 +282,7 @@ public class ChunkContainerNode implements IChunk {
 
                 IChunkPointer pointer = neighbour.removeBlobPointer(0, true);
                 addBlobPointer(pointer);
-                nodeSplitter.write(pointer.getBoxPointer().getDataHash().getBytes());
+                nodeSplitter.write(pointer.getChunkPointer().getDataHash().getBytes());
                 if (nodeSplitter.isTriggered()) {
                     // if the parent is the root node check if the root node is redundant else we are done
                     if (getParent() != null && getParent().getParent() == null)
@@ -350,7 +349,7 @@ public class ChunkContainerNode implements IChunk {
                 return;
             }
 
-            HashValue oldBoxHash = that.getBoxPointer().getBoxHash();
+            HashValue oldBoxHash = that.getChunkPointer().getBoxHash();
             HashValue boxHash = writeNode();
             // cleanup old chunk
             if (!boxHash.equals(oldBoxHash) && !oldBoxHash.isZero())
@@ -359,7 +358,7 @@ public class ChunkContainerNode implements IChunk {
             if (parent != null)
                 parent.invalidate();
 
-            that.setBoxPointer(new BoxPointer(hash(messageDigest), boxHash, rawHash()));
+            that.setChunkPointer(new ChunkPointer(hash(messageDigest), boxHash, rawHash()));
 
             onDisk = true;
         }
@@ -414,14 +413,14 @@ public class ChunkContainerNode implements IChunk {
         return new HashValue(CryptoHelper.hash(getData(), messageDigest));
     }
 
-    protected BoxPointer getBoxPointer() {
-        return that.getBoxPointer();
+    protected ChunkPointer getBoxPointer() {
+        return that.getChunkPointer();
     }
 
     private HashValue calculateDataHash(MessageDigest messageDigest) {
         messageDigest.reset();
         for (IChunkPointer pointer : slots)
-            messageDigest.update(pointer.getBoxPointer().getDataHash().getBytes());
+            messageDigest.update(pointer.getChunkPointer().getDataHash().getBytes());
         return new HashValue(messageDigest.digest());
     }
 

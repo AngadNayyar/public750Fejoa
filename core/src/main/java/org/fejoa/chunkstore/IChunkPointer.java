@@ -15,8 +15,8 @@ import java.io.IOException;
 public interface IChunkPointer {
     int getPointerLength();
     long getDataLength();
-    BoxPointer getBoxPointer();
-    void setBoxPointer(BoxPointer boxPointer);
+    ChunkPointer getChunkPointer();
+    void setChunkPointer(ChunkPointer chunkPointer);
     void read(DataInputStream inputStream) throws IOException;
     void write(DataOutputStream outputStream) throws IOException;
     IChunk getCachedChunk();
