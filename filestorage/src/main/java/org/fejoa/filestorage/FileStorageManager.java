@@ -8,6 +8,7 @@
 package org.fejoa.filestorage;
 
 import org.fejoa.chunkstore.HashValue;
+import org.fejoa.chunkstore.Repository;
 import org.fejoa.library.*;
 import org.fejoa.library.command.AccessCommandHandler;
 import org.fejoa.library.crypto.CryptoException;
@@ -85,22 +86,22 @@ public class FileStorageManager {
 
     public void addContactStorage(ContactStorageList.Store store, BranchInfo branchInfo, String checkoutPath)
             throws IOException, CryptoException {
-        ContactStorageList.CheckOutProfiles checkOutProfiles;
+        ContactStorageList.CheckoutProfiles checkoutProfiles;
         try {
-            checkOutProfiles = store.getCheckOutProfiles().get();
+            checkoutProfiles = store.getCheckOutProfiles().get();
         } catch (Exception e) {
             throw new IOException(e);
         }
-        ContactStorageList.CheckOutList checkOutList = checkOutProfiles.ensureCheckOut(getProfile());
-        ContactStorageList.CheckOutEntry checkOutEntry = new ContactStorageList.CheckOutEntry();
-        checkOutList.getCheckOutEntries().add(checkOutEntry);
-        checkOutEntry.setCheckOutPath(checkoutPath);
+        ContactStorageList.CheckoutProfile checkoutProfile = checkoutProfiles.ensureCheckout(getProfile());
+        ContactStorageList.CheckoutEntry checkoutEntry = new ContactStorageList.CheckoutEntry();
+        checkoutProfile.getCheckoutEntries().add(checkoutEntry);
+        checkoutEntry.setCheckoutPath(checkoutPath);
         Collection<BranchInfo.Location> locations = branchInfo.getLocationEntries();
         for (BranchInfo.Location location : locations)
-            checkOutEntry.getRemoteIds().add(location.getRemoteId());
+            checkoutEntry.getRemoteIds().add(location.getRemoteId());
 
         try {
-            store.setCheckOutProfile(checkOutProfiles);
+            store.setCheckOutProfile(checkoutProfiles);
         } catch (JSONException e) {
             throw new IOException(e);
         }
@@ -115,28 +116,58 @@ public class FileStorageManager {
         client.grantAccess(branch, STORAGE_CONTEXT, accessRights, contactPublic);
     }
 
-    public void sync(ContactStorageList.CheckOutEntry entry, BranchInfo.Location location, boolean overWriteLocalChanges,
-                     Task.IObserver<CheckoutDir.Update, CheckoutDir.Result> observer)
-            throws Exception {
-        String path = entry.getCheckOutPath();
+    static public File getCheckoutDir(Client client, BranchInfo branchInfo, ContactStorageList.CheckoutEntry entry)
+            throws IOException, CryptoException {
+        String path = entry.getCheckoutPath();
         if (path.equals("")) {
-            String branchName = location.getBranchInfo().getBranch();
+            String branchName = branchInfo.getBranch();
             path = StorageLib.appendDir(client.getContext().getHomeDir().getPath(), branchName);
         }
-        File destination = new File(path);
+        return new File(path);
+    }
+
+    public void sync(ContactStorageList.CheckoutEntry entry, final BranchInfo.Location location,
+                     final boolean overWriteLocalChanges,
+                     final Task.IObserver<CheckoutDir.Update, CheckoutDir.Result> observer)
+            throws Exception {
+        final File destination = getCheckoutDir(client, location.getBranchInfo(), entry);
         File chunkStoreDir = new File(destination, ".chunkstore");
         File indexDir = new File(chunkStoreDir, ".index");
-        Index index = new Index(client.getContext(), indexDir, location.getBranchInfo().getBranch());
-        HashValue rev = index.getRev();
+        final Index index = new Index(client.getContext(), indexDir, location.getBranchInfo().getBranch());
+        final HashValue rev = index.getRev();
         UserData userData = client.getUserData();
-        BranchInfo branchInfo = location.getBranchInfo();
+        final BranchInfo branchInfo = location.getBranchInfo();
         final StorageDir branchStorage = userData.getStorageDir(chunkStoreDir, branchInfo, rev);
-        // TODO better check if we need to check in, i.e. if tip is zero try to pull first!
-        if (!rev.isZero() || branchStorage.getTip().isZero()) {
-            // try to check in first
-            checkIn(destination, branchStorage, index, observer);
-        }
-        sync(branchStorage, location, destination, index, overWriteLocalChanges, observer);
+
+        // 1) try to get remote changes
+        // 2) check in local changes
+        // 3) sync changes
+        client.sync(branchStorage, location.getRemote(), location.getAuthInfo(client.getContext()),
+                new Task.IObserver<TaskUpdate, String>() {
+                    @Override
+                    public void onProgress(TaskUpdate taskUpdate) {
+
+                    }
+
+                    @Override
+                    public void onResult(String s) {
+                        try {
+                            if (!rev.isZero() || branchStorage.getTip().isZero()) {
+                                // try to check in first
+                                checkIn(destination, branchStorage, index, observer);
+                            }
+                            syncAndCheckout(branchStorage, location, destination, index, overWriteLocalChanges,
+                                    observer);
+                        } catch (Exception e) {
+                            observer.onException(e);
+                        }
+                    }
+
+                    @Override
+                    public void onException(Exception exception) {
+                        observer.onException(exception);
+                    }
+                });
     }
 
     private void checkIn(File destination, StorageDir branchStorage, Index index,
@@ -148,7 +179,8 @@ public class FileStorageManager {
         checkIn.start(observer);
     }
 
-    private void sync(StorageDir branchStorage, final BranchInfo.Location location, final File destination, final Index index,
+    private void syncAndCheckout(StorageDir branchStorage, final BranchInfo.Location location, final File destination,
+                      final Index index,
                       final boolean overWriteLocalChanges,
                       final Task.IObserver<CheckoutDir.Update, CheckoutDir.Result> observer)
             throws IOException, CryptoException {

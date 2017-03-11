@@ -89,16 +89,19 @@ public class FejoaContext {
 
     public StorageDir getStorage(File path, String branch, HashValue rev, SymmetricKeyData cryptoKeyData,
                                   ICommitSignature commitSignature) throws IOException, CryptoException {
-        StorageDir dir = secureStorageDirs.get(path.getPath() + ":" + branch);
-        if (dir != null && dir.getBranch().equals(branch))
-            return new StorageDir(dir);
+        if (rev == null) {
+            StorageDir dir = secureStorageDirs.get(path.getPath() + ":" + branch);
+            if (dir != null && dir.getBranch().equals(branch))
+                return new StorageDir(dir);
+        }
 
         // not found create one
         path.mkdirs();
 
         Repository repository = CSRepositoryBuilder.openOrCreate(this, path, branch, rev, cryptoKeyData);
         StorageDir storageDir = new StorageDir(repository, "", contextExecutor);
-        secureStorageDirs.put(path.getPath() + ":" + branch, storageDir);
+        if (rev == null)
+            secureStorageDirs.put(path.getPath() + ":" + branch, storageDir);
         storageDir = new StorageDir(storageDir);
         storageDir.setCommitSignature(commitSignature);
         return storageDir;

@@ -25,59 +25,55 @@ import java.io.IOException;
 import java.util.*;
 
 
+/**
+ * List of ContactStorage s
+ *
+ * ContactStorage: list of Stores associated with a contact
+ *
+ * Store: contains a Json string that encodes a CheckoutProfileList. Each CheckoutProfile contains a list of
+ * CheckoutEntry s.
+ */
 public class ContactStorageList extends DBObjectList<ContactStorageList.ContactStorage> {
     static public class Store extends DBObjectContainer {
         final private String branch;
         final private ContactStorage contactStorage;
-
-        /*
-        private DBObjectList<CheckOutProfileDir> checkOutProfiles = new DBObjectList<>(true,
-                new IValueCreator() {
-                    @Override
-                    public IDBContainerEntry create(String entryName) {
-                        return new CheckOutProfileDir(entryName);
-                    }
-                });*/
         final private DBString checkOuts = new DBString("checkOuts");
-
-
 
         public Store(String branch, ContactStorage contactStorage) {
             this.branch = branch;
             this.contactStorage = contactStorage;
 
             add(checkOuts);
-            //add(checkOutProfiles, "checkOutProfiles");
         }
 
         public ContactStorage getContactStorage() {
             return contactStorage;
         }
 
-        public CompletableFuture<CheckOutProfiles> getCheckOutProfiles() {
-            return checkOuts.get().handle(new BiFunction<String, Throwable, CompletableFuture<CheckOutProfiles>>() {
+        public CompletableFuture<CheckoutProfiles> getCheckOutProfiles() {
+            return checkOuts.get().handle(new BiFunction<String, Throwable, CompletableFuture<CheckoutProfiles>>() {
                 @Override
-                public CompletableFuture<CheckOutProfiles> apply(String s, Throwable throwable) {
+                public CompletableFuture<CheckoutProfiles> apply(String s, Throwable throwable) {
                     if (throwable != null)
-                        return CompletableFuture.completedFuture(new CheckOutProfiles());
+                        return CompletableFuture.completedFuture(new CheckoutProfiles());
 
                     try {
-                        return CompletableFuture.completedFuture(new CheckOutProfiles(s));
+                        return CompletableFuture.completedFuture(new CheckoutProfiles(s));
                     } catch (JSONException e) {
                         return CompletableFuture.failedFuture(e);
                     }
                 }
-            }).thenCompose(new Function<CompletableFuture<CheckOutProfiles>, CompletionStage<CheckOutProfiles>>() {
+            }).thenCompose(new Function<CompletableFuture<CheckoutProfiles>, CompletionStage<CheckoutProfiles>>() {
                 @Override
-                public CompletionStage<CheckOutProfiles> apply(
-                        CompletableFuture<CheckOutProfiles> checkOutProfilesCompletableFuture) {
+                public CompletionStage<CheckoutProfiles> apply(
+                        CompletableFuture<CheckoutProfiles> checkOutProfilesCompletableFuture) {
                     return checkOutProfilesCompletableFuture;
                 }
             });
         }
 
-        public void setCheckOutProfile(CheckOutProfiles checkOutProfiles) throws JSONException {
-            checkOuts.set(checkOutProfiles.toJson());
+        public void setCheckOutProfile(CheckoutProfiles checkoutProfiles) throws JSONException {
+            checkOuts.set(checkoutProfiles.toJson());
         }
 
         public String getBranch() {
@@ -89,24 +85,24 @@ public class ContactStorageList extends DBObjectList<ContactStorageList.ContactS
         }
     }
 
-    static public class CheckOutEntry {
-        private String checkOutPath = "";
+    static public class CheckoutEntry {
+        private String checkoutPath = "";
         private List<String> remoteIds = new ArrayList<>();
 
-        public CheckOutEntry() {
+        public CheckoutEntry() {
 
         }
 
-        public CheckOutEntry(String jsonString) throws JSONException {
+        public CheckoutEntry(String jsonString) throws JSONException {
             fromJson(jsonString);
         }
 
-        public String getCheckOutPath() {
-            return checkOutPath;
+        public String getCheckoutPath() {
+            return checkoutPath;
         }
 
-        public void setCheckOutPath(String checkOutPath) {
-            this.checkOutPath = checkOutPath;
+        public void setCheckoutPath(String checkoutPath) {
+            this.checkoutPath = checkoutPath;
         }
 
         public List<String> getRemoteIds() {
@@ -115,14 +111,14 @@ public class ContactStorageList extends DBObjectList<ContactStorageList.ContactS
 
         public String toJson() throws JSONException {
             JSONObject object = new JSONObject();
-            object.put("path", checkOutPath);
+            object.put("path", checkoutPath);
             object.put("remotes", remoteIds);
             return object.toString();
         }
 
         private void fromJson(String jsonString) throws JSONException {
             JSONObject object = new JSONObject(jsonString);
-            checkOutPath = object.getString("path");
+            checkoutPath = object.getString("path");
             remoteIds.clear();
             JSONArray array = object.getJSONArray("remotes");
             for (int i = 0; i < array.length(); i++)
@@ -130,65 +126,65 @@ public class ContactStorageList extends DBObjectList<ContactStorageList.ContactS
         }
     }
 
-    static public class CheckOutList {
-        private List<CheckOutEntry> checkOutEntries = new ArrayList<>();
+    static public class CheckoutProfile {
+        private List<CheckoutEntry> checkoutEntries = new ArrayList<>();
 
-        public CheckOutList() {
+        public CheckoutProfile() {
 
         }
 
-        public CheckOutList(String jsonString) throws JSONException {
+        public CheckoutProfile(String jsonString) throws JSONException {
             fromJson(jsonString);
         }
 
-        public List<CheckOutEntry> getCheckOutEntries() {
-            return checkOutEntries;
+        public List<CheckoutEntry> getCheckoutEntries() {
+            return checkoutEntries;
         }
 
         public String toJson() throws JSONException {
             JSONObject object = new JSONObject();
             JSONArray list = new JSONArray();
-            for (CheckOutEntry entry : checkOutEntries)
+            for (CheckoutEntry entry : checkoutEntries)
                 list.put(entry.toJson());
             object.put("entries", list);
             return object.toString();
         }
 
         private void fromJson(String jsonString) throws JSONException {
-            checkOutEntries.clear();
+            checkoutEntries.clear();
             JSONArray array = new JSONObject(jsonString).getJSONArray("entries");
             for (int i = 0; i < array.length(); i++)
-                checkOutEntries.add(new CheckOutEntry(array.getString(i)));
+                checkoutEntries.add(new CheckoutEntry(array.getString(i)));
         }
     }
 
-    static public class CheckOutProfiles {
-        final private Map<String, CheckOutList> profileMap = new HashMap<>();
+    static public class CheckoutProfiles {
+        final private Map<String, CheckoutProfile> profileMap = new HashMap<>();
 
-        public CheckOutProfiles() {
+        public CheckoutProfiles() {
 
         }
 
-        public CheckOutProfiles(String jsonString) throws JSONException {
+        public CheckoutProfiles(String jsonString) throws JSONException {
             fromJson(jsonString);
         }
 
-        public CheckOutList getCheckOut(String profile) {
+        public CheckoutProfile getCheckout(String profile) {
             return profileMap.get(profile);
         }
 
-        public CheckOutList ensureCheckOut(String profile) {
-            CheckOutList checkOut = getCheckOut(profile);
+        public CheckoutProfile ensureCheckout(String profile) {
+            CheckoutProfile checkOut = getCheckout(profile);
             if (checkOut != null)
                 return checkOut;
-            checkOut = new CheckOutList();
+            checkOut = new CheckoutProfile();
             profileMap.put(profile, checkOut);
             return checkOut;
         }
 
         public String toJson() throws JSONException {
             JSONObject object = new JSONObject();
-            for (Map.Entry<String, CheckOutList> entry : profileMap.entrySet())
+            for (Map.Entry<String, CheckoutProfile> entry : profileMap.entrySet())
                 object.put(entry.getKey(), entry.getValue().toJson());
             return object.toString();
         }
@@ -201,7 +197,7 @@ public class ContactStorageList extends DBObjectList<ContactStorageList.ContactS
             while (it.hasNext()) {
                 String key = it.next();
                 String checkOutString = jsonObject.getString(key);
-                profileMap.put(key, new CheckOutList(checkOutString));
+                profileMap.put(key, new CheckoutProfile(checkOutString));
             }
         }
     }

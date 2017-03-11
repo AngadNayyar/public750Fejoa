@@ -23,8 +23,8 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
-import javafx.stage.Window;
 import javafx.util.Callback;
+import org.fejoa.chunkstore.*;
 import org.fejoa.filestorage.*;
 import org.fejoa.gui.IStatusManager;
 import org.fejoa.gui.StatusManagerMessenger;
@@ -34,6 +34,7 @@ import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.database.DBObjectList;
 import org.fejoa.library.database.DatabaseDiff;
 import org.fejoa.library.database.StorageDir;
+import org.fejoa.library.remote.WatchJob;
 import org.fejoa.library.support.Task;
 
 import java.io.File;
@@ -91,7 +92,7 @@ class FileStorageTreeView extends TreeView<TreeObject> {
                             setGraphic(new ImageView(Resources.getIcon(Resources.ICON_CONTACT_32)));
                         } else if (item.data instanceof ContactStorageList.Store) {
                             setGraphic(new ImageView(Resources.getIcon(Resources.ICON_REMOTE_32)));
-                        } else if (item.data instanceof ContactStorageList.CheckOutEntry) {
+                        } else if (item.data instanceof ContactStorageList.CheckoutEntry) {
                             setGraphic(new ImageView(Resources.getIcon(Resources.ICON_FOLDER_32)));
                         }
                     }
@@ -169,21 +170,21 @@ class FileStorageTreeView extends TreeView<TreeObject> {
         treeItem.setExpanded(true);
         parent.getChildren().add(treeItem);
 
-        store.getCheckOutProfiles().thenAcceptAsync(new Consumer<ContactStorageList.CheckOutProfiles>() {
+        store.getCheckOutProfiles().thenAcceptAsync(new Consumer<ContactStorageList.CheckoutProfiles>() {
             @Override
-            public void accept(ContactStorageList.CheckOutProfiles checkOutProfiles) {
-                for (ContactStorageList.CheckOutEntry entry
-                        : checkOutProfiles.getCheckOut(fileStorageManager.getProfile()).getCheckOutEntries()) {
+            public void accept(ContactStorageList.CheckoutProfiles checkoutProfiles) {
+                for (ContactStorageList.CheckoutEntry entry
+                        : checkoutProfiles.getCheckout(fileStorageManager.getProfile()).getCheckoutEntries()) {
                     createCheckoutItem(treeItem, entry);
                 }
             }
         }, javaFXExecutor);
     }
 
-    private void createCheckoutItem(final TreeItem<TreeObject> parent, ContactStorageList.CheckOutEntry entry) {
+    private void createCheckoutItem(final TreeItem<TreeObject> parent, ContactStorageList.CheckoutEntry entry) {
         final TreeItem<TreeObject> treeItem = new TreeItem<>(new TreeObject(entry));
         treeItem.setExpanded(true);
-        treeItem.getValue().setLabel("Check out: " + entry.getCheckOutPath());
+        treeItem.getValue().setLabel("Check out: " + entry.getCheckoutPath());
         parent.getChildren().add(treeItem);
     }
 
@@ -192,22 +193,28 @@ class FileStorageTreeView extends TreeView<TreeObject> {
 class FileStorageInfoView extends VBox {
     final private UserData userData;
     final private Label checkOutDirInfo = new Label();
+    final private CheckoutDirRemoteStatusView remoteStatusView;
     final private ListView<String> sharedWithList = new ListView<>();
 
-    public FileStorageInfoView(UserData userData) {
-        this.userData = userData;
+    public FileStorageInfoView(Client client) {
+        this.userData = client.getUserData();
+        this.remoteStatusView = new CheckoutDirRemoteStatusView(client);
+
         HBox pathLayout = new HBox();
         pathLayout.getChildren().add(new Label("Checkout path:"));
         pathLayout.getChildren().add(checkOutDirInfo);
 
         getChildren().add(pathLayout);
         getChildren().add(new Label("Shared with:"));
+        getChildren().add(remoteStatusView);
         getChildren().add(sharedWithList);
     }
 
-    public void setTo(BranchInfo branchInfo, ContactStorageList.CheckOutEntry entry) {
-        String checkOutPath = entry.getCheckOutPath();
+    public void setTo(BranchInfo branchInfo, ContactStorageList.CheckoutEntry entry) {
+        String checkOutPath = entry.getCheckoutPath();
         checkOutDirInfo.setText(new File(checkOutPath).getAbsolutePath());
+
+        remoteStatusView.setTo(branchInfo, entry);
 
         sharedWithList.setVisible(false);
         try {
@@ -228,7 +235,64 @@ class FileStorageInfoView extends VBox {
         } catch (Exception e) {
 
         }
+    }
+}
 
+class CheckoutDirRemoteStatusView extends HBox {
+    final Client client;
+    final Label remoteTip = new Label();
+    final Button refreshButton = new Button("refresh");
+
+    public CheckoutDirRemoteStatusView(final Client client) {
+        this.client = client;
+        getChildren().addAll(refreshButton, remoteTip);
+    }
+
+    public void setTo(final BranchInfo branchInfo, final ContactStorageList.CheckoutEntry entry) {
+        refreshButton.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                try {
+                    refresh(client, branchInfo.getLocationEntries().iterator().next(), entry);
+                } catch (Exception e) {
+                    remoteTip.setText("Failed to fetch");
+                }
+            }
+        });
+    }
+
+    private void refresh(final Client client,
+                         final BranchInfo.Location location, final ContactStorageList.CheckoutEntry entry)
+            throws IOException, CryptoException {
+        client.peekRemoteStatus(location, new Task.IObserver<Void, WatchJob.Result>() {
+            @Override
+            public void onProgress(Void aVoid) {
+
+            }
+
+            @Override
+            public void onResult(WatchJob.Result result) {
+                try {
+                    BranchInfo branchInfo = location.getBranchInfo();
+                    File checkoutDir = FileStorageManager.getCheckoutDir(client, branchInfo, entry);
+                    File repoDir = new File(checkoutDir, ".chunkstore");
+                    StorageDir storageDir = client.getUserData().getStorageDir(repoDir, branchInfo, null);
+                    ICommitCallback commitCallback = ((Repository)storageDir.getDatabase()).getCommitCallback();
+                    HashValue tipLocal = storageDir.getTip();
+                    ChunkContainerRef tipRemote = commitCallback.commitPointerFromLog(result.updated.get(0).logMessage);
+
+                    System.out.println(tipRemote);
+                } catch (Exception e) {
+
+                }
+
+            }
+
+            @Override
+            public void onException(Exception exception) {
+
+            }
+        });
     }
 }
 
@@ -350,9 +414,9 @@ public class FileStorageView extends SplitPane {
                     if (newEntry.getValue().data instanceof ContactStorageList.Store) {
                         setRightView(new StoreView(fileStorageManager,
                                 (ContactStorageList.Store)newEntry.getValue().data));
-                    } else if (newEntry.getValue().data instanceof ContactStorageList.CheckOutEntry) {
-                        final ContactStorageList.CheckOutEntry checkOut
-                                = (ContactStorageList.CheckOutEntry)newEntry.getValue().data;
+                    } else if (newEntry.getValue().data instanceof ContactStorageList.CheckoutEntry) {
+                        final ContactStorageList.CheckoutEntry checkOut
+                                = (ContactStorageList.CheckoutEntry)newEntry.getValue().data;
                         syncButton.setDisable(false);
                         try {
                             String remoteId = checkOut.getRemoteIds().get(0);
@@ -407,13 +471,13 @@ public class FileStorageView extends SplitPane {
         stackPane.getChildren().add(node);
     }
 
-    private void setTo(BranchInfo branchInfo, ContactStorageList.CheckOutEntry entry) {
+    private void setTo(BranchInfo branchInfo, ContactStorageList.CheckoutEntry entry) {
         if (entry == null) {
             setRightView(null);
             return;
         }
 
-        FileStorageInfoView infoView = new FileStorageInfoView(client.getUserData());
+        FileStorageInfoView infoView = new FileStorageInfoView(client);
         infoView.setTo(branchInfo, entry);
         setRightView(infoView);
     }
@@ -457,7 +521,7 @@ public class FileStorageView extends SplitPane {
         fileStorageTreeView.setTo(fileStorageManager);
     }
 
-    private void sync(ContactStorageList.CheckOutEntry entry, BranchInfo.Location location) {
+    private void sync(ContactStorageList.CheckoutEntry entry, BranchInfo.Location location) {
         try {
             fileStorageManager.sync(entry, location, true,
                     new Task.IObserver<CheckoutDir.Update, CheckoutDir.Result>() {
