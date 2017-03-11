@@ -17,11 +17,6 @@ import java.util.Map;
 
 
 class ChunkPointer implements IChunkPointer {
-    // length of the "real" data, this is needed to find data for random access
-    // Goal: don't rewrite previous blocks, support middle extents and make random access possible.
-    // Using the data length makes this possible.
-    private long dataLength;
-    static final public int LENGTH_SIZE = 8;
     private BoxPointer boxPointer;
 
     private IChunk cachedChunk = null;
@@ -32,12 +27,11 @@ class ChunkPointer implements IChunkPointer {
         this.level = level;
     }
 
-    protected ChunkPointer(BoxPointer hash, int dataLength, IChunk blob, int level) {
+    protected ChunkPointer(BoxPointer hash, IChunk blob, int level) {
         if (hash != null)
             this.boxPointer = hash;
         else
             this.boxPointer = new BoxPointer();
-        this.dataLength = dataLength;
         cachedChunk = blob;
         this.level = level;
     }
@@ -48,14 +42,14 @@ class ChunkPointer implements IChunkPointer {
     }
 
     static public int getPointerLengthStatic() {
-        return BoxPointer.getPointerLength() + LENGTH_SIZE;
+        return BoxPointer.getPointerLength();
     }
 
     @Override
     public long getDataLength() {
         if (cachedChunk != null)
-            dataLength = cachedChunk.getDataLength();
-        return dataLength;
+            boxPointer.setDataLength(cachedChunk.getDataLength());
+        return boxPointer.getDataLength();
     }
 
     public void setBoxPointer(BoxPointer boxPointer) {
@@ -87,18 +81,18 @@ class ChunkPointer implements IChunkPointer {
     }
 
     public void read(DataInputStream inputStream) throws IOException {
-        dataLength = inputStream.readLong();
         boxPointer.read(inputStream);
     }
 
     public void write(DataOutputStream outputStream) throws IOException {
-        outputStream.writeLong(getDataLength());
+        // update the data length
+        boxPointer.setDataLength(getDataLength());
         boxPointer.write(outputStream);
     }
 
     @Override
     public String toString() {
-        String string = "l:" + dataLength;
+        String string = "l:" + boxPointer.getDataLength();
         if (boxPointer != null)
             string+= "," + boxPointer.toString();
         return string;
@@ -378,8 +372,8 @@ public class ChunkContainer extends ChunkContainerNode {
         byte[] rawBlob = blob.getData();
         HashValue hash = blob.hash(messageDigest);
         HashValue boxedHash = blobAccessor.putChunk(rawBlob, hash).key;
-        BoxPointer boxPointer = new BoxPointer(hash, boxedHash, hash);
-        return new ChunkPointer(boxPointer, rawBlob.length, blob, DATA_LEVEL);
+        BoxPointer boxPointer = new BoxPointer(hash, boxedHash, hash, rawBlob.length);
+        return new ChunkPointer(boxPointer, blob, DATA_LEVEL);
     }
 
     static class InsertSearchResult {

@@ -52,7 +52,7 @@ public class ChunkContainerNode implements IChunk {
                                  int level, MessageDigest messageDigest) {
         this.blobAccessor = blobAccessor;
         this.parent = parent;
-        this.that = new ChunkPointer(null, -1, this, level);
+        this.that = new ChunkPointer(null, this, level);
         this.messageDigest = messageDigest;
         setNodeSplitter(nodeSplitter);
     }
