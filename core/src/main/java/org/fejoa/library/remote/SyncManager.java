@@ -331,7 +331,7 @@ class Syncer {
                             if (!result.pulledRev.getDataHash().isZero() && !result.oldTip.equals(tip))
                                 storageDir.onTipUpdated(result.oldTip, tip);
 
-                            if (headCommit.getRef().getBoxPointer().equals(result.pulledRev)) {
+                            if (headCommit.getRef().equals(result.pulledRev)) {
                                 observer.onResult("Sync after pull: " + id);
                                 return;
                             }
