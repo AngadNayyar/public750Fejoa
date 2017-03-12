@@ -166,10 +166,15 @@ public class ConnectionManager {
             IRemoteRequest remoteRequest = getRemoteRequest(url);
             setCurrentRemoteRequest(remoteRequest);
 
-            Collection<UserAuthInfo> missingAccess = getMissingAccess(url, authInfos);
-            if (missingAccess.size() > 0) {
-                remoteRequest = getAuthRequest(remoteRequest, url, missingAccess);
-                setCurrentRemoteRequest(remoteRequest);
+            Collection<UserAuthInfo> missingAccess;
+            // synchronized: Don't send multiple auth requests at the same time; they could interfere, i.e. when they
+            // are stateful.
+            synchronized (tokenManager) {
+                missingAccess = getMissingAccess(url, authInfos);
+                if (missingAccess.size() > 0) {
+                    remoteRequest = getAuthRequest(remoteRequest, url, missingAccess);
+                    setCurrentRemoteRequest(remoteRequest);
+                }
             }
 
             T result = runJob(remoteRequest, job);
