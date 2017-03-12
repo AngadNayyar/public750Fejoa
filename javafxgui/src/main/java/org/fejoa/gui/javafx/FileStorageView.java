@@ -240,12 +240,13 @@ class FileStorageInfoView extends VBox {
 
 class CheckoutDirRemoteStatusView extends HBox {
     final Client client;
+    final Label localTip = new Label();
     final Label remoteTip = new Label();
-    final Button refreshButton = new Button("refresh");
+    final Button refreshButton = new Button("Refresh Status");
 
     public CheckoutDirRemoteStatusView(final Client client) {
         this.client = client;
-        getChildren().addAll(refreshButton, remoteTip);
+        getChildren().addAll(refreshButton, localTip, remoteTip);
     }
 
     public void setTo(final BranchInfo branchInfo, final ContactStorageList.CheckoutEntry entry) {
@@ -281,6 +282,8 @@ class CheckoutDirRemoteStatusView extends HBox {
                     HashValue tipLocal = storageDir.getTip();
                     ChunkContainerRef tipRemote = commitCallback.commitPointerFromLog(result.updated.get(0).logMessage);
 
+                    localTip.setText(tipLocal.toHex());
+                    remoteTip.setText(tipRemote.getDataHash().toHex());
                     System.out.println(tipRemote);
                 } catch (Exception e) {
 

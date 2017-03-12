@@ -35,6 +35,11 @@ public class MessageBranchEntry implements IStorageDirBundle {
         this.hosts.add(host);
     }
 
+    @Override
+    public String toString() {
+        return getId();
+    }
+
     public String getBranch() {
         return branch;
     }

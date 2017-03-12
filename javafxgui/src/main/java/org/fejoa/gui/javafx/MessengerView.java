@@ -44,7 +44,7 @@ class CreateMessageBranchView extends VBox {
         HBox receiverLayout = new HBox();
         receiverLayout.getChildren().add(new Label("Receiver:"));
         final TextField receiverTextField = new TextField();
-        receiverTextField.setText("User2@http://localhost:8080");
+        receiverTextField.setText("User2@http://localhost:8180");
         HBox.setHgrow(receiverTextField, Priority.ALWAYS);
         receiverLayout.getChildren().add(receiverTextField);
 

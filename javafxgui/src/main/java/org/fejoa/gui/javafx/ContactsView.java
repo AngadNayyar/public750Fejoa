@@ -227,7 +227,7 @@ public class ContactsView extends VBox {
         final TextField userName = new TextField("User2");
         addContactLayout.getChildren().add(userName);
         addContactLayout.getChildren().add(new Label("@"));
-        final TextField serverName = new TextField("http://localhost:8080");
+        final TextField serverName = new TextField("http://localhost:8180" );
         addContactLayout.getChildren().add(serverName);
         Button addContactButton = new Button("Add Contact");
         addContactLayout.getChildren().add(addContactButton);
