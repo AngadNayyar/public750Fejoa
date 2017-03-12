@@ -75,8 +75,8 @@ public class PullRequest {
         IRepoChunkAccessors.ITransaction transaction = requestRepo.getCurrentTransaction();
 
         // TODO:
-        if (requestRepo.getCurrentTransaction().getRawAccessor().getChunk(remoteTip.getBox().getBoxHash()) != null) {
-            //Don't need to pull, we have it...
+        if (transaction.getRawAccessor().getChunk(remoteTip.getBoxHash()) != null) {
+            return remoteTip;
         }
 
         GetCommitJob getCommitJob = new GetCommitJob(null, transaction, remoteTip);
