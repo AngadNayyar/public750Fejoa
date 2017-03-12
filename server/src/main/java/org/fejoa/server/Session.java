@@ -143,11 +143,11 @@ public class Session {
         }
     }
 
-    public void setLoginSchnorrVerifier(ZeroKnowledgeCompare.Verifier loginSchnorrVerifier) {
-        session.setAttribute(LOGIN_SCHNORR_VERIFIER_KEY, loginSchnorrVerifier);
+    public void setLoginSchnorrVerifier(String user, ZeroKnowledgeCompare.Verifier loginSchnorrVerifier) {
+        session.setAttribute(user + ":" + LOGIN_SCHNORR_VERIFIER_KEY, loginSchnorrVerifier);
     }
 
-    public ZeroKnowledgeCompare.Verifier getLoginSchnorrVerifier() {
-        return (ZeroKnowledgeCompare.Verifier)session.getAttribute(LOGIN_SCHNORR_VERIFIER_KEY);
+    public ZeroKnowledgeCompare.Verifier getLoginSchnorrVerifier(String user) {
+        return (ZeroKnowledgeCompare.Verifier)session.getAttribute(user + ":" +LOGIN_SCHNORR_VERIFIER_KEY);
     }
 }

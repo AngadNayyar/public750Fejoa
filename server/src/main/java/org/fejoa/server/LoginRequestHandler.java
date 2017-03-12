@@ -45,7 +45,7 @@ public class LoginRequestHandler extends JsonRequestHandler {
             BigInteger commitment = new BigInteger(params.getString(COMMITMENT_KEY), 16);
             byte[] secret = CryptoHelper.fromHex(accountSettings.derivedPassword);
             ZeroKnowledgeCompare.Verifier verifier = ZeroKnowledgeCompare.createVerifier(gpGroup, secret, commitment);
-            session.setLoginSchnorrVerifier(verifier);
+            session.setLoginSchnorrVerifier(userName, verifier);
 
             String saltBase64 = Base64.encodeBase64String(accountSettings.salt);
             String response = jsonRPCHandler.makeResult(Errors.OK, "root login parameter",
@@ -56,12 +56,12 @@ public class LoginRequestHandler extends JsonRequestHandler {
             responseHandler.setResponseHeader(response);
         } else if (state.equals(LoginJob.STATE_1)) {
             BigInteger verificationValue = new BigInteger(params.getString(VERIFICATION_VALUE_KEY), 16);
-            ZeroKnowledgeCompare.Verifier verifier = session.getLoginSchnorrVerifier();
+            ZeroKnowledgeCompare.Verifier verifier = session.getLoginSchnorrVerifier(userName);
             if (verifier == null) {
                 responseHandler.setResponseHeader(jsonRPCHandler.makeResult(Errors.ERROR, "invalid state"));
                 return;
             }
-            session.setLoginSchnorrVerifier(null);
+            session.setLoginSchnorrVerifier(userName, null);
             if (verifier.verify(verificationValue)) {
                 session.addRootRole(userName);
                 responseHandler.setResponseHeader(jsonRPCHandler.makeResult(Errors.OK, "login successful"));
