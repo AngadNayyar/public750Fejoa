@@ -205,8 +205,8 @@ class FileStorageInfoView extends VBox {
         pathLayout.getChildren().add(checkOutDirInfo);
 
         getChildren().add(pathLayout);
-        getChildren().add(new Label("Shared with:"));
         getChildren().add(remoteStatusView);
+        getChildren().add(new Label("Shared with:"));
         getChildren().add(sharedWithList);
     }
 
@@ -240,13 +240,16 @@ class FileStorageInfoView extends VBox {
 
 class CheckoutDirRemoteStatusView extends HBox {
     final Client client;
+    final Label localLabel = new Label("Local Tip:");
     final Label localTip = new Label();
+    final Label remoteLabel = new Label("Remote Tip:");
     final Label remoteTip = new Label();
     final Button refreshButton = new Button("Refresh Status");
 
     public CheckoutDirRemoteStatusView(final Client client) {
         this.client = client;
-        getChildren().addAll(refreshButton, localTip, remoteTip);
+        setSpacing(10);
+        getChildren().addAll(localLabel, localTip, remoteLabel, remoteTip, refreshButton);
     }
 
     public void setTo(final BranchInfo branchInfo, final ContactStorageList.CheckoutEntry entry) {
@@ -282,9 +285,8 @@ class CheckoutDirRemoteStatusView extends HBox {
                     HashValue tipLocal = storageDir.getTip();
                     ChunkContainerRef tipRemote = commitCallback.commitPointerFromLog(result.updated.get(0).logMessage);
 
-                    localTip.setText(tipLocal.toHex());
-                    remoteTip.setText(tipRemote.getDataHash().toHex());
-                    System.out.println(tipRemote);
+                    localTip.setText(tipLocal.toHex().substring(0, 8));
+                    remoteTip.setText(tipRemote.getDataHash().toHex().substring(0, 8));
                 } catch (Exception e) {
 
                 }
