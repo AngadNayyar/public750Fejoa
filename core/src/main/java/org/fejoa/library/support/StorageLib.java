@@ -101,7 +101,10 @@ public class StorageLib {
 
     static public boolean copyDir(File sourceDir, File destinationDir) {
         destinationDir.mkdirs();
-        for (File sub : sourceDir.listFiles()) {
+        File[] files = sourceDir.listFiles();
+        if (files == null)
+            return true;
+        for (File sub : files) {
             boolean ok;
             if (sub.isFile())
                 ok = copyFile(sub, new File(destinationDir, sub.getName()));
