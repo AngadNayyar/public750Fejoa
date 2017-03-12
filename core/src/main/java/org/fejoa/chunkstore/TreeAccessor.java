@@ -120,8 +120,7 @@ public class TreeAccessor {
     public void put(String path, FileBox file) throws IOException, CryptoException {
         FlatDirectoryBox.Entry entry = new FlatDirectoryBox.Entry(true);
         entry.setObject(file);
-        if (!file.getBoxHash().isZero())
-            entry.setDataPointer(file.getDataContainer().getRef());
+        entry.setDataPointer(file.getRef());
         put(path, entry);
     }
 
@@ -137,7 +136,6 @@ public class TreeAccessor {
         String[] parts = path.split("/");
         String fileName = parts[parts.length - 1];
         FlatDirectoryBox currentDir = root;
-        IChunkAccessor treeAccessor = transaction.getTreeAccessor(entry.getDataPointer());
         List<FlatDirectoryBox.Entry> touchedEntries = new ArrayList<>();
         for (int i = 0; i < parts.length - 1; i++) {
             String subDir = parts[i];
@@ -153,7 +151,8 @@ public class TreeAccessor {
                 if (currentEntry.getObject() != null) {
                     currentDir = (FlatDirectoryBox)currentEntry.getObject();
                 } else {
-                    currentDir = FlatDirectoryBox.read(treeAccessor, currentEntry.getDataPointer());
+                    currentDir = FlatDirectoryBox.read(transaction.getTreeAccessor(currentEntry.getDataPointer()),
+                            currentEntry.getDataPointer());
                     currentEntry.setObject(currentDir);
                 }
             }
@@ -204,7 +203,7 @@ public class TreeAccessor {
             child.setDataPointer(build((FlatDirectoryBox)child.getObject(), path + "/" + child.getName()));
         }
         for (FlatDirectoryBox.Entry child : dir.getFiles()) {
-            if (child.getDataPointer() != null)
+            if (!child.getDataPointer().getDataHash().isZero())
                 continue;
             assert child.getObject() != null;
             FileBox fileBox = (FileBox)child.getObject();

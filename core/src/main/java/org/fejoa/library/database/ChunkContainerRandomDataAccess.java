@@ -15,6 +15,7 @@ import org.fejoa.library.crypto.CryptoException;
 import java.io.IOException;
 
 import static org.fejoa.library.database.IIOSyncDatabase.Mode.READ;
+import static org.fejoa.library.database.IIOSyncDatabase.Mode.WRITE;
 
 
 public class ChunkContainerRandomDataAccess implements ISyncRandomDataAccess {
@@ -143,7 +144,7 @@ public class ChunkContainerRandomDataAccess implements ISyncRandomDataAccess {
 
     @Override
     public void flush() throws IOException {
-        if (!mode.has(READ))
+        if (!mode.has(WRITE))
             throw new IOException("Can't flush in read only mode.");
         if (outputStream != null)
             outputStream.flush();
