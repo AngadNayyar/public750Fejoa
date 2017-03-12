@@ -28,7 +28,8 @@ public class PushHandler {
                     "No access to branch: " + branch);
             return;
         }
-        final int rev = inputStream.readInt();
+        final HashValue expectedTip = Config.newBoxHash();
+        inputStream.readFully(expectedTip.getBytes());
         final HashValue commitPointerLogHash = HashValue.fromHex(StreamHelper.readString(inputStream, 64));
         final String logMessage = StreamHelper.readString(inputStream, LogEntryRequest.MAX_HEADER_SIZE);
         final int nChunks = inputStream.readInt();
@@ -49,7 +50,7 @@ public class PushHandler {
         DataOutputStream outputStream = new DataOutputStream(pipe.getOutputStream());
 
         ChunkStoreBranchLog.Entry latest = branchLog.getLatest();
-        if (latest != null && latest.getRev() != rev) {
+        if (latest != null && !latest.getEntryId().equals(expectedTip)) {
             Request.writeResponseHeader(outputStream, Request.PUT_CHUNKS, Request.PULL_REQUIRED);
             return;
         }

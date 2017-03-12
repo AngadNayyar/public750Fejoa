@@ -182,7 +182,7 @@ public class PushRequest {
         Request.writeRequestHeader(outStream, Request.PUT_CHUNKS);
         StreamHelper.writeString(outStream, branch);
         // expected remote rev
-        outStream.writeInt(remoteLogTip.getRev());
+        outStream.write(remoteLogTip.getEntryId().getBytes());
         // our message
         StreamHelper.writeString(outStream, localLogTip.getEntryId().toHex());
         StreamHelper.writeString(outStream, localLogTip.getMessage());
