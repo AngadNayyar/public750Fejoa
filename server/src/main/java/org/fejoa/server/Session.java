@@ -12,7 +12,7 @@ import org.fejoa.library.BranchAccessRight;
 import org.fejoa.library.FejoaContext;
 import org.fejoa.library.UserDataSettings;
 import org.fejoa.library.command.IncomingCommandQueue;
-import org.fejoa.library.crypto.ZeroKnowledgeCompare;
+import org.fejoa.library.crypto.AuthProtocolEKE2_SHA3_256_CTR;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.remote.AccountSettings;
 import org.json.JSONException;
@@ -143,11 +143,11 @@ public class Session {
         }
     }
 
-    public void setLoginSchnorrVerifier(String user, ZeroKnowledgeCompare.Verifier loginSchnorrVerifier) {
-        session.setAttribute(user + ":" + LOGIN_SCHNORR_VERIFIER_KEY, loginSchnorrVerifier);
+    public void setLoginEKE2Prover(String user, AuthProtocolEKE2_SHA3_256_CTR.ProverState0 prover) {
+        session.setAttribute(user + ":" + LOGIN_SCHNORR_VERIFIER_KEY, prover);
     }
 
-    public ZeroKnowledgeCompare.Verifier getLoginSchnorrVerifier(String user) {
-        return (ZeroKnowledgeCompare.Verifier)session.getAttribute(user + ":" +LOGIN_SCHNORR_VERIFIER_KEY);
+    public AuthProtocolEKE2_SHA3_256_CTR.ProverState0 getLoginSchnorrVerifier(String user) {
+        return (AuthProtocolEKE2_SHA3_256_CTR.ProverState0)session.getAttribute(user + ":" +LOGIN_SCHNORR_VERIFIER_KEY);
     }
 }
