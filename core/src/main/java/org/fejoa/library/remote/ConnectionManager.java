@@ -257,7 +257,8 @@ public class ConnectionManager {
                 } else if (authInfo.authType == AuthInfo.TOKEN) {
                     AuthInfo.Token tokenAuth = (AuthInfo.Token) authInfo;
                     result = runJob(remoteRequest, new AccessRequestJob(userAuthInfo.userName, tokenAuth.token));
-                    tokenManager.addToken(userAuthInfo.userName, url, tokenAuth.token.getId());
+                    if (result.status == Errors.OK)
+                        tokenManager.addToken(userAuthInfo.userName, url, tokenAuth.token.getId());
                 } else
                     throw new Exception("unknown auth type");
 
