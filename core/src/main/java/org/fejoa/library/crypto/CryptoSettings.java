@@ -67,7 +67,7 @@ public class CryptoSettings {
 
         setDefaultEC(cryptoSettings);
 
-        cryptoSettings.symmetric.algorithm = "AES/CTR/PKCS5Padding";
+        cryptoSettings.symmetric.algorithm = "AES/CTR/NoPadding";
         cryptoSettings.symmetric.keyType = "AES";
         cryptoSettings.symmetric.keySize = 256;
         cryptoSettings.symmetric.ivSize = 16 * 8;
