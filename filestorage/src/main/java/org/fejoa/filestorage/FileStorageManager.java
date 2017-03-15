@@ -179,7 +179,7 @@ public class FileStorageManager {
         checkIn.start(observer);
     }
 
-    private void syncAndCheckout(StorageDir branchStorage, final BranchInfo.Location location, final File destination,
+    private void syncAndCheckout(final StorageDir branchStorage, final BranchInfo.Location location, final File destination,
                       final Index index,
                       final boolean overWriteLocalChanges,
                       final Task.IObserver<CheckoutDir.Update, CheckoutDir.Result> observer)
@@ -193,15 +193,8 @@ public class FileStorageManager {
 
             @Override
             public void onResult(String s) {
-                try {
-                    CheckoutDir checkoutDir = new CheckoutDir(
-                            client.getUserData().getStorageDir(location.getBranchInfo()), index, destination);
-                    checkoutDir.checkOut(overWriteLocalChanges).start(observer);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (CryptoException e) {
-                    e.printStackTrace();
-                }
+                CheckoutDir checkoutDir = new CheckoutDir(branchStorage, index, destination);
+                checkoutDir.checkOut(overWriteLocalChanges).start(observer);
             }
 
             @Override
