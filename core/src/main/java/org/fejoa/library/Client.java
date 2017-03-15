@@ -224,7 +224,7 @@ public class Client {
 
     public void peekRemoteStatus(BranchInfo.Location location, Task.IObserver<Void, WatchJob.Result> observer)
             throws IOException, CryptoException {
-        Remote remote = userData.getGateway();
+        Remote remote = location.getRemote();
         AuthInfo authInfo = location.getAuthInfo(context);
         connectionManager.submit(new WatchJob(context, Collections.singletonList(location), true), remote,
                 authInfo, observer);
