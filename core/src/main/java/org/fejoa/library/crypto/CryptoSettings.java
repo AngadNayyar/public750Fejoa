@@ -65,11 +65,11 @@ public class CryptoSettings {
     static public CryptoSettings getDefault() {
         CryptoSettings cryptoSettings = new CryptoSettings();
 
-        setDefaultEC(cryptoSettings);
+        setDefaultRSA(cryptoSettings);
 
         cryptoSettings.symmetric.algorithm = "AES/CTR/NoPadding";
         cryptoSettings.symmetric.keyType = "AES";
-        cryptoSettings.symmetric.keySize = 256;
+        cryptoSettings.symmetric.keySize = 128;
         cryptoSettings.symmetric.ivSize = 16 * 8;
 
         cryptoSettings.masterPassword.kdfAlgorithm = "PBKDF2WithHmacSHA512";
