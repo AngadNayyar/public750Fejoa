@@ -1,4 +1,4 @@
-package org.fejoa;
+package org.fejoa.library.crypto;
 
 import junit.framework.TestCase;
 import org.fejoa.library.crypto.BCCryptoInterface;

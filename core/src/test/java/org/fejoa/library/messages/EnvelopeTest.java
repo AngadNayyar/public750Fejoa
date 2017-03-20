@@ -5,7 +5,7 @@
  * Authors:
  *      Clemens Zeidler <czei002@aucklanduni.ac.nz>
  */
-package org.fejoa;
+package org.fejoa.library.messages;
 
 import junit.framework.TestCase;
 import org.apache.commons.io.IOUtils;
