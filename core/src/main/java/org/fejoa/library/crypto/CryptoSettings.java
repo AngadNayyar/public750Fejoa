@@ -69,7 +69,7 @@ public class CryptoSettings {
 
         cryptoSettings.symmetric.algorithm = "AES/CTR/NoPadding";
         cryptoSettings.symmetric.keyType = "AES";
-        cryptoSettings.symmetric.keySize = 128;
+        cryptoSettings.symmetric.keySize = 256;
         cryptoSettings.symmetric.ivSize = 16 * 8;
 
         cryptoSettings.masterPassword.kdfAlgorithm = "PBKDF2WithHmacSHA512";
