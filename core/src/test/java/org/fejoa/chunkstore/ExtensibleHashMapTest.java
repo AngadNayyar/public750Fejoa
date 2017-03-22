@@ -13,6 +13,8 @@ import org.fejoa.chunkstore.ExtensibleHashMap;
 import org.fejoa.library.support.StorageLib;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,11 +30,17 @@ public class ExtensibleHashMapTest extends TestCase {
             StorageLib.recursiveDeleteFile(new File(dir));
     }
 
+    private RandomAccessFile openNew(String fileName) throws IOException {
+        RandomAccessFile file = new RandomAccessFile(fileName, "rw");
+        file.setLength(0l);
+        return file;
+    }
+
     public void testSimple() throws Exception {
         String fileName = "test.idx";
         cleanUpFiles.add(fileName);
 
-        RandomAccessFile file = new RandomAccessFile(fileName, "rw");
+        RandomAccessFile file = openNew(fileName);
         ExtensibleHashMap hashMap = new ExtensibleHashMap();
         hashMap.create(file, 0, (short)4, (short)1);
         hashMap.put("00000000", 0l);
@@ -57,7 +65,7 @@ public class ExtensibleHashMapTest extends TestCase {
         cleanUpFiles.add(fileName);
 
         //create
-        RandomAccessFile file = new RandomAccessFile(fileName, "rw");
+        RandomAccessFile file = openNew(fileName);
         ExtensibleHashMap hashMap = new ExtensibleHashMap();
         hashMap.create(file, 0, (short)4, (short)1);
         hashMap.put("00000000", 0l);
@@ -87,7 +95,7 @@ public class ExtensibleHashMapTest extends TestCase {
         cleanUpFiles.add(fileName);
 
         //create
-        RandomAccessFile file = new RandomAccessFile(fileName, "rw");
+        RandomAccessFile file = openNew(fileName);
         ExtensibleHashMap hashMap = new ExtensibleHashMap();
         hashMap.create(file, 0, (short)4, (short)1);
         hashMap.put("00000000", 0l);
@@ -109,7 +117,7 @@ public class ExtensibleHashMapTest extends TestCase {
         String fileName = "testMultiSplit.idx";
         cleanUpFiles.add(fileName);
 
-        RandomAccessFile file = new RandomAccessFile(fileName, "rw");
+        RandomAccessFile file = openNew(fileName);
         ExtensibleHashMap hashMap = new ExtensibleHashMap();
         hashMap.create(file, 0, (short)4, (short)1);
         hashMap.put("00020000", 2l);
@@ -123,7 +131,7 @@ public class ExtensibleHashMapTest extends TestCase {
         String fileName = "testRedistribute.idx";
         cleanUpFiles.add(fileName);
 
-        RandomAccessFile file = new RandomAccessFile(fileName, "rw");
+        RandomAccessFile file = openNew(fileName);
         ExtensibleHashMap hashMap = new ExtensibleHashMap();
         hashMap.create(file, 0, (short)4, (short)1);
         hashMap.put("00010000", 1l);
@@ -138,7 +146,7 @@ public class ExtensibleHashMapTest extends TestCase {
         String fileName = "testError0.idx";
         cleanUpFiles.add(fileName);
 
-        RandomAccessFile file = new RandomAccessFile(fileName, "rw");
+        RandomAccessFile file = openNew(fileName);
         ExtensibleHashMap hashMap = new ExtensibleHashMap();
         hashMap.create(file, 0, (short)4, (short)1);
         hashMap.put("00010000", 1l);
@@ -153,7 +161,7 @@ public class ExtensibleHashMapTest extends TestCase {
         String fileName = "testDuplicate.idx";
         cleanUpFiles.add(fileName);
 
-        RandomAccessFile file = new RandomAccessFile(fileName, "rw");
+        RandomAccessFile file = openNew(fileName);
         ExtensibleHashMap hashMap = new ExtensibleHashMap();
         hashMap.create(file, 0, (short)4, (short)1);
         hashMap.put("00010000", 1l);
