@@ -7,6 +7,14 @@
  */
 package org.fejoa.library.crypto;
 
+import org.fejoa.chunkstore.HashValue;
+
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.security.DigestOutputStream;
+import java.security.MessageDigest;
+
 public class CryptoSettings {
     final static public String SHA2 = "SHA2";
     final static public String SHA3_256 = "SHA3_256";
@@ -21,6 +29,25 @@ public class CryptoSettings {
         public String kdfAlgorithm;
         public int kdfIterations = -1;
         public int passwordSize = -1;
+
+        public HashValue hash(MessageDigest messageDigest) {
+            DataOutputStream outputStream = new DataOutputStream(new DigestOutputStream(new OutputStream() {
+                @Override
+                public void write(int i) throws IOException {
+
+                }
+            }, messageDigest));
+
+            try {
+                outputStream.write(kdfAlgorithm.getBytes());
+                outputStream.writeInt(kdfIterations);
+                outputStream.writeInt(passwordSize);
+                outputStream.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return new HashValue(messageDigest.digest());
+        }
     }
 
     static public class Symmetric extends KeyTypeSettings{

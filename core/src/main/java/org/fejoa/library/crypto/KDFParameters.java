@@ -8,9 +8,15 @@
 package org.fejoa.library.crypto;
 
 import org.apache.commons.codec.binary.Base64;
+import org.fejoa.chunkstore.HashValue;
 import org.json.JSONObject;
 
 import javax.crypto.SecretKey;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.security.DigestOutputStream;
+import java.security.MessageDigest;
 
 
 /**
@@ -43,5 +49,23 @@ public class KDFParameters {
         CryptoSettings.Password kdfSettings = parameters.kdfSettings;
         return crypto.deriveKey(password, parameters.kdfSalt, kdfSettings.kdfAlgorithm,
                 kdfSettings.kdfIterations, kdfSettings.passwordSize);
+    }
+
+    public HashValue hash(MessageDigest messageDigest) {
+        OutputStream outputStream = new DigestOutputStream(new OutputStream() {
+            @Override
+            public void write(int i) throws IOException {
+
+            }
+        }, messageDigest);
+
+        try {
+            outputStream.write(kdfSettings.hash(messageDigest).getBytes());
+            outputStream.write(kdfSalt);
+            outputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return new HashValue(messageDigest.digest());
     }
 }

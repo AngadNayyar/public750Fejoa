@@ -8,11 +8,14 @@
 package org.fejoa.library.crypto;
 
 import org.apache.commons.codec.binary.Base64;
+import org.fejoa.chunkstore.HashValue;
 import org.json.JSONObject;
 
 import javax.crypto.SecretKey;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -49,6 +52,25 @@ public class UserKeyParameters {
         object.put(SUBKEY_SALT_KEY, Base64.encodeBase64String(userKeySalt));
         object.put(HASH_ALGO_KEY, hashAlgo);
         return object;
+    }
+
+    public HashValue hash(MessageDigest messageDigest) {
+        OutputStream outputStream = new DigestOutputStream(new OutputStream() {
+            @Override
+            public void write(int i) throws IOException {
+
+            }
+        }, messageDigest);
+
+        try {
+            outputStream.write(kdfParameters.hash(messageDigest).getBytes());
+            outputStream.write(userKeySalt);
+            outputStream.write(hashAlgo.getBytes());
+            outputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return new HashValue(messageDigest.digest());
     }
 
     static private MessageDigest getMessageDigest(String algo) throws NoSuchAlgorithmException {
