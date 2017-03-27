@@ -11,28 +11,60 @@ import org.fejoa.chunkstore.ChunkStoreBranchLog;
 import org.fejoa.chunkstore.Config;
 import org.fejoa.chunkstore.HashValue;
 import org.fejoa.chunkstore.Repository;
-import org.fejoa.library.crypto.Crypto;
-import org.fejoa.library.crypto.CryptoSettings;
-import org.fejoa.library.crypto.ICryptoInterface;
+import org.fejoa.library.crypto.*;
 import org.fejoa.library.database.CSRepositoryBuilder;
 import org.fejoa.library.database.ICommitSignature;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.remote.AuthInfo;
-import org.fejoa.library.crypto.CryptoException;
 
+import javax.crypto.SecretKey;
 import java.io.*;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.Executor;
 
 
 public class FejoaContext {
+    static private class KDFKeyManager {
+        // hash(kdf params) -> kdfKey
+        Map<String, SecretKey> kdfKeys = new HashMap<>();
+
+        private MessageDigest getMessageDigest() {
+            try {
+                return CryptoHelper.sha3_256Hash();
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public String hash(KDFParameters parameters) {
+            return parameters.hash(getMessageDigest()).toHex();
+        }
+
+        public void put(KDFParameters kdfParameters, SecretKey key) {
+            kdfKeys.put(hash(kdfParameters), key);
+        }
+
+        public SecretKey get(KDFParameters kdfParameters, String password, ICryptoInterface crypto)
+                throws CryptoException {
+            SecretKey key = kdfKeys.get(hash(kdfParameters));
+            if (key != null)
+                return key;
+            key = KDFParameters.deriveKey(password, crypto, kdfParameters);
+            put(kdfParameters, key);
+            return key;
+        }
+    }
+
     final static private String INFO_FILE = "info";
 
     final private File homeDir;
     private CryptoSettings cryptoSettings = CryptoSettings.getDefault();
 
-    private Map<String, StorageDir> secureStorageDirs = new HashMap<>();
-    private Map<String, String> rootPasswords = new HashMap<>();
+    final private Map<String, StorageDir> secureStorageDirs = new HashMap<>();
+    final private Map<String, String> rootPasswords = new HashMap<>();
+    final private KDFKeyManager kdfKeyManager = new KDFKeyManager();
 
     // executes a task in the context thread
     private Executor contextExecutor;
@@ -158,10 +190,14 @@ public class FejoaContext {
         String password = getRootPassword(serverUser, server);
         if (password == null)
             password = "";
-        return new AuthInfo.Password(password);
+        return new AuthInfo.Password(this, password);
     }
 
     public void registerRootPassword(String serverUser, String server, String password) {
         rootPasswords.put(makeName(serverUser, server), password);
+    }
+
+    public SecretKey getKDFKey(KDFParameters parameters, String password) throws CryptoException {
+        return kdfKeyManager.get(parameters, password, getCrypto());
     }
 }

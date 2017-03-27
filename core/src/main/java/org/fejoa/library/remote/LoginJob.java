@@ -9,6 +9,7 @@ package org.fejoa.library.remote;
 
 import org.apache.commons.codec.binary.Base64;
 import org.fejoa.library.Constants;
+import org.fejoa.library.FejoaContext;
 import org.fejoa.library.crypto.*;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -70,12 +71,14 @@ public class LoginJob extends SimpleJsonRemoteJob {
         }
     }
 
+    final private FejoaContext context;
     final private String userName;
     final private String password;
 
-    public LoginJob(String userName, String password) throws CryptoException {
+    public LoginJob(FejoaContext context, String userName, String password) throws CryptoException {
         super(false);
 
+        this.context = context;
         this.userName = userName;
         this.password = password;
     }
@@ -95,8 +98,8 @@ public class LoginJob extends SimpleJsonRemoteJob {
             UserKeyParameters loginUserKeyParams
                     = new UserKeyParameters(returnValue.getJSONObject(AccountSettings.LOGIN_USER_KEY_PARAMS));
 
-            ICryptoInterface crypto = Crypto.get();
-            SecretKey secretKey = UserKeyParameters.deriveUserKey(password, crypto, loginUserKeyParams);
+            SecretKey kdfKey = context.getKDFKey(loginUserKeyParams.kdfParameters, password);
+            SecretKey secretKey = UserKeyParameters.deriveUserKey(kdfKey, loginUserKeyParams);
 
             // EKE2 authenticates both sides and the server auth first. So we are the verifier and the server is the
             // prover.

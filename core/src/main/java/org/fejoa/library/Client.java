@@ -66,7 +66,7 @@ public class Client {
         client.userData.setGateway(remoteRemote);
         // connect branches
         for (BranchInfo branchInfo : client.getUserData().getBranchList().getEntries(UserData.USER_DATA_CONTEXT, true))
-            branchInfo.addLocation(remoteRemote.getId(), new AuthInfo.Password(password));
+            branchInfo.addLocation(remoteRemote.getId(), new AuthInfo.Password(client.context, password));
 
         client.loadCommandManagers();
         client.userData.getStorageDir().addListener(client.userDataStorageListener);

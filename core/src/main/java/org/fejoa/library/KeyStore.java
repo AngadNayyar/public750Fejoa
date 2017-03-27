@@ -104,7 +104,8 @@ public class KeyStore extends StorageDirObject {
         static public SecretKey open(FejoaContext context, KDFCrypto config, String password) throws CryptoException {
             // user key
             ICryptoInterface crypto = context.getCrypto();
-            SecretKey passwordKey = UserKeyParameters.deriveUserKey(password, crypto, config.userKeyParameters);
+            SecretKey kdfKey = context.getKDFKey(config.userKeyParameters.kdfParameters, password);
+            SecretKey passwordKey = UserKeyParameters.deriveUserKey(kdfKey, config.userKeyParameters);
 
             // decrypt master key
             CryptoSettings.Symmetric settings = CryptoSettings.symmetricSettings(config.symmetricSettings.keyType,
