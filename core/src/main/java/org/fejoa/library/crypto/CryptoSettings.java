@@ -8,6 +8,9 @@
 package org.fejoa.library.crypto;
 
 public class CryptoSettings {
+    final static public String SHA2 = "SHA2";
+    final static public String SHA3_256 = "SHA3_256";
+
     static public class KeyTypeSettings {
         public int keySize = -1;
         public String keyType;
@@ -89,23 +92,6 @@ public class CryptoSettings {
         cryptoSettings.masterPassword.kdfIterations = 1;
 
         return cryptoSettings;
-    }
-
-    static public CryptoSettings messageChannel() {
-        CryptoSettings settings = empty();
-        CryptoSettings defaultSettings = getDefault();
-
-        settings.publicKey.algorithm = defaultSettings.publicKey.algorithm;
-        settings.publicKey.keyType = defaultSettings.publicKey.keyType;
-        settings.publicKey.keySize = defaultSettings.publicKey.keySize;
-        settings.signature.algorithm = defaultSettings.signature.algorithm;
-        settings.signature.keyType = defaultSettings.signature.keyType;
-        settings.signature.keySize = defaultSettings.signature.keySize;
-        settings.symmetric.algorithm = defaultSettings.symmetric.keyType;
-        settings.symmetric.keyType = defaultSettings.symmetric.keyType;
-        settings.symmetric.keySize = defaultSettings.symmetric.keySize;
-        settings.symmetric.ivSize = defaultSettings.symmetric.ivSize;
-        return settings;
     }
 
     static public CryptoSettings empty() {

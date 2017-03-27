@@ -21,6 +21,7 @@ import java.io.IOException;
 
 
 public class KeyStore extends StorageDirObject {
+    final static String USER_KEY_PARAMETERS = "userKeyParams";
     final static String MASTER_KEY_KEY = "masterKey";
     final static String MASTER_KEY_IV_KEY = "masterKeyIV";
     final static String MASTER_KEY_PASSWORD_SALT_KEY = "masterPasswordSalt";
@@ -36,7 +37,7 @@ public class KeyStore extends StorageDirObject {
     static public String SIGNATURE_KEY_PATH = "signKeyPairs";
     static public String ENCRYPTION_PATH = "pubKeyPairs";
 
-    static class Settings {
+    static public class Settings {
         final public String branch;
         final public KDFCrypto kdfCrypto;
         final public byte iv[];
@@ -72,8 +73,7 @@ public class KeyStore extends StorageDirObject {
     }
 
     static public class KDFCrypto {
-        final public byte[] kdfSalt;
-        final public CryptoSettings.Password kdfSettings;
+        final public UserKeyParameters userKeyParameters;
 
         final public byte[] encryptedMasterKey;
         final public byte[] masterKeyIV;
@@ -81,28 +81,31 @@ public class KeyStore extends StorageDirObject {
 
         static public KDFCrypto create(FejoaContext context, SecretKey secretKey,
                                         CryptoSettings.Password kdfSettings, String password) throws CryptoException {
-            // kdf key
+            // generate user key parameters
             ICryptoInterface crypto = context.getCrypto();
-            byte[] salt = crypto.generateSalt();
-            SecretKey passwordKey = crypto.deriveKey(password, salt, kdfSettings.kdfAlgorithm,
-                    kdfSettings.kdfIterations, kdfSettings.passwordSize);
+            KDFParameters kdfParameters = new KDFParameters(kdfSettings, crypto.generateSalt());
+            UserKeyParameters userKeyParameters = new UserKeyParameters(kdfParameters, crypto.generateSalt(),
+                    CryptoSettings.SHA3_256);
 
+            // user key
+            SecretKey userKey = UserKeyParameters.deriveUserKey(password, crypto, userKeyParameters);
             // encrypt master key
             CryptoSettings.Symmetric symmetric = context.getCryptoSettings().symmetric;
             // make sure it is the right key type
-            passwordKey = CryptoHelper.symmetricKeyFromRaw(passwordKey.getEncoded(), symmetric);
+            userKey = CryptoHelper.symmetricKeyFromRaw(userKey.getEncoded(), symmetric);
             byte[] masterKeyIV = crypto.generateInitializationVector(symmetric.ivSize);
-            byte[] encryptedMasterKey = crypto.encryptSymmetric(secretKey.getEncoded(), passwordKey, masterKeyIV,
+            byte[] encryptedMasterKey = crypto.encryptSymmetric(secretKey.getEncoded(), userKey, masterKeyIV,
                     symmetric);
 
-            return new KDFCrypto(salt, kdfSettings, encryptedMasterKey, masterKeyIV, symmetric);
+
+            return new KDFCrypto(userKeyParameters, encryptedMasterKey, masterKeyIV, symmetric);
         }
 
         static public SecretKey open(FejoaContext context, KDFCrypto config, String password) throws CryptoException {
-            // kdf key
+            // user key
             ICryptoInterface crypto = context.getCrypto();
-            SecretKey passwordKey = crypto.deriveKey(password, config.kdfSalt, config.kdfSettings.kdfAlgorithm,
-                    config.kdfSettings.kdfIterations, config.kdfSettings.passwordSize);
+            SecretKey passwordKey = UserKeyParameters.deriveUserKey(password, crypto, config.userKeyParameters);
+
             // decrypt master key
             CryptoSettings.Symmetric settings = CryptoSettings.symmetricSettings(config.symmetricSettings.keyType,
                     config.symmetricSettings.algorithm);
@@ -112,10 +115,9 @@ public class KeyStore extends StorageDirObject {
             return CryptoHelper.symmetricKeyFromRaw(masterKeyBytes, settings);
         }
 
-        public KDFCrypto(byte[] kdfSalt, CryptoSettings.Password kdfSettings,
-                         byte[] encryptedMasterKey, byte[] masterKeyIV, CryptoSettings.Symmetric symmetricSettings) {
-            this.kdfSalt = kdfSalt;
-            this.kdfSettings = kdfSettings;
+        public KDFCrypto(UserKeyParameters userKeyParameters, byte[] encryptedMasterKey, byte[] masterKeyIV,
+                         CryptoSettings.Symmetric symmetricSettings) {
+            this.userKeyParameters = userKeyParameters;
             this.encryptedMasterKey = encryptedMasterKey;
             this.masterKeyIV = masterKeyIV;
             this.symmetricSettings = symmetricSettings;
@@ -123,8 +125,7 @@ public class KeyStore extends StorageDirObject {
 
         public KDFCrypto(JSONObject jsonObject) throws JSONException {
             // kdf params
-            kdfSalt = Base64.decodeBase64(jsonObject.getString(MASTER_KEY_PASSWORD_SALT_KEY));
-            kdfSettings = JsonCryptoSettings.passwordFromJson(jsonObject.getJSONObject(MASTER_KEY_PASSWORD_SETTINGS_KEY));
+            userKeyParameters = new UserKeyParameters(jsonObject.getJSONObject(USER_KEY_PARAMETERS));
             // master key encryption
             encryptedMasterKey = Base64.decodeBase64(jsonObject.getString(MASTER_KEY_KEY));
             masterKeyIV = Base64.decodeBase64(jsonObject.getString(MASTER_KEY_IV_KEY));
@@ -135,8 +136,7 @@ public class KeyStore extends StorageDirObject {
             JSONObject object = new JSONObject();
             try {
                 // kdf params
-                object.put(MASTER_KEY_PASSWORD_SALT_KEY, Base64.encodeBase64String(kdfSalt));
-                object.put(MASTER_KEY_PASSWORD_SETTINGS_KEY, JsonCryptoSettings.toJson(kdfSettings));
+                object.put(USER_KEY_PARAMETERS, userKeyParameters.toJson());
                 // master key encryption
                 object.put(MASTER_KEY_KEY, Base64.encodeBase64String(encryptedMasterKey));
                 object.put(MASTER_KEY_IV_KEY, Base64.encodeBase64String(masterKeyIV));

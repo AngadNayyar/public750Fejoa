@@ -9,13 +9,11 @@ package org.fejoa.library.remote;
 
 import org.apache.commons.codec.binary.Base64;
 import org.fejoa.library.Constants;
-import org.fejoa.library.crypto.AuthProtocolEKE2_SHA3_256_CTR;
-import org.fejoa.library.crypto.CryptoSettings;
-import org.fejoa.library.crypto.JsonCryptoSettings;
-import org.fejoa.library.crypto.CryptoException;
+import org.fejoa.library.crypto.*;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import javax.crypto.SecretKey;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -94,18 +92,17 @@ public class LoginJob extends SimpleJsonRemoteJob {
     @Override
     protected Result handleJson(JSONObject returnValue, InputStream binaryData) {
         try {
-            byte[] salt = Base64.decodeBase64(returnValue.getString(AccountSettings.LOGIN_KDF_SALT_KEY));
-            CryptoSettings.Password kdfSettings = JsonCryptoSettings.passwordFromJson(
-                    returnValue.getJSONObject(AccountSettings.LOGIN_KDF_SETTINGS_KEY));
+            UserKeyParameters loginUserKeyParams
+                    = new UserKeyParameters(returnValue.getJSONObject(AccountSettings.LOGIN_USER_KEY_PARAMS));
 
-            byte[] secret = CreateAccountJob.makeServerPassword(password, salt, kdfSettings.kdfAlgorithm,
-                    kdfSettings.passwordSize, kdfSettings.kdfIterations);
+            ICryptoInterface crypto = Crypto.get();
+            SecretKey secretKey = UserKeyParameters.deriveUserKey(password, crypto, loginUserKeyParams);
 
             // EKE2 authenticates both sides and the server auth first. So we are the verifier and the server is the
             // prover.
             byte[] encGX = Base64.decodeBase64(returnValue.getString(ENC_GX));
             AuthProtocolEKE2_SHA3_256_CTR.Verifier verifier
-                    = AuthProtocolEKE2_SHA3_256_CTR.createVerifier(RFC5114_2048_256, secret, encGX);
+                    = AuthProtocolEKE2_SHA3_256_CTR.createVerifier(RFC5114_2048_256, secretKey.getEncoded(), encGX);
 
             setFollowUpJob(new FinishAuthJob(userName, verifier));
             return new Result(Errors.FOLLOW_UP_JOB, "parameters received");

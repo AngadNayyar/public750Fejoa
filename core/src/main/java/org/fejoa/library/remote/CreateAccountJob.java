@@ -24,7 +24,6 @@ public class CreateAccountJob extends SimpleJsonRemoteJob<RemoteJob.Result> {
 
     final private String userName;
     final private String password;
-    final private CryptoSettings.Password loginSettings;
 
     final private UserDataSettings userDataSettings;
 
@@ -33,33 +32,29 @@ public class CreateAccountJob extends SimpleJsonRemoteJob<RemoteJob.Result> {
 
         this.userName = userName;
         this.password = password;
-        this.loginSettings = CryptoSettings.getDefault().masterPassword;
 
         this.userDataSettings = userDataSettings;
     }
 
-    static public byte[] makeServerPassword(String password, byte[] salt, String kdfAlgorithm, int keySize,
-                                            int kdfIterations) throws CryptoException {
-        ICryptoInterface crypto = Crypto.get();
-        SecretKey secretKey = crypto.deriveKey(password, salt, kdfAlgorithm, keySize, kdfIterations);
-        return CryptoHelper.sha3_256Hash(secretKey.getEncoded());
-    }
-
     @Override
     public String getJsonHeader(JsonRPC jsonRPC) throws IOException, JSONException {
+        // Derive the new user key params. Reuse the kdf params from the userdata keystore (so the the kdf only needs to
+        // be evaluated once).
+        KDFParameters kdfParameters = userDataSettings.keyStoreSettings.kdfCrypto.userKeyParameters.kdfParameters;
         ICryptoInterface crypto = Crypto.get();
-        byte[] salt = crypto.generateSalt();
-        String derivedPassword;
+        UserKeyParameters loginUserKeyParams = new UserKeyParameters(kdfParameters, crypto.generateSalt(),
+                CryptoSettings.SHA3_256);
+
+        byte[] derivedPassword;
 
         try {
-            derivedPassword = CryptoHelper.toHex(makeServerPassword(password, salt, loginSettings.kdfAlgorithm,
-                    loginSettings.passwordSize, loginSettings.kdfIterations));
+            derivedPassword = UserKeyParameters.deriveUserKey(password, crypto, loginUserKeyParams).getEncoded();
         } catch (CryptoException e) {
             e.printStackTrace();
             throw new IOException(e.getMessage());
         }
 
-        AccountSettings accountSettings = new AccountSettings(userName, derivedPassword, salt, loginSettings,
+        AccountSettings accountSettings = new AccountSettings(userName, derivedPassword, loginUserKeyParams,
                 userDataSettings);
         return jsonRPC.call(METHOD, new JsonRPC.Argument(ACCOUNT_SETTINGS_KEY, accountSettings.toJson()));
     }
