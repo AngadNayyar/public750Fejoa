@@ -134,10 +134,10 @@ public class FileStorageManager {
         File chunkStoreDir = new File(destination, ".chunkstore");
         File indexDir = new File(chunkStoreDir, ".index");
         final Index index = new Index(client.getContext(), indexDir, location.getBranchInfo().getBranch());
-        final HashValue rev = index.getRev();
+        final HashValue initialRev = index.getRev();
         UserData userData = client.getUserData();
         final BranchInfo branchInfo = location.getBranchInfo();
-        final StorageDir branchStorage = userData.getStorageDir(chunkStoreDir, branchInfo, rev);
+        final StorageDir branchStorage = userData.getStorageDir(chunkStoreDir, branchInfo, null);
 
         // 1) try to get remote changes
         // 2) check in local changes
@@ -152,14 +152,43 @@ public class FileStorageManager {
                     @Override
                     public void onResult(String s) {
                         try {
-                            if (!rev.isZero() || branchStorage.getTip().isZero()) {
-                                // try to check in first
-                                checkIn(destination, branchStorage, index, observer);
-                            }
-                            syncAndCheckout(branchStorage, location, destination, index, overWriteLocalChanges,
-                                    observer);
+                            final HashValue currentTip = branchStorage.getTip();
+                            // try to check in first
+                            if (!initialRev.isZero() || currentTip.isZero()) {
+                                checkIn(destination, branchStorage, index, new Task.IObserver<CheckoutDir.Update,
+                                        CheckoutDir.Result>() {
+                                    @Override
+                                    public void onProgress(CheckoutDir.Update update) {
+                                        observer.onProgress(update);
+                                    }
+
+                                    @Override
+                                    public void onResult(CheckoutDir.Result result) {
+                                        // did we check in?
+                                        try {
+                                            if (!currentTip.equals(branchStorage.getTip())) {
+                                                syncAndCheckout(branchStorage, location, destination, index,
+                                                        overWriteLocalChanges, observer);
+                                            } else {
+                                                checkOut(branchStorage, index, destination, overWriteLocalChanges,
+                                                        observer);
+                                            }
+                                        } catch (Exception e) {
+                                            observer.onException(e);
+                                        }
+
+                                    }
+
+                                    @Override
+                                    public void onException(Exception exception) {
+                                        observer.onException(exception);
+                                    }
+                                });
+                            } else
+                                checkOut(branchStorage, index, destination, overWriteLocalChanges, observer);
                         } catch (Exception e) {
                             observer.onException(e);
+                            return;
                         }
                     }
 
@@ -179,6 +208,12 @@ public class FileStorageManager {
         checkIn.start(observer);
     }
 
+    private void checkOut(StorageDir branchStorage, Index index, File destination, boolean overWriteLocalChanges,
+                          Task.IObserver<CheckoutDir.Update, CheckoutDir.Result> observer) {
+        CheckoutDir checkoutDir = new CheckoutDir(branchStorage, index, destination);
+        checkoutDir.checkOut(overWriteLocalChanges).start(observer);
+    }
+
     private void syncAndCheckout(final StorageDir branchStorage, final BranchInfo.Location location, final File destination,
                       final Index index,
                       final boolean overWriteLocalChanges,
@@ -193,8 +228,7 @@ public class FileStorageManager {
 
             @Override
             public void onResult(String s) {
-                CheckoutDir checkoutDir = new CheckoutDir(branchStorage, index, destination);
-                checkoutDir.checkOut(overWriteLocalChanges).start(observer);
+                checkOut(branchStorage, index, destination, overWriteLocalChanges, observer);
             }
 
             @Override
