@@ -187,6 +187,10 @@ public class StorageDir extends IOStorageDir {
         commit("Client commit");
     }
 
+    public CompletableFuture<HashValue> commitAsync() {
+        return getStorageDirCache().commitAsync("Client commit");
+    }
+
     public CompletableFuture<HashValue> commitAsync(String message) {
         return getStorageDirCache().commitAsync(message);
     }
