@@ -318,8 +318,7 @@ public class ConnectionManager {
             setTaskFunction(new ITaskFunction<Progress, T>() {
                 @Override
                 public void run(Task<Progress, T> task) throws Exception {
-                    final T value = jobRunner.run(0);
-                    jobRunner.run(JobRunner.MAX_RETRIES);
+                    final T value = jobRunner.run(JobRunner.MAX_RETRIES);
                     task.onResult(value);
                 }
 
