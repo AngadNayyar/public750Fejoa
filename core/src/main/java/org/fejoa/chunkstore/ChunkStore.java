@@ -58,7 +58,7 @@ public class ChunkStore {
     static class LockBucket {
         private Map<String, WeakReference<Lock>> lockMap = new HashMap<>();
 
-        public Lock getLock(String id) {
+        synchronized public Lock getLock(String id) {
             WeakReference<Lock> weakObject = lockMap.get(id);
             if (weakObject != null) {
                 Lock lock = weakObject.get();
@@ -73,29 +73,70 @@ public class ChunkStore {
         }
     }
 
+    static class SharedDatabase {
+        final public BPlusTree tree;
+        final public PackFile packFile;
+
+        public SharedDatabase(BPlusTree tree, PackFile packFile) {
+            this.tree = tree;
+            this.packFile = packFile;
+        }
+    }
+
+    static class DatabaseBucket {
+        private Map<String, WeakReference<SharedDatabase>> map = new HashMap<>();
+
+        synchronized public SharedDatabase getDB(String id) throws FileNotFoundException {
+            WeakReference<SharedDatabase> weakObject = map.get(id);
+            if (weakObject != null) {
+                SharedDatabase db = weakObject.get();
+                if (db != null)
+                    return db;
+            }
+
+            // create new db
+            BPlusTree tree = new BPlusTree(new RandomAccessFile(new File(id +".idx"), "rw"));
+            PackFile packFile = new PackFile(new RandomAccessFile(new File(id + ".pack"), "rw"));
+            SharedDatabase db = new SharedDatabase(tree, packFile);
+            map.put(id, new WeakReference<>(db));
+            return db;
+        }
+    }
+
     final static protected LockBucket lockBucket = new LockBucket();
-    final private BPlusTree tree;
-    final private PackFile packFile;
+    final static protected DatabaseBucket databaseBucket = new DatabaseBucket();
+    final private SharedDatabase db;
     final private Lock fileLock;
     private Transaction currentTransaction;
 
     protected ChunkStore(File dir, String name) throws FileNotFoundException {
-        this.tree = new BPlusTree(new RandomAccessFile(new File(dir, name + ".idx"), "rw"));
-        this.packFile = new PackFile(new RandomAccessFile(new File(dir, name + ".pack"), "rw"));
-        this.fileLock = lockBucket.getLock(dir + "/" + name);
+        String id = dir + "/" + name;
+        this.db = databaseBucket.getDB(id);
+        this.fileLock = lockBucket.getLock(id);
     }
 
     static public ChunkStore create(File dir, String name) throws IOException {
         ChunkStore chunkStore = new ChunkStore(dir, name);
-        chunkStore.tree.create(hashSize(), 1024);
-        chunkStore.packFile.create(hashSize());
+        try {
+            chunkStore.lock();
+            chunkStore.db.tree.create(hashSize(), 1024);
+            chunkStore.db.packFile.create(hashSize());
+        } finally {
+            chunkStore.unlock();
+        }
+
         return chunkStore;
     }
 
     static public ChunkStore open(File dir, String name) throws IOException {
         ChunkStore chunkStore = new ChunkStore(dir, name);
-        chunkStore.tree.open();
-        chunkStore.packFile.open();
+        try {
+            chunkStore.lock();
+            chunkStore.db.tree.open();
+            chunkStore.db.packFile.open();
+        } finally {
+            chunkStore.unlock();
+        }
         return chunkStore;
     }
 
@@ -110,10 +151,10 @@ public class ChunkStore {
     public byte[] getChunk(byte[] hash) throws IOException {
         try {
             lock();
-            Long position = tree.get(hash);
+            Long position = db.tree.get(hash);
             if (position == null)
                 return null;
-            return packFile.get(position.intValue(), hash);
+            return db.packFile.get(position.intValue(), hash);
         } finally {
             unlock();
         }
@@ -122,7 +163,7 @@ public class ChunkStore {
     public long size() {
         try {
             lock();
-            return tree.size();
+            return db.tree.size();
         } finally {
             unlock();
         }
@@ -172,7 +213,7 @@ public class ChunkStore {
             Long position = next.data;
             byte[] chunk;
             try {
-                chunk = packFile.get(position.intValue(), next.key);
+                chunk = db.packFile.get(position.intValue(), next.key);
             } catch (IOException e) {
                 e.printStackTrace();
                 return null;
@@ -182,25 +223,23 @@ public class ChunkStore {
     }
 
     public ChunkStoreIterator iterator() throws IOException {
-        return new ChunkStoreIterator(tree.iterator());
+        return new ChunkStoreIterator(db.tree.iterator());
     }
 
     public boolean hasChunk(HashValue hashValue) throws IOException {
         try {
             lock();
-            return tree.get(hashValue.getBytes()) != null;
+            return db.tree.get(hashValue.getBytes()) != null;
         } finally {
             unlock();
         }
     }
 
-    public Transaction openTransaction() throws IOException {
-        synchronized (this) {
-            if (currentTransaction != null)
-                return currentTransaction;
-            currentTransaction = new Transaction();
+    synchronized public Transaction openTransaction() throws IOException {
+        if (currentTransaction != null)
             return currentTransaction;
-        }
+        currentTransaction = new Transaction();
+        return currentTransaction;
     }
 
     private PutResult<HashValue> put(byte[] data) throws IOException {
@@ -209,10 +248,10 @@ public class ChunkStore {
             // make this configurable
             HashValue hash = new HashValue(CryptoHelper.sha3_256Hash(data));
             // TODO make it more efficient by only using one lookup
-            if (tree.get(hash.getBytes()) != null)
+            if (db.tree.get(hash.getBytes()) != null)
                 return new PutResult<>(hash, true);
-            long position = packFile.put(hash, data);
-            boolean wasInDatabase = !tree.put(hash, position);
+            long position = db.packFile.put(hash, data);
+            boolean wasInDatabase = !db.tree.put(hash, position);
             PutResult<HashValue> putResult = new PutResult<>(hash, wasInDatabase);
             return putResult;
         } finally {
