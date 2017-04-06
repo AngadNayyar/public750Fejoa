@@ -7,14 +7,19 @@
  */
 package org.fejoa.library.remote;
 
+import java8.util.concurrent.CompletableFuture;
+import java8.util.function.BiFunction;
+import java8.util.function.Consumer;
+import java8.util.function.Function;
+import java8.util.function.Supplier;
 import org.fejoa.library.Remote;
 import org.fejoa.library.support.Task;
 
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
-import java.net.URL;
 import java.util.*;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.Executor;
 
 
@@ -129,15 +134,54 @@ public class ConnectionManager {
         return jobTask;
     }
 
-    static private class JobTask<Progress, T extends RemoteJob.Result> extends Task<Progress, T>{
+    public <T extends RemoteJob.Result> CompletableFuture<T> submit(final JsonRemoteJob<T> job, Remote remote,
+                                                                    final AuthInfo authInfo) {
+        return submit(job, remote.getServer(), Collections.singletonList(new UserAuthInfo(remote.getUser(), authInfo)));
+    }
+
+    /**
+     * The returned CompletableFuture ignores the observerScheduler. The future must be observed manually on the
+     * observerScheduler.
+     */
+    public <T extends RemoteJob.Result> CompletableFuture<T> submit(final JsonRemoteJob<T> job, String url,
+                                                                    final Collection<UserAuthInfo> authInfos) {
+        final JobRunner<T> jobRunner = new JobRunner<>(tokenManager, job, url, authInfos);
+        final CompletableFuture<T> result = new CompletableFuture<>();
+        startScheduler.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    final T value = jobRunner.run(JobRunner.MAX_RETRIES);
+                    result.complete(value);
+                } catch (Exception e) {
+                    result.completeExceptionally(e);
+                }
+            }
+        });
+
+        result.exceptionally(new Function<Throwable, T>() {
+            @Override
+            public T apply(Throwable throwable) {
+                if (throwable instanceof CancellationException)
+                    jobRunner.cancelJob();
+                return null;
+            }
+        });
+        return result;
+    }
+
+    static class JobRunner<T extends RemoteJob.Result> {
         final private TokenManager tokenManager;
         final private JsonRemoteJob<T> job;
         final private String url;
         final private Collection<UserAuthInfo> authInfos;
 
         private IRemoteRequest remoteRequest;
+        private boolean isCanceled = false;
 
-        public JobTask(TokenManager tokenManager, final JsonRemoteJob<T> job, String url,
+        final static private int MAX_RETRIES = 2;
+
+        public JobRunner(TokenManager tokenManager, final JsonRemoteJob<T> job, String url,
                        final Collection<UserAuthInfo> authInfos) {
             super();
 
@@ -145,22 +189,9 @@ public class ConnectionManager {
             this.job = job;
             this.url = url;
             this.authInfos = authInfos;
-
-            setTaskFunction(new ITaskFunction<Progress, T>() {
-                @Override
-                public void run(Task<Progress, T> task) throws Exception {
-                    JobTask.this.run(0);
-                }
-
-                @Override
-                public void cancel() {
-                    cancelJob();
-                }
-            });
         }
 
-        final static private int MAX_RETRIES = 2;
-        private void run(int retryCount) throws Exception {
+        public T run(int retryCount) throws Exception {
             if (retryCount > MAX_RETRIES)
                 throw new Exception("too many retries");
             IRemoteRequest remoteRequest = getRemoteRequest(url);
@@ -191,11 +222,10 @@ public class ConnectionManager {
                 }
                 if (missingAccess.size() < authInfos.size()) {
                     // if we had access try again
-                    run(retryCount + 1);
-                    return;
+                    return run(retryCount + 1);
                 }
             }
-            onResult(result);
+            return result;
         }
 
         private T runJob(final IRemoteRequest remoteRequest, final JsonRemoteJob<T> job) throws Exception {
@@ -209,6 +239,7 @@ public class ConnectionManager {
 
         private void cancelJob() {
             synchronized (this) {
+                isCanceled = true;
                 if (remoteRequest != null)
                     remoteRequest.cancel();
             }
@@ -216,7 +247,7 @@ public class ConnectionManager {
 
         private void setCurrentRemoteRequest(IRemoteRequest remoteRequest) throws Exception {
             synchronized (this) {
-                if (remoteRequest != null && isCanceled()) {
+                if (remoteRequest != null && isCanceled) {
                     this.remoteRequest = null;
                     throw new Exception("JobTask canceled");
                 }
@@ -273,5 +304,32 @@ public class ConnectionManager {
         private IRemoteRequest getRemoteRequest(String url) {
             return new HTMLRequest(url);
         }
+    }
+
+    static private class JobTask<Progress, T extends RemoteJob.Result> extends Task<Progress, T>{
+        final private JobRunner<T> jobRunner;
+
+        public JobTask(TokenManager tokenManager, final JsonRemoteJob<T> job, String url,
+                       final Collection<UserAuthInfo> authInfos) {
+            super();
+
+            this.jobRunner = new JobRunner<>(tokenManager, job, url, authInfos);
+
+            setTaskFunction(new ITaskFunction<Progress, T>() {
+                @Override
+                public void run(Task<Progress, T> task) throws Exception {
+                    final T value = jobRunner.run(0);
+                    jobRunner.run(JobRunner.MAX_RETRIES);
+                    task.onResult(value);
+                }
+
+                @Override
+                public void cancel() {
+                    jobRunner.cancelJob();
+                }
+            });
+        }
+
+
     }
 }
