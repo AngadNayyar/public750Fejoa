@@ -54,7 +54,7 @@ public class AsyncDatabase implements IDatabase {
             else if (e.getCause() instanceof CryptoException)
                 throw (CryptoException)e.getCause();
             else
-                throw new RuntimeException("Unexpected Exception");
+                throw new RuntimeException("Unexpected Exception: " + path, e);
         }
     }
 
@@ -68,7 +68,7 @@ public class AsyncDatabase implements IDatabase {
             else if (e.getCause() instanceof CryptoException)
                 throw (CryptoException)e.getCause();
             else
-                throw new RuntimeException("Unexpected Exception");
+                throw new RuntimeException("Unexpected Exception: " + path, e);
         }
     }
 
@@ -82,7 +82,7 @@ public class AsyncDatabase implements IDatabase {
             else if (e.getCause() instanceof CryptoException)
                 throw (CryptoException)e.getCause();
             else
-                throw new RuntimeException("Unexpected Exception", e);
+                throw new RuntimeException("Unexpected Exception: " + path, e);
         }
     }
 
@@ -96,7 +96,7 @@ public class AsyncDatabase implements IDatabase {
             else if (e.getCause() instanceof CryptoException)
                 throw (CryptoException)e.getCause();
             else
-                throw new RuntimeException("Unexpected Exception");
+                throw new RuntimeException("Unexpected Exception: " + path, e);
         }
     }
 
@@ -110,7 +110,7 @@ public class AsyncDatabase implements IDatabase {
             else if (e.getCause() instanceof CryptoException)
                 throw (CryptoException)e.getCause();
             else
-                throw new RuntimeException("Unexpected Exception");
+                throw new RuntimeException("Unexpected Exception: " + path, e);
         }
     }
 
@@ -124,7 +124,7 @@ public class AsyncDatabase implements IDatabase {
             else if (e.getCause() instanceof CryptoException)
                 throw (CryptoException)e.getCause();
             else
-                throw new RuntimeException("Unexpected Exception");
+                throw new RuntimeException("Unexpected Exception: " + path, e);
         }
     }
 
@@ -138,7 +138,7 @@ public class AsyncDatabase implements IDatabase {
             else if (e.getCause() instanceof CryptoException)
                 throw (CryptoException)e.getCause();
             else
-                throw new RuntimeException("Unexpected Exception");
+                throw new RuntimeException("Unexpected Exception: " + path, e);
         }
     }
 
@@ -152,7 +152,7 @@ public class AsyncDatabase implements IDatabase {
             else if (e.getCause() instanceof CryptoException)
                 throw (CryptoException)e.getCause();
             else
-                throw new RuntimeException("Unexpected Exception");
+                throw new RuntimeException("Unexpected Exception: ", e);
         }
     }
 
