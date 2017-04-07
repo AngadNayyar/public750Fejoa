@@ -55,13 +55,9 @@ class CreateMessageBranchView extends VBox {
             @Override
             public void handle(ActionEvent actionEvent) {
                 try {
-                    List<String> receivers = new ArrayList<>();
-                    for (String receiver : receiverTextField.getText().split(","))
-                        receivers.add(receiver.trim());
-
                     List<ContactPublic> participants = new ArrayList<>();
                     for (ContactPublic contactPublic : userData.getContactStore().getContactList().getEntries()) {
-                        if (receivers.contains(contactPublic.getRemotes().getDefault().toAddress()))
+                        if (contactPublic.getRemotes().getDefault().toAddress().equals(receiverTextField.getText()))
                             participants.add(contactPublic);
                     }
                     MessageBranch messageBranch = messenger.createMessageBranch(participants);
@@ -118,10 +114,7 @@ class MessageBranchView extends VBox {
                             String user = "Me";
                             if (!senderId.equals(userData.getMyself().getId())) {
                                 ContactPublic contactPublic = userData.getContactStore().getContactList().get(senderId);
-                                if (contactPublic != null)
-                                    user = contactPublic.getRemotes().getDefault().getUser();
-                                else
-                                    user = "Unknown";
+                                user = contactPublic.getRemotes().getDefault().getUser();
                             }
                             return user + ": " + message.getBody();
                         } catch (IOException e) {
