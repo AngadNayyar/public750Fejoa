@@ -17,13 +17,14 @@ import java.io.IOException;
 import java.security.PublicKey;
 
 
-abstract class Contact<SignKey, EncKey> extends MovableStorageContainer implements IContactPublic {
+abstract public class Contact<SignKey, EncKey> extends MovableStorageContainer implements IContactPublic {
     final static private String SIGNATURE_KEYS_DIR = "signatureKeys";
     final static private String ENCRYPTION_KEYS_DIR = "encryptionKeys";
 
     final protected FejoaContext context;
     final protected StorageDirList.IEntryIO<SignKey> signEntryIO;
     final protected StorageDirList.IEntryIO<EncKey> encEntryIO;
+    private PersonalDetailsManager personalDetailsManager;
 
     protected String id;
 
@@ -113,6 +114,14 @@ abstract class Contact<SignKey, EncKey> extends MovableStorageContainer implemen
 
     public EncKey getEncryptionKey(String id) {
         return encryptionKeys.get(id);
+    }
+
+    public PersonalDetailsManager getPersonalDetails(Client client) {
+        if (personalDetailsManager != null)
+            return personalDetailsManager;
+        personalDetailsManager = new PersonalDetailsManager(client, this);
+        personalDetailsManager.setTo(new IOStorageDir(storageDir, "details"));
+        return personalDetailsManager;
     }
 }
 

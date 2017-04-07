@@ -59,7 +59,6 @@ public class Messenger {
         BranchInfo branchInfo = userData.createNewEncryptedStorage(MESSENGER_CONTEXT, "Message branch");
         Remote remote = userData.getGateway();
         branchInfo.addLocation(remote.getId(), userData.getContext().getRootAuthInfo(remote));
-        userData.addBranch(branchInfo);
 
         MessageBranch messageBranch = MessageBranch.create(userData, branchInfo, participants);
 

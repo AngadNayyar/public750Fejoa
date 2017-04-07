@@ -62,7 +62,6 @@ public class FileStorageManager {
         BranchInfo branchInfo = userData.createNewEncryptedStorage(STORAGE_CONTEXT, "File Storage");
         Remote remote = userData.getGateway();
         branchInfo.addLocation(remote.getId(), context.getRootAuthInfo(remote));
-        userData.addBranch(branchInfo);
 
         // test
 

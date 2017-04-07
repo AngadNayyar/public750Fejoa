@@ -180,7 +180,7 @@ public class Client {
 
     private void loadCommandManagers() throws IOException, CryptoException {
         outgoingQueueManager = new OutgoingQueueManager(userData.getOutgoingCommandQueue(), connectionManager);
-        incomingCommandManager = new IncomingCommandManager(userData);
+        incomingCommandManager = new IncomingCommandManager(this);
     }
 
     public void startCommandManagers(Task.IObserver<TaskUpdate, Void> outgoingCommandObserver)
@@ -220,6 +220,15 @@ public class Client {
         accessStore.commit();
         OutgoingCommandQueue queue = userData.getOutgoingCommandQueue();
         queue.post(accessCommand, contact.getRemotes().getDefault(), true);
+    }
+
+    public void postBranchUpdate(ContactPublic contact, String branch, String branchContext)
+            throws IOException, CryptoException {
+        BranchInfo branchInfo = userData.getBranchList().get(branch, branchContext);
+
+        OutgoingCommandQueue queue = userData.getOutgoingCommandQueue();
+        queue.post(new UpdateCommand(context, userData.getMyself(), contact, userData.getGateway(), branchInfo,
+                branchContext), contact.getRemotes().getDefault(), true);
     }
 
     public void peekRemoteStatus(BranchInfo.Location location, Task.IObserver<Void, WatchJob.Result> observer)
