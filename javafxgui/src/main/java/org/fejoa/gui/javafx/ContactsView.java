@@ -7,6 +7,9 @@
  */
 package org.fejoa.gui.javafx;
 
+import java8.util.concurrent.CompletableFuture;
+import java8.util.function.Consumer;
+import java8.util.function.Function;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -26,6 +29,7 @@ import org.fejoa.library.*;
 import org.fejoa.library.command.ContactRequestCommandHandler;
 import org.fejoa.library.database.DatabaseDiff;
 import org.fejoa.library.database.StorageDir;
+import org.json.JSONObject;
 
 import java.util.Collection;
 import java.util.List;
@@ -104,9 +108,33 @@ class ContactCell extends ListCell<ContactEntry> {
             super(Resources.ICON_CONTACT_32);
         }
 
-        public void setTo(ContactPublic contact) {
+        public void setTo(ContactPublic contact, Client client) {
             Remote remote = contact.getRemotes().getDefault();
-            text.setText(remote.getUser() + "@" + remote.getServer());
+            final String address = remote.getUser() + "@" + remote.getServer();
+            text.setText(address);
+            contact.getPersonalDetails(client).get(PersonalDetailsManager.DEFAULT_ENTRY).getDetailsBranch().thenCompose(
+                    new Function<PersonalDetailsBranch, CompletableFuture<JSONObject>>() {
+                @Override
+                public CompletableFuture<JSONObject> apply(PersonalDetailsBranch detailsBranch) {
+                    if (detailsBranch == null)
+                        return CompletableFuture.completedFuture(null);
+                    return detailsBranch.getDetails();
+                }
+            }).thenAcceptAsync(new Consumer<JSONObject>() {
+                @Override
+                public void accept(JSONObject object) {
+                    PersonalDetails personalDetails = new PersonalDetails(object);
+                    String newText = "";
+                    if (!personalDetails.getNickName().equals(""))
+                        newText = personalDetails.getNickName();
+                    else if (!personalDetails.getName().equals(""))
+                        newText = personalDetails.getName();
+                    if (!newText.equals("")) {
+                        newText = newText + " (" + address + ")";
+                        text.setText(newText);
+                    }
+                }
+            }, new JavaFXScheduler());
         }
     }
 
@@ -130,7 +158,7 @@ class ContactCell extends ListCell<ContactEntry> {
                 layout = contactRequestedLayout;
                 break;
             case CONTACT:
-                contactLayout.setTo((ContactPublic)contact.object);
+                contactLayout.setTo((ContactPublic)contact.object, contact.client);
                 layout = contactLayout;
                 break;
         }
@@ -148,30 +176,36 @@ class ContactEntry {
 
     final public Type type;
     final public Object object;
+    final public Client client;
 
-    protected ContactEntry(Type type, Object object) {
+    protected ContactEntry(Type type, Object object, Client client) {
         this.type = type;
         this.object = object;
+        this.client = client;
     }
 
-    protected ContactEntry(Type type, ContactPublic contactPublic) {
+    protected ContactEntry(Type type, ContactPublic contactPublic, Client client) {
         assert (type == Type.CONTACT_REQUEST_SENT) || (type == Type.CONTACT);
         this.type = type;
         this.object = contactPublic;
+        this.client = client;
     }
 
-    protected ContactEntry(ContactRequestCommandHandler.ContactRequest request) {
-        this(Type.CONTACT_REQUEST, request);
+    protected ContactEntry(ContactRequestCommandHandler.ContactRequest request, Client client) {
+        this(Type.CONTACT_REQUEST, request, client);
     }
 }
 
 class ContactListView extends ListView<ContactEntry> {
+    final private Client client;
     final private StorageDir.IListener listener;
 
-    public ContactListView(StorageDir storageDir,
+    public ContactListView(Client client, StorageDir storageDir,
                            final ObservableList<ContactRequestCommandHandler.ContactRequest> contactRequests,
                            final StorageDirList<ContactPublic> requestedContactList,
                            final StorageDirList<ContactPublic> contactList) {
+        this.client = client;
+
         update(contactRequests, requestedContactList, contactList);
 
         this.listener = new StorageDir.IListener() {
@@ -203,15 +237,15 @@ class ContactListView extends ListView<ContactEntry> {
         getItems().clear();
 
         for (ContactRequestCommandHandler.ContactRequest request : contactRequests)
-            getItems().add(new ContactEntry(request));
+            getItems().add(new ContactEntry(request, client));
 
         Collection<ContactPublic> requestedContacts = requestedContactList.getEntries();
         for (ContactPublic contact : requestedContacts)
-            getItems().add(new ContactEntry(ContactEntry.Type.CONTACT_REQUEST_SENT, contact));
+            getItems().add(new ContactEntry(ContactEntry.Type.CONTACT_REQUEST_SENT, contact, client));
 
         Collection<ContactPublic> contacts = contactList.getEntries();
         for (ContactPublic contact : contacts)
-            getItems().add(new ContactEntry(ContactEntry.Type.CONTACT, contact));
+            getItems().add(new ContactEntry(ContactEntry.Type.CONTACT, contact, client));
     }
 }
 
@@ -234,8 +268,8 @@ public class ContactsView extends VBox {
 
         getChildren().add(addContactLayout);
         getChildren().add(new Label("Contacts:"));
-        final ContactListView contactListView = new ContactListView(contactStore.getStorageDir(), contactRequests,
-                contactStore.getRequestedContacts(), contactStore.getContactList());
+        final ContactListView contactListView = new ContactListView(client, contactStore.getStorageDir(),
+                contactRequests, contactStore.getRequestedContacts(), contactStore.getContactList());
         getChildren().add(contactListView);
 
         addContactButton.setOnAction(new EventHandler<ActionEvent>() {
