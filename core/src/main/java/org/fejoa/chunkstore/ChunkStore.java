@@ -18,7 +18,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 
 interface IChunkStoreEngine {
@@ -30,6 +29,7 @@ interface IChunkStoreEngine {
     byte[] getChunk(byte[] hash) throws IOException;
     PutResult<HashValue> put(byte[] data) throws IOException;
     boolean contains(byte[] hash) throws IOException;
+    void startNewTransaction();
     void commit() throws IOException;
     void cancel();
 }
@@ -82,10 +82,10 @@ class SimpleChunkStoreEngine implements IChunkStoreEngine {
     final private PackFile packFile;
     final private Lock lock;
 
-    public SimpleChunkStoreEngine(BPlusTree tree, PackFile packFile, Lock lock) {
-        this.tree = tree;
-        this.packFile = packFile;
-        this.lock = lock;
+    public SimpleChunkStoreEngine(File dir, String name) throws FileNotFoundException {
+        this.tree = new BPlusTree(new RandomAccessFile(new File(dir, name +".idx"), "rw"));
+        this.packFile = new PackFile(new RandomAccessFile(new File(dir, name + ".pack"), "rw"));
+        this.lock = LockBucket.getInstance().getLock(new File(dir, name).getPath());
     }
 
     private void lock() {
@@ -174,6 +174,14 @@ class SimpleChunkStoreEngine implements IChunkStoreEngine {
         }
     }
 
+    /**
+     * TODO: make the transaction actually do something, i.e. make a transaction atomic
+     */
+    @Override
+    public void startNewTransaction() {
+
+    }
+
     @Override
     public void commit() throws IOException {
 
@@ -186,9 +194,6 @@ class SimpleChunkStoreEngine implements IChunkStoreEngine {
 }
 
 public class ChunkStore {
-    /**
-     * TODO: make the transaction actually do something, i.e. make a transaction atomic
-     */
     public class Transaction {
         public long size() {
             return ChunkStore.this.size();
@@ -211,36 +216,18 @@ public class ChunkStore {
         }
 
         public void commit() throws IOException {
-            currentTransaction = null;
+            ChunkStore.this.commit();
         }
 
         public void cancel() {
-            // TODO implement
-        }
-    }
-
-    static class LockBucket {
-        private Map<String, WeakReference<Lock>> lockMap = new HashMap<>();
-
-        synchronized public Lock getLock(String id) {
-            WeakReference<Lock> weakObject = lockMap.get(id);
-            if (weakObject != null) {
-                Lock lock = weakObject.get();
-                if (lock != null)
-                    return lock;
-            }
-
-            // create new lock
-            Lock lock = new ReentrantLock();
-            lockMap.put(id, new WeakReference<>(lock));
-            return lock;
+            ChunkStore.this.cancel();
         }
     }
 
     static class DatabaseBucket {
         private Map<String, WeakReference<IChunkStoreEngine>> map = new HashMap<>();
 
-        synchronized public IChunkStoreEngine getDB(String id, Lock lock) throws FileNotFoundException {
+        synchronized public IChunkStoreEngine getDB(File dir, String id) throws FileNotFoundException {
             WeakReference<IChunkStoreEngine> weakObject = map.get(id);
             if (weakObject != null) {
                 IChunkStoreEngine db = weakObject.get();
@@ -249,22 +236,18 @@ public class ChunkStore {
             }
 
             // create new db
-            BPlusTree tree = new BPlusTree(new RandomAccessFile(new File(id +".idx"), "rw"));
-            PackFile packFile = new PackFile(new RandomAccessFile(new File(id + ".pack"), "rw"));
-            IChunkStoreEngine engine = new SimpleChunkStoreEngine(tree, packFile, lock);
+            IChunkStoreEngine engine = new SimpleChunkStoreEngine(dir, id);
             map.put(id, new WeakReference<>(engine));
             return engine;
         }
     }
 
-    final static protected LockBucket lockBucket = new LockBucket();
     final static protected DatabaseBucket databaseBucket = new DatabaseBucket();
     final private IChunkStoreEngine db;
     private Transaction currentTransaction;
 
     protected ChunkStore(File dir, String name) throws FileNotFoundException {
-        String id = dir + "/" + name;
-        this.db = databaseBucket.getDB(id, lockBucket.getLock(id));
+        this.db = databaseBucket.getDB(dir, name);
     }
 
     static public ChunkStore create(File dir, String name) throws IOException {
@@ -327,11 +310,28 @@ public class ChunkStore {
     }
 
     // TODO rename to getCurrentTransaction?
-    synchronized public Transaction openTransaction() throws IOException {
-        if (currentTransaction != null)
+    public Transaction openTransaction() throws IOException {
+        synchronized (this) {
+            if (currentTransaction != null)
+                return currentTransaction;
+            currentTransaction = new Transaction();
+            db.startNewTransaction();
             return currentTransaction;
-        currentTransaction = new Transaction();
-        return currentTransaction;
+        }
+    }
+
+    private void commit() throws IOException {
+        synchronized (this) {
+            db.commit();
+            currentTransaction = null;
+        }
+    }
+
+    private void cancel() {
+        synchronized (this) {
+            db.cancel();
+            currentTransaction = null;
+        }
     }
 
     private PutResult<HashValue> put(byte[] data) throws IOException {
