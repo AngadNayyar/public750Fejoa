@@ -283,10 +283,15 @@ class CheckoutDirRemoteStatusView extends HBox {
                     StorageDir storageDir = client.getUserData().getStorageDir(repoDir, branchInfo, null);
                     ICommitCallback commitCallback = ((Repository)storageDir.getDatabase()).getCommitCallback();
                     HashValue tipLocal = storageDir.getTip();
-                    ChunkContainerRef tipRemote = commitCallback.commitPointerFromLog(result.updated.get(0).logMessage);
+                    HashValue tipRemote = Config.newDataHash();
+                    if (!result.updated.get(0).logTip.isZero()){
+                        ChunkContainerRef tipRemoteRef = commitCallback.commitPointerFromLog(
+                                result.updated.get(0).logMessage);
+                        tipRemote = tipRemoteRef.getDataHash();
+                    }
 
                     localTip.setText(tipLocal.toHex().substring(0, 8));
-                    remoteTip.setText(tipRemote.getDataHash().toHex().substring(0, 8));
+                    remoteTip.setText(tipRemote.toHex().substring(0, 8));
                 } catch (Exception e) {
 
                 }
