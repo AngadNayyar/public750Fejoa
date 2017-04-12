@@ -227,7 +227,8 @@ public class ChunkStore {
     static class DatabaseBucket {
         private Map<String, WeakReference<IChunkStoreEngine>> map = new HashMap<>();
 
-        synchronized public IChunkStoreEngine getDB(File dir, String id) throws FileNotFoundException {
+        synchronized public IChunkStoreEngine getDB(File dir, String name) throws FileNotFoundException {
+            String id = new File(dir, name).getPath();
             WeakReference<IChunkStoreEngine> weakObject = map.get(id);
             if (weakObject != null) {
                 IChunkStoreEngine db = weakObject.get();
@@ -236,7 +237,7 @@ public class ChunkStore {
             }
 
             // create new db
-            IChunkStoreEngine engine = new SimpleChunkStoreEngine(dir, id);
+            IChunkStoreEngine engine = new SimpleChunkStoreEngine(dir, name);
             map.put(id, new WeakReference<>(engine));
             return engine;
         }
