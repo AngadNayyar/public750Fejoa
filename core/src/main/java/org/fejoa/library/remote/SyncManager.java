@@ -270,7 +270,7 @@ class Syncer {
 
                     @Override
                     public void onException(Exception exception) {
-                        jobFinished(branch, observer, nJobs, "exception");
+                        jobFinished(branch, observer, nJobs, "exception: " + exception.getMessage());
                     }
                 });
 
