@@ -10,9 +10,12 @@ package org.fejoa.library;
 import java8.util.concurrent.CompletableFuture;
 import java8.util.concurrent.CompletionStage;
 import java8.util.function.BiConsumer;
+import java8.util.function.Consumer;
 import java8.util.function.Function;
 import org.fejoa.library.command.AccessCommandHandler;
 import org.fejoa.library.database.*;
+
+import java.io.IOException;
 
 
 /**
@@ -71,12 +74,20 @@ public class PersonalDetailsManager extends DBObjectContainer {
                         Remote remote = userData.getGateway();
                         branchInfo.addLocation(remote.getId(), context.getRootAuthInfo(remote));
 
-                        StorageDir detailsBranchStorage = userData.getStorageDir(branchInfo);
+                        final StorageDir detailsBranchStorage = userData.getStorageDir(branchInfo);
                         branch.set(branchInfo.getBranch());
-                        entryList.flush();
-                        userData.commit();
-                        userData.getKeyStore().commit();
-                        result.complete(new PersonalDetailsBranch(detailsBranchStorage));
+                        entryList.flush().thenAcceptAsync(new Consumer<Void>() {
+                            @Override
+                            public void accept(Void aVoid) {
+                                try {
+                                    userData.commit();
+                                    userData.getKeyStore().commit();
+                                    result.complete(new PersonalDetailsBranch(detailsBranchStorage));
+                                } catch (IOException e) {
+                                    result.completeExceptionally(e);
+                                }
+                            }
+                        }, context.getContextExecutor());
                     } catch (Exception e) {
                         result.completeExceptionally(e);
                     }

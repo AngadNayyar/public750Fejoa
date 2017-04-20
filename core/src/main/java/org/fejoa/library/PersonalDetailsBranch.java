@@ -8,12 +8,12 @@
 package org.fejoa.library;
 
 import java8.util.concurrent.CompletableFuture;
+import java8.util.concurrent.CompletionStage;
 import java8.util.function.Function;
 import org.fejoa.chunkstore.HashValue;
 import org.fejoa.library.crypto.CryptoException;
-import org.fejoa.library.database.DBObject;
+import org.fejoa.library.database.DBJsonObject;
 import org.fejoa.library.database.DBObjectContainer;
-import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.database.StorageDir;
 import org.json.JSONObject;
 
@@ -22,27 +22,6 @@ import java.util.Collection;
 
 import static org.fejoa.library.PersonalDetailsManager.PERSONAL_DETAILS_CONTEXT;
 
-
-class DBJsonObject extends DBObject<JSONObject> {
-    public DBJsonObject(String path) {
-        super(path);
-    }
-
-    @Override
-    protected CompletableFuture<Void> writeToDB(IOStorageDir dir, String path) {
-        return dir.putStringAsync(path, cache.toString());
-    }
-
-    @Override
-    protected CompletableFuture<JSONObject> readFromDB(IOStorageDir dir, String path) {
-        return dir.readStringAsync(path).thenApply(new Function<String, JSONObject>() {
-            @Override
-            public JSONObject apply(String s) {
-                return new JSONObject(s);
-            }
-        });
-    }
-}
 
 public class PersonalDetailsBranch extends DBObjectContainer {
     final private StorageDir detailsBranch;
@@ -77,8 +56,12 @@ public class PersonalDetailsBranch extends DBObjectContainer {
     }
 
     public CompletableFuture<HashValue> commit() {
-        flush();
-        return detailsBranch.commitAsync();
+        return flush().thenCompose(new Function<Void, CompletionStage<HashValue>>() {
+            @Override
+            public CompletionStage<HashValue> apply(Void aVoid) {
+                return detailsBranch.commitAsync();
+            }
+        });
     }
 
     public void publishDetails(Client client, Collection<ContactPublic> contacts)
