@@ -1,0 +1,11 @@
+.root {
+  -fx-color: dodgerblue;
+}
+.border-pane {
+  -fx-background-image: "/src/main/resources/background.jpg";
+}
+.button {
+  -fx-background-color: dodgerblue;
+  -fx-text-fill: white;
+  -fx-text-align: left;
+}
