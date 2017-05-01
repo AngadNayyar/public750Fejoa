@@ -42,6 +42,9 @@ public class ClientGui extends Application {
         scene.getStylesheets().add("file:///" + f.getAbsolutePath().replace("\\", "/"));
 
         stage.setScene(scene);
+        stage.setHeight(600);
+        stage.setWidth(800);
+        stage.setResizable(true);
 
         //stage.setTitle("Portable Cloud Messaging");
 

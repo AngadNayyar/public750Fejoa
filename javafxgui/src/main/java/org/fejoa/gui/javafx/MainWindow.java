@@ -53,7 +53,7 @@ public class MainWindow extends BorderPane {
 
         SplitPane splitPane = new SplitPane(clientViewStack, statusView);
         splitPane.setOrientation(Orientation.VERTICAL);
-        splitPane.setDividerPosition(0, 0.8);
+        splitPane.setDividerPosition(0, 1);
         setCenter(splitPane);
 
         accountManagerListener = new AccountManager.IListener() {
