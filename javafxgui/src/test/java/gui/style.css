@@ -20,3 +20,6 @@
     -fx-background-color: white;
     -fx-text-fill: black;
 }
+.list-cell:filled:selected {
+    -fx-font-weight: bold; 
+}
