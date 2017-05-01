@@ -8,6 +8,7 @@
 package org.fejoa.library.database;
 
 import java8.util.concurrent.CompletableFuture;
+import java8.util.function.Supplier;
 import org.fejoa.chunkstore.HashValue;
 import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.support.LooperThread;
@@ -53,7 +54,7 @@ public class AsyncDatabase implements IDatabase {
             else if (e.getCause() instanceof CryptoException)
                 throw (CryptoException)e.getCause();
             else
-                throw new RuntimeException("Unexpected Exception");
+                throw new RuntimeException("Unexpected Exception: " + path, e);
         }
     }
 
@@ -67,7 +68,7 @@ public class AsyncDatabase implements IDatabase {
             else if (e.getCause() instanceof CryptoException)
                 throw (CryptoException)e.getCause();
             else
-                throw new RuntimeException("Unexpected Exception");
+                throw new RuntimeException("Unexpected Exception: " + path, e);
         }
     }
 
@@ -81,7 +82,7 @@ public class AsyncDatabase implements IDatabase {
             else if (e.getCause() instanceof CryptoException)
                 throw (CryptoException)e.getCause();
             else
-                throw new RuntimeException("Unexpected Exception");
+                throw new RuntimeException("Unexpected Exception: " + path, e);
         }
     }
 
@@ -95,7 +96,7 @@ public class AsyncDatabase implements IDatabase {
             else if (e.getCause() instanceof CryptoException)
                 throw (CryptoException)e.getCause();
             else
-                throw new RuntimeException("Unexpected Exception");
+                throw new RuntimeException("Unexpected Exception: " + path, e);
         }
     }
 
@@ -109,7 +110,7 @@ public class AsyncDatabase implements IDatabase {
             else if (e.getCause() instanceof CryptoException)
                 throw (CryptoException)e.getCause();
             else
-                throw new RuntimeException("Unexpected Exception");
+                throw new RuntimeException("Unexpected Exception: " + path, e);
         }
     }
 
@@ -123,7 +124,7 @@ public class AsyncDatabase implements IDatabase {
             else if (e.getCause() instanceof CryptoException)
                 throw (CryptoException)e.getCause();
             else
-                throw new RuntimeException("Unexpected Exception");
+                throw new RuntimeException("Unexpected Exception: " + path, e);
         }
     }
 
@@ -137,7 +138,7 @@ public class AsyncDatabase implements IDatabase {
             else if (e.getCause() instanceof CryptoException)
                 throw (CryptoException)e.getCause();
             else
-                throw new RuntimeException("Unexpected Exception");
+                throw new RuntimeException("Unexpected Exception: " + path, e);
         }
     }
 
@@ -151,7 +152,7 @@ public class AsyncDatabase implements IDatabase {
             else if (e.getCause() instanceof CryptoException)
                 throw (CryptoException)e.getCause();
             else
-                throw new RuntimeException("Unexpected Exception");
+                throw new RuntimeException("Unexpected Exception: ", e);
         }
     }
 
@@ -249,67 +250,43 @@ public class AsyncDatabase implements IDatabase {
 
         private CompletableFuture<Void> writeAsync(final byte[] data, final int offset, final int length,
                                                    boolean runNext) {
-            final CompletableFuture<Void> future = new CompletableFuture<>();
-            looperThread.post(new Runnable() {
+            return post(new IValueGetter<Void>() {
                 @Override
-                public void run() {
-                    try {
-                        syncRandomDataAccess.write(data, offset, length);
-                        future.complete(null);
-                    } catch (IOException e) {
-                        future.completeExceptionally(e);
-                    }
+                public Void get() throws Exception {
+                    syncRandomDataAccess.write(data, offset, length);
+                    return null;
                 }
-            }, runNext);
-            return future;
+            });
         }
 
         private CompletableFuture<Integer> readAsync(final byte[] buffer, final int offset, final int length,
                                                      boolean runNext) {
-            final CompletableFuture<Integer> future = new CompletableFuture<>();
-            looperThread.post(new Runnable() {
+            return post(new IValueGetter<Integer>() {
                 @Override
-                public void run() {
-                    try {
-                        future.complete(syncRandomDataAccess.read(buffer, offset, length));
-                    } catch (Exception e) {
-                        future.completeExceptionally(e);
-                    }
+                public Integer get() throws Exception {
+                    return syncRandomDataAccess.read(buffer, offset, length);
                 }
-            }, runNext);
-            return future;
+            });
         }
 
         private CompletableFuture<Void> flush(boolean runNext) {
-            final CompletableFuture<Void> future = new CompletableFuture<>();
-            looperThread.post(new Runnable() {
+            return post(new IValueGetter<Void>() {
                 @Override
-                public void run() {
-                    try {
-                        syncRandomDataAccess.flush();
-                        future.complete(null);
-                    } catch (IOException e) {
-                        future.completeExceptionally(e);
-                    }
+                public Void get() throws Exception {
+                    syncRandomDataAccess.flush();
+                    return null;
                 }
-            }, runNext);
-            return future;
+            });
         }
 
         private CompletableFuture<Void> close(boolean runNext) {
-            final CompletableFuture<Void> future = new CompletableFuture<>();
-            looperThread.post(new Runnable() {
+            return post(new IValueGetter<Void>() {
                 @Override
-                public void run() {
-                    try {
-                        syncRandomDataAccess.close();
-                        future.complete(null);
-                    } catch (Exception e) {
-                        future.completeExceptionally(e);
-                    }
+                public Void get() throws Exception {
+                    syncRandomDataAccess.close();
+                    return null;
                 }
-            }, runNext);
-            return future;
+            });
         }
 
         @Override
@@ -345,18 +322,12 @@ public class AsyncDatabase implements IDatabase {
 
     @Override
     public CompletableFuture<HashValue> getHashAsync(final String path) {
-        final CompletableFuture<HashValue> future = new CompletableFuture<>();
-        looperThread.post(new Runnable() {
+        return post(new IValueGetter<HashValue>() {
             @Override
-            public void run() {
-                try {
-                    future.complete(syncDatabase.getHash(path));
-                } catch (Exception e) {
-                    future.completeExceptionally(e);
-                }
+            public HashValue get() throws Exception {
+                return syncDatabase.getHash(path);
             }
         });
-        return future;
     }
 
     @Override
@@ -371,143 +342,114 @@ public class AsyncDatabase implements IDatabase {
 
     @Override
     public CompletableFuture<Boolean> hasFileAsync(final String path) {
-        final CompletableFuture<Boolean> future = new CompletableFuture<>();
-        looperThread.post(new Runnable() {
+        return post(new IValueGetter<Boolean>() {
             @Override
-            public void run() {
-                try {
-                    future.complete(syncDatabase.hasFile(path));
-                } catch (Exception e) {
-                    future.completeExceptionally(e);
-                }
+            public Boolean get() throws Exception {
+                return syncDatabase.hasFile(path);
             }
         });
-        return future;
     }
 
     @Override
     public CompletableFuture<IRandomDataAccess> openAsync(final String path, final IIOSyncDatabase.Mode mode) {
-        final CompletableFuture<IRandomDataAccess> future = new CompletableFuture<>();
-        looperThread.post(new Runnable() {
+        return post(new IValueGetter<IRandomDataAccess>() {
             @Override
-            public void run() {
-                try {
-                    ISyncRandomDataAccess syncRandomDataAccess = syncDatabase.open(path, mode);
-                    future.complete(new RandomDataAccess(syncRandomDataAccess));
-                } catch (Exception e) {
-                    future.completeExceptionally(e);
-                }
+            public IRandomDataAccess get() throws Exception {
+                return new RandomDataAccess(syncDatabase.open(path, mode));
             }
         });
-        return future;
     }
 
     @Override
     public CompletableFuture<Void> removeAsync(final String path) {
-        final CompletableFuture<Void> future = new CompletableFuture<>();
-        looperThread.post(new Runnable() {
+        return post(new IValueGetter<Void>() {
             @Override
-            public void run() {
-                try {
-                    syncDatabase.remove(path);
-                    future.complete(null);
-                } catch (Exception e) {
-                    future.completeExceptionally(e);
-                }
+            public Void get() throws Exception {
+                syncDatabase.remove(path);
+                return null;
             }
         });
-        return future;
     }
 
     @Override
     public CompletableFuture<byte[]> readBytesAsync(final String path) {
-        final CompletableFuture<byte[]> future = new CompletableFuture<>();
-        looperThread.post(new Runnable() {
+        return post(new IValueGetter<byte[]>() {
             @Override
-            public void run() {
-                try {
-                    future.complete(syncDatabase.readBytes(path));
-                } catch (Exception e) {
-                    future.completeExceptionally(e);
-                }
+            public byte[] get() throws Exception {
+                return syncDatabase.readBytes(path);
             }
         });
-        return future;
     }
 
     @Override
     public CompletableFuture<Void> putBytesAsync(final String path, final byte[] data) {
-        final CompletableFuture<Void> future = new CompletableFuture<>();
-        looperThread.post(new Runnable() {
+        return post(new IValueGetter<Void>() {
             @Override
-            public void run() {
-                try {
-                    syncDatabase.putBytes(path, data);
-                    future.complete(null);
-                } catch (Exception e) {
-                    future.completeExceptionally(e);
-                }
+            public Void get() throws Exception {
+                syncDatabase.putBytes(path, data);
+                return null;
             }
         });
-        return future;
     }
 
     @Override
     public CompletableFuture<HashValue> commitAsync(final String message, final ICommitSignature signature) {
-        final CompletableFuture<HashValue> future = new CompletableFuture<>();
-        looperThread.post(new Runnable() {
+        return post(new IValueGetter<HashValue>() {
             @Override
-            public void run() {
-                try {
-                    future.complete(syncDatabase.commit(message, signature));
-                } catch (Exception e) {
-                    future.completeExceptionally(e);
-                }
+            public HashValue get() throws Exception {
+                return syncDatabase.commit(message, signature);
             }
         });
-        return future;
     }
 
     @Override
     public CompletableFuture<DatabaseDiff> getDiffAsync(final HashValue baseCommit, final HashValue endCommit) {
-        final CompletableFuture<DatabaseDiff> future = new CompletableFuture<>();
-        looperThread.post(new Runnable() {
+        return post(new IValueGetter<DatabaseDiff>() {
             @Override
-            public void run() {
-                try {
-                    future.complete(syncDatabase.getDiff(baseCommit, endCommit));
-                } catch (Exception e) {
-                    future.completeExceptionally(e);
-                }
+            public DatabaseDiff get() throws Exception {
+                return syncDatabase.getDiff(baseCommit, endCommit);
             }
         });
-        return future;
     }
 
     @Override
     public CompletableFuture<Collection<String>> listFilesAsync(final String path) {
-        final CompletableFuture<Collection<String>> future = new CompletableFuture<>();
-        looperThread.post(new Runnable() {
+        return post(new IValueGetter<Collection<String>>() {
             @Override
-            public void run() {
-                try {
-                    future.complete(syncDatabase.listFiles(path));
-                } catch (Exception e) {
-                    future.completeExceptionally(e);
-                }
+            public Collection<String> get() throws Exception {
+                return syncDatabase.listFiles(path);
             }
         });
-        return future;
     }
 
     @Override
     public CompletableFuture<Collection<String>> listDirectoriesAsync(final String path) {
-        final CompletableFuture<Collection<String>> future = new CompletableFuture<>();
+        return post(new IValueGetter<Collection<String>>() {
+            @Override
+            public Collection<String> get() throws Exception {
+                return syncDatabase.listDirectories(path);
+            }
+        });
+    }
+
+    interface IValueGetter<T> {
+        T get() throws Exception;
+    }
+
+    private <T> CompletableFuture<T> post(final IValueGetter<T> getter) {
+        final CompletableFuture<T> future = new CompletableFuture<>();
         looperThread.post(new Runnable() {
             @Override
             public void run() {
                 try {
-                    future.complete(syncDatabase.listDirectories(path));
+                    final T value = getter.get();
+                    // leave the looper thread and give way for other database requests
+                    future.completeAsync(new Supplier<T>() {
+                        @Override
+                        public T get() {
+                            return value;
+                        }
+                    });
                 } catch (Exception e) {
                     future.completeExceptionally(e);
                 }
