@@ -1,7 +1,8 @@
 .root {
 }
+
 .border-pane {
-  -fx-background-color: blue;
+  -fx-color: blue;
 }
 .button {
   -fx-text-fill: black;
@@ -39,3 +40,15 @@
     -fx-background-position: center;
     -fx-background-size: 20px;
 }
+
+#tab-pane-menu{
+    /*-fx-background-color: dodgerblue;*/
+}
+#messenger-heading{
+    -fx-background-color: dimgrey;
+    -fx-font-size: 18px;
+}
+#header-split-pane > .split-pane-divider {
+    -fx-padding: 0;
+}
+

@@ -43,7 +43,7 @@ public class ClientGui extends Application {
 
         stage.setScene(scene);
 
-        stage.setTitle("Portable Cloud Messaging");
+        //stage.setTitle("Portable Cloud Messaging");
 
         stage.show();
     }

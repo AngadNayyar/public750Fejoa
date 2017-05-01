@@ -155,9 +155,10 @@ public class ClientView extends BorderPane {
             commandManagerStatus.setFailed();
         }
 
-        setBackground(new Background(new BackgroundFill(Color.WHITE, null, null)));
+        //setBackground(new Background(new BackgroundFill(Color.WHITE, null, null)));
 
         TabPane tabPane = new TabPane();
+        tabPane.setId("tab-pane-menu");
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         tabPane.setSide(Side.LEFT);
 
