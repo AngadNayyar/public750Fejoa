@@ -26,7 +26,7 @@
 }
 
 #message-body{
-    -fx-font-size: 16px;
+    -fx-font-size: 14px;
 }
 #add-account-btn{
     -fx-background-image: url("../../../main/resources/newuser.png");
@@ -54,4 +54,18 @@
 .tab-pane .tab-header-background {
     -fx-background-color: dimgrey;
 }
-
+#messenger-view > .split-pane-divider {
+    -fx-padding: 0.1;
+}
+#send-btn-panel {
+    -fx-border-width: 0;
+}
+#message-text-area {
+    -fx-border-style: none;
+}
+#message-label {
+    -fx-padding: 5 65 5 40;
+}
+#top-tool-bar{
+    -fx-padding: 0 0 0 570;
+}

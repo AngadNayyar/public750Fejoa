@@ -141,6 +141,7 @@ class MessageBranchView extends VBox {
 
         final TextArea messageTextArea = new TextArea();
         getChildren().add((messageTextArea));
+        messageTextArea.setId("message-text-area");
 
         Button sendButton = new Button("Send");
         sendButton.setOnAction(new EventHandler<ActionEvent>() {
@@ -162,6 +163,8 @@ class MessageBranchView extends VBox {
             }
         });
         getChildren().add(sendButton);
+        setAlignment(Pos.BOTTOM_RIGHT);
+        setId("send-btn-panel");
 
         messageBranch.getStorageDir().addListener(storageListener);
         update();
@@ -231,8 +234,16 @@ public class MessengerView extends SplitPane {
                 createMessageBranchView.toFront();
             }
         });
+
+        Label messageLabel = new Label("Messages");
+        messageLabel.setId("message-label");
         VBox branchLayout = new VBox();
-        branchLayout.getChildren().add(createMessageBranchButton);
+        HBox messageTitle = new HBox();
+
+        messageTitle.getChildren().add(messageLabel);
+        messageTitle.getChildren().add(createMessageBranchButton);
+        messageTitle.setAlignment(Pos.CENTER_RIGHT);
+        branchLayout.getChildren().add(messageTitle);
         branchLayout.getChildren().add(branchListView);
 
         branchListView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<MessageBranchEntry>() {
@@ -255,6 +266,7 @@ public class MessengerView extends SplitPane {
 
         getItems().add(branchLayout);
         getItems().add(messageViewStack);
+        branchListView.getSelectionModel().select(branchListView.getItems().get(0));
 
         setDividerPosition(0, 0.3);
     }

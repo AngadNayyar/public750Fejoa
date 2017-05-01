@@ -14,11 +14,13 @@ import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.ToolBar;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import org.fejoa.gui.Account;
 import org.fejoa.gui.AccountManager;
+import sun.plugin.javascript.navig.Anchor;
 
 import java.io.File;
 
@@ -45,6 +47,7 @@ public class MainWindow extends BorderPane {
 
         AccountListView accountView = new AccountListView(accountManager, statusView);
         ToolBar toolBar = new ToolBar(accountView);
+        toolBar.setId("top-tool-bar");
 
         SplitPane headerSplit = new SplitPane(heading, toolBar);
         headerSplit.setOrientation(Orientation.VERTICAL);
