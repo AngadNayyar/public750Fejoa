@@ -11,6 +11,7 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.TextFieldListCell;
 import javafx.scene.layout.*;
@@ -50,7 +51,7 @@ class CreateMessageBranchView extends VBox {
 
         final TextArea bodyText = new TextArea();
         bodyText.setText("Message Body");
-        Button sendButton = new Button("Send");
+        Button sendButton = new Button("Send >");
         sendButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
@@ -215,7 +216,7 @@ public class MessengerView extends SplitPane {
 
         messageViewStack.getChildren().add(createMessageBranchView);
 
-        Button createMessageBranchButton = new Button("New Thread");
+        Button createMessageBranchButton = new Button("New Message");
         createMessageBranchButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
