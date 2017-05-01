@@ -51,4 +51,7 @@
 #header-split-pane > .split-pane-divider {
     -fx-padding: 0;
 }
+.tab-pane .tab-header-background {
+    -fx-background-color: dimgrey;
+}
 
