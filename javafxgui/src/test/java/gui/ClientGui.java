@@ -11,6 +11,7 @@ import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import org.fejoa.gui.javafx.MainWindow;
+import org.fejoa.gui.javafx.Resources;
 import org.fejoa.library.support.StorageLib;
 import org.fejoa.server.CookiePerPortManager;
 import org.fejoa.server.JettyServer;
@@ -18,6 +19,7 @@ import org.fejoa.server.JettyServer;
 import java.io.File;
 import java.net.CookieHandler;
 import java.net.CookiePolicy;
+import java.util.Scanner;
 
 
 public class ClientGui extends Application {
@@ -32,8 +34,20 @@ public class ClientGui extends Application {
         startServer();
 
         File homeDir = new File(MAIN_DIR, "client");
-        stage.setTitle("Portable Cloud Messaging");
-        stage.setScene(new Scene(new MainWindow(homeDir)));
+
+        Scene scene = new Scene(new MainWindow(homeDir));
+
+        File f = new File ("javafxgui/src/test/java/gui/style.css");
+        scene.getStylesheets().clear();
+        scene.getStylesheets().add("file:///" + f.getAbsolutePath().replace("\\", "/"));
+
+        stage.setScene(scene);
+        stage.setHeight(600);
+        stage.setWidth(800);
+        stage.setResizable(true);
+
+        //stage.setTitle("Portable Cloud Messaging");
+
         stage.show();
     }
 

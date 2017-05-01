@@ -155,9 +155,10 @@ public class ClientView extends BorderPane {
             commandManagerStatus.setFailed();
         }
 
-        setBackground(new Background(new BackgroundFill(Color.WHITE, null, null)));
+        //setBackground(new Background(new BackgroundFill(Color.WHITE, null, null)));
 
         TabPane tabPane = new TabPane();
+        tabPane.setId("tab-pane-menu");
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         tabPane.setSide(Side.LEFT);
 
@@ -182,8 +183,12 @@ public class ClientView extends BorderPane {
         tabPane.getTabs().add(fileStorageTab);
 
         Tab messengerTap = new Tab("Messenger");
-        messengerTap.setContent(new MessengerView(client, statusManager));
+        MessengerView messengerView = new MessengerView(client, statusManager);
+        messengerView.setId("messenger-view");
+        messengerTap.setContent(messengerView);
         tabPane.getTabs().add(messengerTap);
+
+        tabPane.getSelectionModel().select(messengerTap);
 
         setCenter(tabPane);
     }
