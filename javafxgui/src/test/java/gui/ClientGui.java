@@ -32,6 +32,7 @@ public class ClientGui extends Application {
         startServer();
 
         File homeDir = new File(MAIN_DIR, "client");
+        stage.setTitle("Portable Cloud Messaging");
         stage.setScene(new Scene(new MainWindow(homeDir)));
         stage.show();
     }
