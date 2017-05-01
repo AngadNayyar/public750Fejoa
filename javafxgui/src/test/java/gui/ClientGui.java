@@ -34,6 +34,7 @@ public class ClientGui extends Application {
         startServer();
 
         File homeDir = new File(MAIN_DIR, "client");
+
         Scene scene = new Scene(new MainWindow(homeDir));
 
         File f = new File ("javafxgui/src/test/java/gui/style.css");
@@ -41,6 +42,9 @@ public class ClientGui extends Application {
         scene.getStylesheets().add("file:///" + f.getAbsolutePath().replace("\\", "/"));
 
         stage.setScene(scene);
+
+        stage.setTitle("Portable Cloud Messaging");
+
         stage.show();
     }
 
