@@ -36,8 +36,10 @@ public class LoginWindow extends LoginWindowBase {
         grid.setVgap(10);
         grid.setPadding(new Insets(0, 10, 0, 10));
 
-        grid.add(new Label("Password:"), 0, 1);
-        grid.add(passwordField, 1, 1);
+        grid.add(new Label("Username:"), 1, 1);
+        grid.add(new Label(account.toString()), 2, 1);
+        grid.add(new Label("Password:"), 1, 2);
+        grid.add(passwordField, 2, 2);
         mainLayout.getChildren().add(grid);
         statusLabel.setAlignment(Pos.CENTER);
         mainLayout.getChildren().add(statusLabel);
