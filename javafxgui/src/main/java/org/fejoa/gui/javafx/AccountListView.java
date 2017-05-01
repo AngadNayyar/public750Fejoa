@@ -73,7 +73,8 @@ public class AccountListView extends HBox {
         accountManager.addListener(accountManagerListener);
 
         final HBox buttonLayout = new HBox();
-        final Button addAccountButton = new Button("Add");
+        final Button addAccountButton = new Button("Add Account");
+        final Label greetingUser = new Label("Welcome " + accountManager.getAccountList().get(0).toString() );
 
         setAlignment(Pos.CENTER);
         Label label = new Label("Accounts:");
@@ -82,6 +83,8 @@ public class AccountListView extends HBox {
         getChildren().add(buttonLayout);
         buttonLayout.getChildren().add(addAccountButton);
         getChildren().add(accountView);
+        setSpacing(5.0);
+        getChildren().add(greetingUser);
 
         addAccountButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
