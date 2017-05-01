@@ -1,0 +1,14 @@
+.root {
+  -fx-color: blue;
+}
+.border-pane {
+  -fx-background-color: blue;
+}
+.button {
+  -fx-background-color: grey;
+  -fx-text-fill: white;
+  -fx-text-align: left;
+}
+.tool-pane{
+    -fx-color: blue;
+}

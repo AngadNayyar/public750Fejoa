@@ -16,6 +16,7 @@ public class Resources {
     final static public String ICON_REQUESTED_32 = "icon_contact_requested_32.png";
     final static public String ICON_FOLDER_32 = "icon_folder_32.png";
     final static public String ICON_REMOTE_32 = "icon_remote_32.png";
+    final static public String CSS_SHEET = "style.css";
 
     static private Resources singleton;
 
