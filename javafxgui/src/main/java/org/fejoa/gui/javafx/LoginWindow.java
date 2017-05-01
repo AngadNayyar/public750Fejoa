@@ -36,6 +36,7 @@ public class LoginWindow extends LoginWindowBase {
         grid.setVgap(10);
         grid.setPadding(new Insets(0, 10, 0, 10));
 
+        //Added username to show the current account name.
         grid.add(new Label("Username:"), 1, 1);
         grid.add(new Label(account.toString()), 2, 1);
         grid.add(new Label("Password:"), 1, 2);
@@ -45,6 +46,13 @@ public class LoginWindow extends LoginWindowBase {
         mainLayout.getChildren().add(statusLabel);
 
         passwordField.textProperty().addListener(textFieldChangeListener);
+
+        //This event handler allows the user to press the "enter" key instead of the "OK" button.
+        passwordField.setOnAction(new EventHandler<ActionEvent>() {
+            @Override public void handle(ActionEvent e) {
+                login(account);
+            }
+        });
 
         HBox buttonLayout = new HBox();
         buttonLayout.setAlignment(Pos.BOTTOM_RIGHT);
