@@ -222,7 +222,9 @@ public class MessengerView extends SplitPane {
 
         messageViewStack.getChildren().add(createMessageBranchView);
 
-        Button createMessageBranchButton = new Button("New Message");
+        Button createMessageBranchButton = new Button();
+        createMessageBranchButton.setId("new-message-btn");
+        createMessageBranchButton.setMinWidth(25.0);
         createMessageBranchButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
