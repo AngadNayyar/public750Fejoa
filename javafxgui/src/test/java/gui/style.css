@@ -21,5 +21,9 @@
     -fx-text-fill: black;
 }
 .list-cell:filled:selected {
-    -fx-font-weight: bold; 
+    -fx-font-weight: bold;
+}
+
+#message-body{
+    -fx-font-size: 16px;
 }
