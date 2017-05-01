@@ -1,11 +1,11 @@
 .root {
-  -fx-color: blue;
+  -fx-color: green;
 }
 .border-pane {
   -fx-background-color: blue;
 }
 .button {
-  -fx-background-color: blue;
+  -fx-background-color: red;
   -fx-text-fill: white;
   -fx-text-align: left;
 }
