@@ -27,3 +27,15 @@
 #message-body{
     -fx-font-size: 16px;
 }
+#add-account-btn{
+    -fx-background-image: url("../../../main/resources/newuser.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: 20px;
+}
+#new-message-btn{
+    -fx-background-image: url("../../../main/resources/write.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: 20px;
+}
