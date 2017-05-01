@@ -108,7 +108,8 @@ class MessageBranchView extends VBox {
 
             @Override
             public ListCell<Message> call(ListView<Message> contactPublicListView) {
-                return new TextFieldListCell<>(new StringConverter<Message>() {
+                TextFieldListCell textFieldCell = new TextFieldListCell<>(new StringConverter<Message>() {
+
                     @Override
                     public String toString(Message message) {
                         try {
@@ -129,6 +130,10 @@ class MessageBranchView extends VBox {
                         return null;
                     }
                 });
+
+                textFieldCell.setId("message-body");
+                //textFieldCell.getStyleClass().add("messagebody");
+                return textFieldCell;
             }
         });
 
