@@ -73,13 +73,15 @@ public class AccountListView extends HBox {
         accountManager.addListener(accountManagerListener);
 
         final HBox buttonLayout = new HBox();
-        final Button addAccountButton = new Button("Add Account");
+        final Button addAccountButton = new Button();
+        addAccountButton.setId("add-account-btn");
+        addAccountButton.setMinWidth(25.0);
         final Label greetingUser = new Label("Welcome " + accountManager.getAccountList().get(0).toString() );
 
         setAlignment(Pos.CENTER);
-        Label label = new Label("Accounts:");
-        label.setAlignment(Pos.CENTER);
-        getChildren().add(label);
+//        Label label = new Label("Accounts:");
+//        label.setAlignment(Pos.CENTER);
+//        getChildren().add(label);
         getChildren().add(buttonLayout);
         buttonLayout.getChildren().add(addAccountButton);
         getChildren().add(accountView);

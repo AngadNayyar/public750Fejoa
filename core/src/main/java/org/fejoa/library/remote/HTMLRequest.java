@@ -41,7 +41,7 @@ public class HTMLRequest implements IRemoteRequest {
         if (connection != null)
             close();
 
-        System.out.println("SEND:     " + new String(header));
+        //System.out.println("SEND:     " + new String(header));
 
         URL server = new URL(url);
 
@@ -109,7 +109,7 @@ public class HTMLRequest implements IRemoteRequest {
             StreamHelper.copy(bufferedInputStream, receivedData);
 
             receivedHeader = receivedData.toString();
-            System.out.println("RECEIVED: " + receivedHeader);
+           // System.out.println("RECEIVED: " + receivedHeader);
 
             dataInputStream = (dataPart == null) ? null : dataPart.getInputStream();
         } catch (ServletException e) {
