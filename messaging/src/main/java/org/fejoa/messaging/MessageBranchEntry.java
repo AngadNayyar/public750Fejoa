@@ -45,7 +45,8 @@ public class MessageBranchEntry implements IStorageDirBundle {
     }
 
     public String getId() {
-        return getBranch();
+        return "hardcoded thread name";
+//        return getBranch();
     }
 
     @Override

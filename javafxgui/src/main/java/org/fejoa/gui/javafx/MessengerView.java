@@ -253,8 +253,7 @@ public class MessengerView extends SplitPane {
 
     private void update() {
         branchListView.getItems().clear();
-        branchListView.getItems().addAll(messenger.getBranchList().getEntries());
-
+        branchListView.getItems().addAll(messenger.getBranchList().getEntries()); // THis removes all the threads
         List<BranchInfo.Location> locations = new ArrayList<>();
         for (MessageBranchEntry entry : messenger.getBranchList().getEntries()) {
             try {
