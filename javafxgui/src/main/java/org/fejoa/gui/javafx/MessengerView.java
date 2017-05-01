@@ -51,7 +51,6 @@ class CreateMessageBranchView extends VBox {
         final TextArea bodyText = new TextArea();
         bodyText.setText("Message Body");
         Button sendButton = new Button("Send");
-        //sendButton.setStyle("-fx-background-color: green;");
         sendButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
@@ -105,6 +104,7 @@ class MessageBranchView extends VBox {
 
         VBox.setVgrow(messageListView, Priority.ALWAYS);
         messageListView.setCellFactory(new Callback<ListView<Message>, ListCell<Message>>() {
+
             @Override
             public ListCell<Message> call(ListView<Message> contactPublicListView) {
                 return new TextFieldListCell<>(new StringConverter<Message>() {

@@ -1,14 +1,22 @@
 .root {
-  -fx-color: green;
 }
 .border-pane {
   -fx-background-color: blue;
 }
 .button {
-  -fx-background-color: red;
-  -fx-text-fill: white;
+  -fx-text-fill: black;
   -fx-text-align: left;
 }
 .tool-pane{
     -fx-color: blue;
+}
+
+.v-box{
+    -fx-background-color: white;
+    -fx-text-fill: black;
+}
+
+.list-cell{
+    -fx-background-color: white;
+    -fx-text-fill: black;
 }
