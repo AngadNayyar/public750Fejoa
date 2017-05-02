@@ -73,7 +73,6 @@ public class AccountListView extends HBox {
         accountManager.addListener(accountManagerListener);
 
         // Create a hbox for the buttons in the tool bar and create the new user button
-        final HBox buttonLayout = new HBox();
         final Button addAccountButton = new Button();
         addAccountButton.setId("add-account-btn");
         addAccountButton.setMinWidth(25.0);
@@ -88,12 +87,13 @@ public class AccountListView extends HBox {
         }
 
         // Add the buttons and labels to the toolbar
-        setAlignment(Pos.CENTER);
-        getChildren().add(buttonLayout);
-        buttonLayout.getChildren().add(addAccountButton);
-        getChildren().add(accountView);
-        setSpacing(5.0);
         getChildren().add(greetingUser);
+        setAlignment(Pos.CENTER);
+        getChildren().add(accountView);
+        getChildren().add(addAccountButton);
+
+        setSpacing(10.0);
+
 
         addAccountButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
@@ -131,7 +131,6 @@ public class AccountListView extends HBox {
             client.createAccount(new Remote(user, server), password, new Task.IObserver<Void, RemoteJob.Result>() {
                 @Override
                 public void onProgress(Void aVoid) {
-
                 }
 
                 @Override
