@@ -249,7 +249,7 @@ public class MessengerView extends SplitPane {
         branchLayout.getChildren().add(branchListView); // This is where the list view is added
 
         branchListView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<MessageThread>() {
-            @Override //TODO this adds the message branch view into the UI needs to be changed to work for new ListView
+            @Override
             public void changed(ObservableValue<? extends MessageThread> observableValue,
                                 MessageThread messageBranchEntry, MessageThread newEntry) {
                 if (newEntry == null)
@@ -272,7 +272,7 @@ public class MessengerView extends SplitPane {
 
         // Set the top message to be the active selected message when the user opens the messages tab
         try {
-            branchListView.getSelectionModel().select(branchListView.getItems().get(0)); //TODO this might not work
+            branchListView.getSelectionModel().select(branchListView.getItems().get(0));
         } catch (IndexOutOfBoundsException e){
             // If there are no messages then skip
         }
