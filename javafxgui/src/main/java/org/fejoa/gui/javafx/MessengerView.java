@@ -249,16 +249,22 @@ public class MessengerView extends SplitPane {
 
         // Create label "messages" above the list of messages
         Label messageLabel = new Label("Messages");
+        Label searchLabel = new Label("Search");
+        Button searchButton = new Button("-O");
         messageLabel.setId("message-label");
 
         VBox branchLayout = new VBox();
         VBox branchNamedLayout = new VBox();
         HBox messageTitle = new HBox();
+        HBox searchBox = new HBox();
 
+        searchBox.getChildren().add(searchLabel);
+        searchBox.getChildren().add(searchButton);
         messageTitle.getChildren().add(messageLabel);
         messageTitle.getChildren().add(createMessageBranchButton);
         messageTitle.setAlignment(Pos.CENTER_RIGHT);
         branchLayout.getChildren().add(messageTitle);
+        branchLayout.getChildren().add(searchBox);
         branchLayout.getChildren().add(branchListView); // This is where the list view is added
 
         // TODO Make a text box for text to be entered, then make a button to be used to search
