@@ -9,11 +9,14 @@ package org.fejoa.messaging;
 
 import org.fejoa.library.ContactPrivate;
 import org.fejoa.library.FejoaContext;
+import org.fejoa.library.crypto.CryptoException;
 import org.fejoa.library.crypto.CryptoHelper;
 import org.fejoa.library.database.IOStorageDir;
 import org.fejoa.library.database.MovableStorage;
+import org.fejoa.library.support.StorageLib;
 
 import java.io.IOException;
+import java.util.Collection;
 
 
 public class Message extends MovableStorage {
@@ -43,6 +46,34 @@ public class Message extends MovableStorage {
 
     public void setBody(String body) throws IOException {
         storageDir.writeString(BODY_KEY, body);
+    }
+
+    final static private String ATTACHMENT_DIR = "attachments";
+    final static private String DATA_KEY = "data";
+    final static private String MIME_TYPE_KEY = "mime";
+
+    private IOStorageDir getAttachmentDir(String name) {
+        return new IOStorageDir(storageDir, StorageLib.appendDir(ATTACHMENT_DIR, name));
+    }
+
+    public void addAttachment(String name, byte[] attachment, String mime) throws IOException, CryptoException {
+        IOStorageDir attachmentDir = getAttachmentDir(name);
+        attachmentDir.putBytes(DATA_KEY, attachment);
+        attachmentDir.writeString(MIME_TYPE_KEY, mime);
+    }
+
+    public byte[] getAttachmentData(String name) throws IOException, CryptoException {
+        IOStorageDir attachmentDir = getAttachmentDir(name);
+        return attachmentDir.readBytes(DATA_KEY);
+    }
+
+    public String getAttachmentMimeType(String name) throws IOException, CryptoException {
+        IOStorageDir attachmentDir = getAttachmentDir(name);
+        return attachmentDir.readString(MIME_TYPE_KEY);
+    }
+
+    public Collection<String> listAttachments() throws IOException, CryptoException {
+        return storageDir.listDirectories(ATTACHMENT_DIR);
     }
 
     public String getBody() throws IOException {

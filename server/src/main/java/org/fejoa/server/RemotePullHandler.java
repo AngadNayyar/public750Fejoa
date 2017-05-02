@@ -45,6 +45,7 @@ public class RemotePullHandler extends JsonRequestHandler {
         String sourceServer = params.getString(RemotePullJob.SOURCE_SERVER_KEY);
         Remote sourceRemote = new Remote(sourceUser, sourceServer);
 
+        // TODO make sure that the it not exists, otherwise it fails to open encrypted StorageDirs
         StorageDir targetDir = context.getStorage(branch, null, null);
         ChunkStorePullRepoJob pullJob = new ChunkStorePullRepoJob((Repository)targetDir.getDatabase(), sourceUser,
                 branch);

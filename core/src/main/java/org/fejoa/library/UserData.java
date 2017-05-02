@@ -220,17 +220,48 @@ public class UserData extends StorageDirObject {
         StorageDir storageDir = context.getStorage(branch, keyData, new DefaultCommitSignature(context, signingKeyPair));
         BranchInfo branchInfo = BranchInfo.create(storageDir.getBranch(), description, storageContext);
         branchInfo.setCryptoInfo(keyData.keyId(), keyStore, true);
+        // add branch info
+        addBranch(branchInfo);
         return branchInfo;
+    }
+
+    /**
+     * Get myself or the contact with the given id.
+     */
+    public Contact getContact(String contactId) {
+        if (getMyself().getId().equals(contactId))
+            return getMyself();
+
+        return getContactStore().getContactList().get(contactId);
+    }
+
+    /**
+     * Get a BranchInfo for a certain context and owner.
+     *
+     * @param owner either myself of a contact
+     */
+    public BranchInfo getBranchInfo(String branch, String branchContext, String owner)
+            throws IOException, CryptoException {
+        BranchList branchList = getContact(owner).getBranchList();
+        return branchList.get(branch, branchContext);
     }
 
     public StorageDir getStorageDir(BranchInfo branchInfo) throws IOException, CryptoException {
         return getStorageDir(branchInfo, null);
     }
 
+    /**
+     * Get a StorageDir for a BranchInfo from the default repository.
+     *
+     * @param rev can be null to get the tip
+     */
     public StorageDir getStorageDir(BranchInfo branchInfo, HashValue rev) throws IOException, CryptoException {
         return getStorageDir(null, branchInfo, rev);
     }
 
+    /**
+     * Get a StorageDir for a BranchInfo from the repository located at repoPath.
+     */
     public StorageDir getStorageDir(File repoPath, BranchInfo branchInfo, HashValue rev)
             throws IOException, CryptoException {
         SymmetricKeyData symmetricKeyData = getKeyData(branchInfo);

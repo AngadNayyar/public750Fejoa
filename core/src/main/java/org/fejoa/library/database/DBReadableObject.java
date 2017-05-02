@@ -8,7 +8,7 @@
 package org.fejoa.library.database;
 
 import java8.util.concurrent.CompletableFuture;
-import java8.util.function.BiConsumer;
+import java8.util.function.Function;
 
 
 public abstract class DBReadableObject<T> implements IDBContainerEntry {
@@ -44,11 +44,11 @@ public abstract class DBReadableObject<T> implements IDBContainerEntry {
             if (dir == null || cache != null)
                 return CompletableFuture.completedFuture(cache);
 
-            return readFromDB(dir, path).whenComplete(new BiConsumer<T, Throwable>() {
+            return readFromDB(dir, path).thenApply(new Function<T, T>() {
                 @Override
-                public void accept(T t, Throwable throwable) {
-                    if (t != null)
-                        setCache(t);
+                public T apply(T value) {
+                    setCache(value);
+                    return value;
                 }
             });
         }
