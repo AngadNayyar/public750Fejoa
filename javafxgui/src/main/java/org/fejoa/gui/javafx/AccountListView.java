@@ -36,6 +36,7 @@ public class AccountListView extends HBox {
     final private AccountManager accountManager;
     final ComboBox<Account> accountView = new ComboBox<>();
     private AccountManager.IListener accountManagerListener;
+    Label greetingUser;
 
     public AccountListView(final AccountManager accountManager,
                            final IStatusManager statusManager) {
@@ -64,10 +65,13 @@ public class AccountListView extends HBox {
         accountManagerListener = new AccountManager.IListener() {
             @Override
             public void onAccountSelected(Account account) {
-                if (account != null)
+                if (account != null) {
                     accountView.getSelectionModel().select(account);
-                else
+                    greetingUser.setText("Welcome " + account);
+                }
+                else {
                     accountView.getSelectionModel().clearSelection();
+                }
             }
         };
         accountManager.addListener(accountManagerListener);
@@ -77,8 +81,7 @@ public class AccountListView extends HBox {
         addAccountButton.setId("add-account-btn");
         addAccountButton.setMinWidth(25.0);
 
-        // Create a new label to welcome the logged in user
-        Label greetingUser;
+        // Create a new label to welcome the logged in user - or just welcome if no current users
         try {
             greetingUser = new Label("Welcome " + accountManager.getAccountList().get(0).toString() );
 
@@ -86,14 +89,12 @@ public class AccountListView extends HBox {
             greetingUser = new Label("Welcome!");
         }
 
-        // Add the buttons and labels to the toolbar
+        // Add the buttons and labels to the hbox to be added to the toolbar
         getChildren().add(greetingUser);
         setAlignment(Pos.CENTER);
         getChildren().add(accountView);
         getChildren().add(addAccountButton);
-
         setSpacing(10.0);
-
 
         addAccountButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override

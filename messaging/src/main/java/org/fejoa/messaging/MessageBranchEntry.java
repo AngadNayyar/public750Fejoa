@@ -19,7 +19,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-
+/**
+ * This class has something to do with retrieving message branches??
+ */
 public class MessageBranchEntry implements IStorageDirBundle {
     static final public String BRANCH_HOSTS_KEY = "hosts";
 
@@ -37,7 +39,7 @@ public class MessageBranchEntry implements IStorageDirBundle {
 
     @Override
     public String toString() {
-        return getId();
+        return getId(); // Change this
     }
 
     public String getBranch() {
@@ -45,6 +47,7 @@ public class MessageBranchEntry implements IStorageDirBundle {
     }
 
     public String getId() {
+//        return "hardcoded thread name";
         return getBranch();
     }
 

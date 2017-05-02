@@ -36,6 +36,8 @@ public class LoginWindow extends LoginWindowBase {
         grid.setHgap(10);
         grid.setVgap(10);
         grid.setPadding(new Insets(0, 10, 0, 10));
+
+        // Set the css of the login window to have a grey background
         mainLayout.setStyle("-fx-background-color: dimgrey; -fx-text-fill: white;");
         grid.setStyle("-fx-background-color: dimgrey; -fx-text-fill: white;");
 
