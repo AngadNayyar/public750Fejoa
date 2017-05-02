@@ -135,14 +135,19 @@ class MessageBranchView extends VBox {
             }
         });
 
+        // Added Title to Group Chat (participants name)
         final Label participantsLabel = new Label();
+        participantsLabel.setId("participants-label");
         String labelString = "";
         for (ContactPublic cp : messageBranch.getParticipants()){
+            if (!labelString.equals("")) {
+                labelString = labelString + ", ";
+            }
             labelString = labelString + cp.getRemotes().getDefault().getUser(); // TODO should be a string builder
         }
         participantsLabel.setText(labelString);
-        getChildren().add(participantsLabel);
 
+        getChildren().add(participantsLabel);
         getChildren().add(messageListView);
 
         final TextArea messageTextArea = new TextArea();
