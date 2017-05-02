@@ -225,6 +225,7 @@ public class MessengerView extends SplitPane {
 
         messageViewStack.getChildren().add(createMessageBranchView);
 
+        // Create the button for adding a new message and set the id to change the image background in css to icon
         Button createMessageBranchButton = new Button();
         createMessageBranchButton.setId("new-message-btn");
         createMessageBranchButton.setMinWidth(25.0);
@@ -235,8 +236,10 @@ public class MessengerView extends SplitPane {
             }
         });
 
+        // Create label "messages" above the list of messages
         Label messageLabel = new Label("Messages");
         messageLabel.setId("message-label");
+
         VBox branchLayout = new VBox();
         HBox messageTitle = new HBox();
 
@@ -266,7 +269,13 @@ public class MessengerView extends SplitPane {
 
         getItems().add(branchLayout);
         getItems().add(messageViewStack);
-        branchListView.getSelectionModel().select(branchListView.getItems().get(0));
+
+        // Set the top message to be the active selected message when the user opens the messages tab
+        try {
+            branchListView.getSelectionModel().select(branchListView.getItems().get(0));
+        } catch (IndexOutOfBoundsException e){
+            // If there are no messages then skip
+        }
 
         setDividerPosition(0, 0.3);
     }

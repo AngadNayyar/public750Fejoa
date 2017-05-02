@@ -72,16 +72,23 @@ public class AccountListView extends HBox {
         };
         accountManager.addListener(accountManagerListener);
 
+        // Create a hbox for the buttons in the tool bar and create the new user button
         final HBox buttonLayout = new HBox();
         final Button addAccountButton = new Button();
         addAccountButton.setId("add-account-btn");
         addAccountButton.setMinWidth(25.0);
-        final Label greetingUser = new Label("Welcome " + accountManager.getAccountList().get(0).toString() );
 
+        // Create a new label to welcome the logged in user
+        Label greetingUser;
+        try {
+            greetingUser = new Label("Welcome " + accountManager.getAccountList().get(0).toString() );
+
+        } catch (IndexOutOfBoundsException e) {
+            greetingUser = new Label("Welcome!");
+        }
+
+        // Add the buttons and labels to the toolbar
         setAlignment(Pos.CENTER);
-//        Label label = new Label("Accounts:");
-//        label.setAlignment(Pos.CENTER);
-//        getChildren().add(label);
         getChildren().add(buttonLayout);
         buttonLayout.getChildren().add(addAccountButton);
         getChildren().add(accountView);
