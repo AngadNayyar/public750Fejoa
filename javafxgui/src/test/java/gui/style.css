@@ -1,5 +1,5 @@
 .root {
-    -fx-font-family: "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Geneva, Verdana, sans-serif;
+    -fx-font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
 }
 
 .border-pane {
