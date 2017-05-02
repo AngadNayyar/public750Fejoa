@@ -85,7 +85,7 @@ class MessageBranchView extends VBox {
     final MessageBranch messageBranch;
 
     final ListView<Message> messageListView = new ListView<>();
-    final ListView<ContactPublic> contactListView = new ListView();
+    final ListView<String> contactListView = new ListView();
 
 
     final StorageDir.IListener storageListener = new StorageDir.IListener() {
@@ -200,7 +200,7 @@ public class MessengerView extends SplitPane {
     final private IStatusManager statusManager;
     final private Messenger messenger;
     final ListView<MessageBranchEntry> branchListView;
-    final ListView<ContactPublic> contactListView;
+    final ListView<String> contactListView;
     private MessageBranchView currentMessageBranchView;
 
     final private StorageDir.IListener listener = new StorageDir.IListener() {
@@ -240,6 +240,7 @@ public class MessengerView extends SplitPane {
         Label messageLabel = new Label("Messages");
         messageLabel.setId("message-label");
         VBox branchLayout = new VBox();
+        VBox branchNamedLayout = new VBox();
         HBox messageTitle = new HBox();
 
         messageTitle.getChildren().add(messageLabel);
@@ -247,9 +248,11 @@ public class MessengerView extends SplitPane {
         messageTitle.setAlignment(Pos.CENTER_RIGHT);
         branchLayout.getChildren().add(messageTitle);
         branchLayout.getChildren().add(branchListView); // This is where the list view is added
+        branchNamedLayout.getChildren().add(messageTitle);
+        branchNamedLayout.getChildren().add(contactListView); // This is where the list view is added
 
         branchListView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<MessageBranchEntry>() {
-            @Override
+            @Override //TODO this adds the message branch view into the UI needs to be changed to work for new ListView
             public void changed(ObservableValue<? extends MessageBranchEntry> observableValue,
                                 MessageBranchEntry messageBranchEntry, MessageBranchEntry newEntry) {
                 if (newEntry == null)
@@ -266,6 +269,7 @@ public class MessengerView extends SplitPane {
             }
         });
 
+//        getItems().add(branchNamedLayout);
         getItems().add(branchLayout);
         getItems().add(messageViewStack);
         //branchListView.getSelectionModel().select(branchListView.getItems().get(0));
@@ -279,13 +283,18 @@ public class MessengerView extends SplitPane {
         // Get all the entries as participants add to collection then add to branch list view
         branchListView.getItems().addAll(messenger.getBranchList().getEntries());
         try {
+            // For each thread, get the message branch and then participants of those message branches
             for (MessageBranchEntry m : messenger.getBranchList().getEntries()){
+                String participants = "";
                 for (ContactPublic participant : m.getMessageBranch(client.getUserData()).getParticipants()) {
-                    System.out.println(participant.getId());
-//                    String s = client.getUserData().getContactStore().getContactList();
-
+                    System.out.println("Participants: " + participant);
+                    participants = participants + participant; //TODO should probably be a string builder
+//                    // Search through contacts for a match in ID
+//                    for (ContactPublic cp : client.getUserData().getContactStore().getContactList().getEntries()) {
+//                        System.out.println("contact: " + cp.getId());
+//                    }
                 }
-
+                contactListView.getItems().add(participants);
             }
         } catch (IOException e) {
             e.printStackTrace();
