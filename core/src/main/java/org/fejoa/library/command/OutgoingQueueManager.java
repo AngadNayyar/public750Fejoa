@@ -80,7 +80,8 @@ public class OutgoingQueueManager {
         if (runningSendJobs.containsKey(entry.hash()))
             return;
 
-        // if run synchronously job may finish before we are able to put it into the map
+        // if run synchronously job may finish before we are able to put it into the map, thus add a preliminary null
+        // item
         runningSendJobs.put(entry.hash(), null);
         Task.ICancelFunction job = manager.submit(new SendCommandJob(entry.getData(), entry.getUser()),
                 new Remote(entry.getUser(), entry.getServer()), new AuthInfo.Plain(),
@@ -111,6 +112,7 @@ public class OutgoingQueueManager {
                         observer.onException(exception);
                     }
         }).getCancelFunction();
+        // add the job if not already finished
         if (runningSendJobs.containsKey(entry.hash()))
             runningSendJobs.put(entry.hash(), job);
     }

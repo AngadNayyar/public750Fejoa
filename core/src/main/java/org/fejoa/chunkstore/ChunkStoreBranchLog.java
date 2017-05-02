@@ -94,7 +94,7 @@ public class ChunkStoreBranchLog {
 
     public ChunkStoreBranchLog(File logfile) throws IOException {
         this.logfile = logfile;
-        this.fileLock = ChunkStore.lockBucket.getLock(logfile.getAbsolutePath());
+        this.fileLock = LockBucket.getInstance().getLock(logfile.getAbsolutePath());
 
         read();
     }

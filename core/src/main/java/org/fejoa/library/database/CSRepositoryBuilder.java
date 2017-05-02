@@ -200,7 +200,10 @@ public class CSRepositoryBuilder {
             @Override
             public DataInputStream getChunk(ChunkPointer hash) throws IOException, CryptoException {
                 byte[] iv = getIv(hash.getIV());
-                InputStream inputStream = new ByteArrayInputStream(transaction.getChunk(hash.getBoxHash()));
+                byte[] chunkData = transaction.getChunk(hash.getBoxHash());
+                if (chunkData == null)
+                    throw new IOException("Chunk not found: " + hash.getBoxHash());
+                InputStream inputStream = new ByteArrayInputStream(chunkData);
                 inputStream = cryptoInterface.decryptSymmetric(inputStream, keyData.key, iv, keyData.settings);
                 if (ref.getBoxHeader().getCompressionType() == BoxHeader.CompressionType.ZLIB_COMPRESSION)
                     inputStream = new InflaterInputStream(inputStream);
@@ -265,7 +268,10 @@ public class CSRepositoryBuilder {
                     final IChunkAccessor accessor = new IChunkAccessor() {
                         @Override
                         public DataInputStream getChunk(ChunkPointer hash) throws IOException {
-                            return new DataInputStream(new ByteArrayInputStream(transaction.getChunk(hash.getBoxHash())));
+                            byte[] chunkData = transaction.getChunk(hash.getBoxHash());
+                            if (chunkData == null)
+                                throw new IOException("Chunk not found: " + hash.getBoxHash());
+                            return new DataInputStream(new ByteArrayInputStream(chunkData));
                         }
 
                         @Override

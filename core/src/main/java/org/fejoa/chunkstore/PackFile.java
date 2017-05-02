@@ -13,22 +13,34 @@ import java.util.Arrays;
 
 
 public class PackFile {
-    private short version = 1;
+    private boolean isOpen;
+    private short version;
     private short hashSize;
     final private RandomAccessFile file;
 
     public PackFile(RandomAccessFile file) {
         this.file = file;
+        reset();
+    }
+
+    private void reset() {
+        isOpen = false;
+        version = 1;
     }
 
     public void create(int hashSize) throws IOException {
+        reset();
+
         this.hashSize = (short)hashSize;
+        this.isOpen = true;
 
         file.setLength(0);
         writeHeader();
     }
 
     public void open() throws IOException {
+        if (isOpen)
+            return;
         readHeader();
     }
 

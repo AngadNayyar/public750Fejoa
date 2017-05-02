@@ -204,8 +204,11 @@ public class CryptoHelper {
         }
     }
 
-    static public SecretKey secretKey(byte[] key, CryptoSettings.KeyTypeSettings settings)
-            throws NoSuchAlgorithmException, InvalidKeySpecException {
+    static public SecretKey secretKey(byte[] key, CryptoSettings.KeyTypeSettings settings) {
         return new SecretKeySpec(key, 0, settings.keySize / 8, settings.keyType);
+    }
+
+    static public SecretKey secretKey(byte[] key, String keyType) {
+        return new SecretKeySpec(key, 0, key.length, keyType);
     }
 }
