@@ -135,6 +135,14 @@ class MessageBranchView extends VBox {
             }
         });
 
+        final Label participantsLabel = new Label();
+        String labelString = "";
+        for (ContactPublic cp : messageBranch.getParticipants()){
+            labelString = labelString + cp.getRemotes().getDefault().getUser(); // TODO should be a string builder
+        }
+        participantsLabel.setText(labelString);
+        getChildren().add(participantsLabel);
+
         getChildren().add(messageListView);
 
         final TextArea messageTextArea = new TextArea();
