@@ -249,16 +249,16 @@ public class MessengerView extends SplitPane {
 
         // Create label "messages" above the list of messages
         Label messageLabel = new Label("Messages");
-        Label searchLabel = new Label("Search");
+        final TextField searchField = new TextField("Search");
         Button searchButton = new Button("-O"); // TODO Make a listener for this
         messageLabel.setId("message-label");
 
-        VBox branchLayout = new VBox();
+        final VBox branchLayout = new VBox();
         VBox branchNamedLayout = new VBox();
         HBox messageTitle = new HBox();
         HBox searchBox = new HBox();
 
-        searchBox.getChildren().add(searchLabel);
+        searchBox.getChildren().add(searchField);
         searchBox.getChildren().add(searchButton);
         messageTitle.getChildren().add(messageLabel);
         messageTitle.getChildren().add(createMessageBranchButton);
@@ -270,14 +270,20 @@ public class MessengerView extends SplitPane {
         // TODO Make a text box for text to be entered, then make a button to be used to search
         // TODO apply a listener to that button, and on click search through branchListView
         // TODO place this inside listener
-//        ListView<MessageThread> searchedBranchListView = new ListView<>();
-//        for (MessageThread mt : branchListView.getItems()){
-//            if (mt.containsParticipant(searchedString)){
-//                searchedBranchListView.getItems().add(mt);
-//            }
-//        }
-//        branchLayout.getChildren().remove(branchListView);
-//        branchLayout.getChildren().add(searchedBranchListView);
+        searchButton.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                ListView<MessageThread> searchedBranchListView = new ListView<>();
+                String searchedString = searchField.getText();
+                for (MessageThread mt : branchListView.getItems()){
+                    if (mt.containsParticipant(searchedString)){
+                        searchedBranchListView.getItems().add(mt);
+                    }
+                }
+                branchLayout.getChildren().remove(branchListView); // TODO needs to also remove the added searchedBranchListView if added
+                branchLayout.getChildren().add(searchedBranchListView); // TODO also needs the listener to work, so maybe change branchListViews items???
+            }
+        });
 
         branchListView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<MessageThread>() {
             @Override
