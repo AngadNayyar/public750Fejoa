@@ -74,8 +74,9 @@ public class PullRequest {
         ChunkContainerRef remoteTip = requestRepo.getCommitCallback().commitPointerFromLog(remoteTipMessage);
         IRepoChunkAccessors.ITransaction transaction = requestRepo.getCurrentTransaction();
 
-        // TODO:
-        if (transaction.getRawAccessor().getChunk(remoteTip.getBoxHash()) != null) {
+        // up to date?
+        HashValue localTip = requestRepo.getTip();
+        if (localTip.equals(remoteTip.getDataHash())) {
             return remoteTip;
         }
 

@@ -62,7 +62,7 @@ public class DBContainerTest extends TestCase {
         fileList.get("entry2").set("Entry2");
 
         root.add(fileList, "list");
-        root.flush();
+        root.flush().get();
 
         assertEquals(2, fileList.getDirContent().get().get().size());
         assertEquals("Entry1", new DBString(dir, "list/entry1").get().get());
@@ -78,7 +78,7 @@ public class DBContainerTest extends TestCase {
         dirObjectList.get("entry3").value.set("Entry3");
         dirObjectList.get("entry4").value.set("Entry4");
         subContainer.add(dirObjectList, "list2");
-        subContainer.flush();
+        subContainer.flush().get();
 
         assertEquals("Entry3", new DBString(dir, "sub/list2/entry3/value").get().get());
         assertEquals("Entry4", new DBString(dir, "sub/list2/entry4/value").get().get());

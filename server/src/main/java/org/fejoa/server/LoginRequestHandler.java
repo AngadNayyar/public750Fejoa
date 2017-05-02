@@ -47,16 +47,14 @@ public class LoginRequestHandler extends JsonRequestHandler {
                 return;
             }
 
-            byte[] secret = CryptoHelper.fromHex(accountSettings.derivedPassword);
+            byte[] secret = accountSettings.derivedPassword;
             AuthProtocolEKE2_SHA3_256_CTR.ProverState0 proverState0
                     = AuthProtocolEKE2_SHA3_256_CTR.createProver(gpGroup, secret);
             session.setLoginEKE2Prover(userName, proverState0);
 
-            String saltBase64 = Base64.encodeBase64String(accountSettings.salt);
             String response = jsonRPCHandler.makeResult(Errors.OK, "EKE2 auth initiated",
-                    new JsonRPC.Argument(AccountSettings.LOGIN_KDF_SALT_KEY, saltBase64),
-                    new JsonRPC.Argument(AccountSettings.LOGIN_KDF_SETTINGS_KEY,
-                            JsonCryptoSettings.toJson(accountSettings.loginSettings)),
+                    new JsonRPC.Argument(AccountSettings.LOGIN_USER_KEY_PARAMS,
+                            accountSettings.loginUserKeyParams.toJson()),
                     new JsonRPC.Argument(ENC_GX, Base64.encodeBase64String(proverState0.getEncGX())));
             responseHandler.setResponseHeader(response);
         } else if (state.equals(LoginJob.STATE_FINISH_AUTH)) {
