@@ -35,18 +35,19 @@ public class ClientGui extends Application {
 
         File homeDir = new File(MAIN_DIR, "client");
 
+        // Create scene with MainWindow
         Scene scene = new Scene(new MainWindow(homeDir));
 
+        // Attach the css file for styling the JAvaFX
         File f = new File ("javafxgui/src/test/java/gui/style.css");
         scene.getStylesheets().clear();
         scene.getStylesheets().add("file:///" + f.getAbsolutePath().replace("\\", "/"));
 
+        // Set the default width and height of the client gui on opening
         stage.setScene(scene);
         stage.setHeight(600);
         stage.setWidth(800);
         stage.setResizable(true);
-
-        //stage.setTitle("Portable Cloud Messaging");
 
         stage.show();
     }
