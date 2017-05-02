@@ -18,6 +18,7 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
+import org.fejoa.gui.Account;
 import org.fejoa.gui.IStatusManager;
 import org.fejoa.library.BranchInfo;
 import org.fejoa.library.Client;
@@ -32,10 +33,7 @@ import org.fejoa.messaging.MessageBranchEntry;
 import org.fejoa.messaging.Messenger;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 
 class CreateMessageBranchView extends VBox {
@@ -137,6 +135,19 @@ class MessageBranchView extends VBox {
             }
         });
 
+        // Added Title to Group Chat (participants name)
+        final Label participantsLabel = new Label();
+        participantsLabel.setId("participants-label");
+        String labelString = "";
+        for (ContactPublic cp : messageBranch.getParticipants()){
+            if (!labelString.equals("")) {
+                labelString = labelString + ", ";
+            }
+            labelString = labelString + cp.getRemotes().getDefault().getUser(); // TODO should be a string builder
+        }
+        participantsLabel.setText(labelString);
+
+        getChildren().add(participantsLabel);
         getChildren().add(messageListView);
 
         final TextArea messageTextArea = new TextArea();
@@ -199,7 +210,7 @@ public class MessengerView extends SplitPane {
     final private Client client;
     final private IStatusManager statusManager;
     final private Messenger messenger;
-    final ListView<MessageBranchEntry> branchListView;
+    final ListView<MessageThread> branchListView;
     private MessageBranchView currentMessageBranchView;
 
     final private StorageDir.IListener listener = new StorageDir.IListener() {
@@ -241,25 +252,26 @@ public class MessengerView extends SplitPane {
         messageLabel.setId("message-label");
 
         VBox branchLayout = new VBox();
+        VBox branchNamedLayout = new VBox();
         HBox messageTitle = new HBox();
 
         messageTitle.getChildren().add(messageLabel);
         messageTitle.getChildren().add(createMessageBranchButton);
         messageTitle.setAlignment(Pos.CENTER_RIGHT);
         branchLayout.getChildren().add(messageTitle);
-        branchLayout.getChildren().add(branchListView);
+        branchLayout.getChildren().add(branchListView); // This is where the list view is added
 
-        branchListView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<MessageBranchEntry>() {
+        branchListView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<MessageThread>() {
             @Override
-            public void changed(ObservableValue<? extends MessageBranchEntry> observableValue,
-                                MessageBranchEntry messageBranchEntry, MessageBranchEntry newEntry) {
+            public void changed(ObservableValue<? extends MessageThread> observableValue,
+                                MessageThread messageBranchEntry, MessageThread newEntry) {
                 if (newEntry == null)
                     return;
                 if (currentMessageBranchView != null)
                     messageViewStack.getChildren().remove(currentMessageBranchView);
 
                 try {
-                    currentMessageBranchView = new MessageBranchView(client.getUserData(), newEntry);
+                    currentMessageBranchView = new MessageBranchView(client.getUserData(), newEntry.getMessageBranchEntry());
                     messageViewStack.getChildren().add(currentMessageBranchView);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -267,6 +279,7 @@ public class MessengerView extends SplitPane {
             }
         });
 
+//        getItems().add(branchNamedLayout);
         getItems().add(branchLayout);
         getItems().add(messageViewStack);
 
@@ -282,8 +295,24 @@ public class MessengerView extends SplitPane {
 
     private void update() {
         branchListView.getItems().clear();
-        branchListView.getItems().addAll(messenger.getBranchList().getEntries());
-
+        // Get all the entries as participants add to collection then add to branch list view
+        try {
+            // For each thread, get the message branch and then participants of those message branches, then add those to the MessageThread object and then into the ListView
+            for (MessageBranchEntry m : messenger.getBranchList().getEntries()){
+                String participants = "";
+                MessageThread tempMessageThread = new MessageThread();
+                for (ContactPublic participant : m.getMessageBranch(client.getUserData()).getParticipants()) {
+                    participants = participants + participant.getRemotes().getDefault().getUser(); //TODO should probably be a string builder
+                }
+                tempMessageThread.setMessageBranchEntry(m);
+                tempMessageThread.setParticipants(participants);
+                branchListView.getItems().add(tempMessageThread);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (CryptoException e) {
+            e.printStackTrace();
+        }
         List<BranchInfo.Location> locations = new ArrayList<>();
         for (MessageBranchEntry entry : messenger.getBranchList().getEntries()) {
             try {
@@ -301,4 +330,32 @@ public class MessengerView extends SplitPane {
             e.printStackTrace();
         }
     }
+}
+
+class MessageThread {
+    private String participants;
+    private MessageBranchEntry messageBranchEntry;
+
+    MessageThread(){
+        // Default constructor
+    }
+
+    void setParticipants(String participants){
+        this.participants = participants;
+    }
+
+    void setMessageBranchEntry(MessageBranchEntry messageBranchEntry){
+        this.messageBranchEntry = messageBranchEntry;
+    }
+
+    MessageBranchEntry getMessageBranchEntry() {
+        return messageBranchEntry;
+    }
+
+    @Override
+    public String toString(){
+        return participants;
+    }
+
+
 }

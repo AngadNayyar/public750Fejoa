@@ -3,6 +3,7 @@ This css file is for styling the java fx messenger GUI.
 */
 
 .root {
+    -fx-font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
 }
 
 .border-pane {
@@ -72,4 +73,9 @@ This css file is for styling the java fx messenger GUI.
 }
 #top-tool-bar{
     -fx-padding: 0 0 0 570;
+}
+#participants-label {
+    -fx-padding: 5 250 5 5;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
 }
