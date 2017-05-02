@@ -250,7 +250,7 @@ public class MessengerView extends SplitPane {
         // Create label "messages" above the list of messages
         Label messageLabel = new Label("Messages");
         Label searchLabel = new Label("Search");
-        Button searchButton = new Button("-O");
+        Button searchButton = new Button("-O"); // TODO Make a listener for this
         messageLabel.setId("message-label");
 
         VBox branchLayout = new VBox();
