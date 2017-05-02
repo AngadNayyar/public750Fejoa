@@ -72,21 +72,28 @@ public class AccountListView extends HBox {
         };
         accountManager.addListener(accountManagerListener);
 
-        final HBox buttonLayout = new HBox();
+        // Create a hbox for the buttons in the tool bar and create the new user button
         final Button addAccountButton = new Button();
         addAccountButton.setId("add-account-btn");
         addAccountButton.setMinWidth(25.0);
-        final Label greetingUser = new Label("Welcome " + accountManager.getAccountList().get(0).toString() );
 
-        setAlignment(Pos.CENTER);
-//        Label label = new Label("Accounts:");
-//        label.setAlignment(Pos.CENTER);
-//        getChildren().add(label);
-        getChildren().add(buttonLayout);
-        buttonLayout.getChildren().add(addAccountButton);
-        getChildren().add(accountView);
-        setSpacing(5.0);
+        // Create a new label to welcome the logged in user
+        Label greetingUser;
+        try {
+            greetingUser = new Label("Welcome " + accountManager.getAccountList().get(0).toString() );
+
+        } catch (IndexOutOfBoundsException e) {
+            greetingUser = new Label("Welcome!");
+        }
+
+        // Add the buttons and labels to the toolbar
         getChildren().add(greetingUser);
+        setAlignment(Pos.CENTER);
+        getChildren().add(accountView);
+        getChildren().add(addAccountButton);
+
+        setSpacing(10.0);
+
 
         addAccountButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
@@ -124,7 +131,6 @@ public class AccountListView extends HBox {
             client.createAccount(new Remote(user, server), password, new Task.IObserver<Void, RemoteJob.Result>() {
                 @Override
                 public void onProgress(Void aVoid) {
-
                 }
 
                 @Override
