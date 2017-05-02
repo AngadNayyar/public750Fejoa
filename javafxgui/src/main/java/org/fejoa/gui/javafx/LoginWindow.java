@@ -18,6 +18,7 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import org.fejoa.gui.Account;
 import org.fejoa.library.crypto.CryptoException;
 
@@ -35,6 +36,8 @@ public class LoginWindow extends LoginWindowBase {
         grid.setHgap(10);
         grid.setVgap(10);
         grid.setPadding(new Insets(0, 10, 0, 10));
+        mainLayout.setStyle("-fx-background-color: dimgrey; -fx-text-fill: white;");
+        grid.setStyle("-fx-background-color: dimgrey; -fx-text-fill: white;");
 
         //Added username to show the current account name.
         grid.add(new Label("Username:"), 1, 1);
