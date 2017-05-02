@@ -81,7 +81,7 @@ public class AccountListView extends HBox {
         addAccountButton.setId("add-account-btn");
         addAccountButton.setMinWidth(25.0);
 
-        // Create a new label to welcome the logged in user
+        // Create a new label to welcome the logged in user - or just welcome if no current users
         try {
             greetingUser = new Label("Welcome " + accountManager.getAccountList().get(0).toString() );
 
@@ -89,14 +89,12 @@ public class AccountListView extends HBox {
             greetingUser = new Label("Welcome!");
         }
 
-        // Add the buttons and labels to the toolbar
+        // Add the buttons and labels to the hbox to be added to the toolbar
         getChildren().add(greetingUser);
         setAlignment(Pos.CENTER);
         getChildren().add(accountView);
         getChildren().add(addAccountButton);
-
         setSpacing(10.0);
-
 
         addAccountButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override

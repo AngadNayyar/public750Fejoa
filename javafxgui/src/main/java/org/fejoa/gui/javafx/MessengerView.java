@@ -255,6 +255,7 @@ public class MessengerView extends SplitPane {
         VBox branchNamedLayout = new VBox();
         HBox messageTitle = new HBox();
 
+        // Set the label and the message button onto the header of the messages list 
         messageTitle.getChildren().add(messageLabel);
         messageTitle.getChildren().add(createMessageBranchButton);
         messageTitle.setAlignment(Pos.CENTER_RIGHT);
@@ -287,7 +288,7 @@ public class MessengerView extends SplitPane {
         try {
             branchListView.getSelectionModel().select(branchListView.getItems().get(0));
         } catch (IndexOutOfBoundsException e){
-            // If there are no messages then skip
+            // If there are no messages then skip and leave as default
         }
 
         setDividerPosition(0, 0.3);
