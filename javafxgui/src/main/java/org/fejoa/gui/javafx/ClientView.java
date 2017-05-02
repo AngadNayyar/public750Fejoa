@@ -155,8 +155,8 @@ public class ClientView extends BorderPane {
             commandManagerStatus.setFailed();
         }
 
-        //setBackground(new Background(new BackgroundFill(Color.WHITE, null, null)));
-
+        // Create the tab pane for the left hand side to switch between functions
+        // set the id for styling in css.
         TabPane tabPane = new TabPane();
         tabPane.setId("tab-pane-menu");
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
@@ -182,12 +182,14 @@ public class ClientView extends BorderPane {
         fileStorageTab.setContent(new FileStorageView(client, statusManager));
         tabPane.getTabs().add(fileStorageTab);
 
+        // Add a messenger view to the tab content of the messages tab
         Tab messengerTap = new Tab("Messenger");
         MessengerView messengerView = new MessengerView(client, statusManager);
         messengerView.setId("messenger-view");
         messengerTap.setContent(messengerView);
         tabPane.getTabs().add(messengerTap);
 
+        // set the default selected tab to be the messages tab when opening the gui
         tabPane.getSelectionModel().select(messengerTap);
 
         setCenter(tabPane);
