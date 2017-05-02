@@ -36,6 +36,7 @@ public class AccountListView extends HBox {
     final private AccountManager accountManager;
     final ComboBox<Account> accountView = new ComboBox<>();
     private AccountManager.IListener accountManagerListener;
+    Label greetingUser;
 
     public AccountListView(final AccountManager accountManager,
                            final IStatusManager statusManager) {
@@ -64,10 +65,13 @@ public class AccountListView extends HBox {
         accountManagerListener = new AccountManager.IListener() {
             @Override
             public void onAccountSelected(Account account) {
-                if (account != null)
+                if (account != null) {
                     accountView.getSelectionModel().select(account);
-                else
+                    greetingUser.setText("Welcome " + account);
+                }
+                else {
                     accountView.getSelectionModel().clearSelection();
+                }
             }
         };
         accountManager.addListener(accountManagerListener);
@@ -78,7 +82,6 @@ public class AccountListView extends HBox {
         addAccountButton.setMinWidth(25.0);
 
         // Create a new label to welcome the logged in user
-        Label greetingUser;
         try {
             greetingUser = new Label("Welcome " + accountManager.getAccountList().get(0).toString() );
 
