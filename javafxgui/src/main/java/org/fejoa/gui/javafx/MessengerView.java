@@ -261,18 +261,6 @@ public class MessengerView extends SplitPane {
         branchLayout.getChildren().add(messageTitle);
         branchLayout.getChildren().add(branchListView); // This is where the list view is added
 
-        // TODO Make a text box for text to be entered, then make a button to be used to search
-        // TODO apply a listener to that button, and on click search through branchListView
-        // TODO place this inside listener
-//        ListView<MessageThread> searchedBranchListView = new ListView<>();
-//        for (MessageThread mt : branchListView.getItems()){
-//            if (mt.containsParticipant(searchedString)){
-//                searchedBranchListView.getItems().add(mt);
-//            }
-//        }
-//        branchLayout.getChildren().remove(branchListView);
-//        branchLayout.getChildren().add(searchedBranchListView);
-
         branchListView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<MessageThread>() {
             @Override
             public void changed(ObservableValue<? extends MessageThread> observableValue,
@@ -367,10 +355,6 @@ class MessageThread {
     @Override
     public String toString(){
         return participants;
-    }
-
-    Boolean containsParticipant(String participant){
-        return participants.contains(participant);
     }
 
 
