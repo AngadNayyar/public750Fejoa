@@ -23,7 +23,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-
+/**
+ * This class is the threads on the left of the GUI it has the collection of Messages in the thread
+ */
 public class MessageBranch extends MovableStorageContainer {
     final static private String PARTICIPANTS_KEY = "participants";
     final static private String MESSAGES_KEY = "messages";

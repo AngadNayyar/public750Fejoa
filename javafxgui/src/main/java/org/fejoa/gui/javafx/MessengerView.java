@@ -18,6 +18,7 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
+import org.fejoa.gui.Account;
 import org.fejoa.gui.IStatusManager;
 import org.fejoa.library.BranchInfo;
 import org.fejoa.library.Client;
@@ -32,10 +33,7 @@ import org.fejoa.messaging.MessageBranchEntry;
 import org.fejoa.messaging.Messenger;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 
 class CreateMessageBranchView extends VBox {
@@ -87,6 +85,8 @@ class MessageBranchView extends VBox {
     final MessageBranch messageBranch;
 
     final ListView<Message> messageListView = new ListView<>();
+    final ListView<ContactPublic> contactListView = new ListView();
+
 
     final StorageDir.IListener storageListener = new StorageDir.IListener() {
         @Override
@@ -200,6 +200,7 @@ public class MessengerView extends SplitPane {
     final private IStatusManager statusManager;
     final private Messenger messenger;
     final ListView<MessageBranchEntry> branchListView;
+    final ListView<ContactPublic> contactListView;
     private MessageBranchView currentMessageBranchView;
 
     final private StorageDir.IListener listener = new StorageDir.IListener() {
@@ -216,6 +217,7 @@ public class MessengerView extends SplitPane {
         messenger = new Messenger(client);
 
         branchListView = new ListView<>();
+        contactListView = new ListView<>();
         VBox.setVgrow(branchListView, Priority.ALWAYS);
         update();
         client.getUserData().getStorageDir().addListener(listener);
@@ -244,7 +246,7 @@ public class MessengerView extends SplitPane {
         messageTitle.getChildren().add(createMessageBranchButton);
         messageTitle.setAlignment(Pos.CENTER_RIGHT);
         branchLayout.getChildren().add(messageTitle);
-        branchLayout.getChildren().add(branchListView);
+        branchLayout.getChildren().add(branchListView); // This is where the list view is added
 
         branchListView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<MessageBranchEntry>() {
             @Override
@@ -266,14 +268,30 @@ public class MessengerView extends SplitPane {
 
         getItems().add(branchLayout);
         getItems().add(messageViewStack);
-        branchListView.getSelectionModel().select(branchListView.getItems().get(0));
+        //branchListView.getSelectionModel().select(branchListView.getItems().get(0));
 
         setDividerPosition(0, 0.3);
     }
 
     private void update() {
+        contactListView.getItems().clear();
         branchListView.getItems().clear();
-        branchListView.getItems().addAll(messenger.getBranchList().getEntries()); // THis removes all the threads
+        // Get all the entries as participants add to collection then add to branch list view
+        branchListView.getItems().addAll(messenger.getBranchList().getEntries());
+        try {
+            for (MessageBranchEntry m : messenger.getBranchList().getEntries()){
+                for (ContactPublic participant : m.getMessageBranch(client.getUserData()).getParticipants()) {
+                    System.out.println(participant.getId());
+//                    String s = client.getUserData().getContactStore().getContactList();
+
+                }
+
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (CryptoException e) {
+            e.printStackTrace();
+        }
         List<BranchInfo.Location> locations = new ArrayList<>();
         for (MessageBranchEntry entry : messenger.getBranchList().getEntries()) {
             try {
