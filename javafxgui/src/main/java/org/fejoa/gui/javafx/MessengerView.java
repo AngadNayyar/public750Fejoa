@@ -85,8 +85,6 @@ class MessageBranchView extends VBox {
     final MessageBranch messageBranch;
 
     final ListView<Message> messageListView = new ListView<>();
-    final ListView<String> contactListView = new ListView();
-
 
     final StorageDir.IListener storageListener = new StorageDir.IListener() {
         @Override
@@ -200,8 +198,6 @@ public class MessengerView extends SplitPane {
     final private IStatusManager statusManager;
     final private Messenger messenger;
     final ListView<MessageThread> branchListView;
-//    final ListView<MessageBranchEntry> branchListView;
-    final ListView<String> contactListView;
     private MessageBranchView currentMessageBranchView;
 
     final private StorageDir.IListener listener = new StorageDir.IListener() {
@@ -218,7 +214,6 @@ public class MessengerView extends SplitPane {
         messenger = new Messenger(client);
 
         branchListView = new ListView<>();
-        contactListView = new ListView<>();
         VBox.setVgrow(branchListView, Priority.ALWAYS);
         update();
         client.getUserData().getStorageDir().addListener(listener);
@@ -252,8 +247,6 @@ public class MessengerView extends SplitPane {
         messageTitle.setAlignment(Pos.CENTER_RIGHT);
         branchLayout.getChildren().add(messageTitle);
         branchLayout.getChildren().add(branchListView); // This is where the list view is added
-//        branchNamedLayout.getChildren().add(messageTitle);
-//        branchNamedLayout.getChildren().add(contactListView); // This is where the list view is added
 
         branchListView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<MessageThread>() {
             @Override //TODO this adds the message branch view into the UI needs to be changed to work for new ListView
@@ -288,26 +281,16 @@ public class MessengerView extends SplitPane {
     }
 
     private void update() {
-        contactListView.getItems().clear();
         branchListView.getItems().clear();
         // Get all the entries as participants add to collection then add to branch list view
-//        branchListView.getItems().addAll(messenger.getBranchList().getEntries()); //TODO this needs to loop through and add each MessageBranchEntry individually
-        for(MessageBranchEntry mbe : messenger.getBranchList().getEntries()){
-            MessageThread tempMessageThread = new MessageThread();
-            tempMessageThread.setMessageBranchEntry(mbe);
-            branchListView.getItems().add(tempMessageThread);
-        }
-
         try {
-            // For each thread, get the message branch and then participants of those message branches
+            // For each thread, get the message branch and then participants of those message branches, then add those to the MessageThread object and then into the ListView
             for (MessageBranchEntry m : messenger.getBranchList().getEntries()){
                 String participants = "";
                 MessageThread tempMessageThread = new MessageThread();
                 for (ContactPublic participant : m.getMessageBranch(client.getUserData()).getParticipants()) {
-                    System.out.println("Participants: " + participant);
-                    participants = participants + participant; //TODO should probably be a string builder
+                    participants = participants + participant.getRemotes().getDefault().getUser(); //TODO should probably be a string builder
                 }
-//                contactListView.getItems().add(participants);
                 tempMessageThread.setMessageBranchEntry(m);
                 tempMessageThread.setParticipants(participants);
                 branchListView.getItems().add(tempMessageThread);
@@ -337,24 +320,22 @@ public class MessengerView extends SplitPane {
 }
 
 class MessageThread {
-    String participants;
-    MessageBranchEntry messageBranchEntry;
+    private String participants;
+    private MessageBranchEntry messageBranchEntry;
 
-    public MessageThread(){
+    MessageThread(){
         // Default constructor
     }
 
-    public void setParticipants(String participants){
+    void setParticipants(String participants){
         this.participants = participants;
-        return;
     }
 
-    public void setMessageBranchEntry(MessageBranchEntry messageBranchEntry){
+    void setMessageBranchEntry(MessageBranchEntry messageBranchEntry){
         this.messageBranchEntry = messageBranchEntry;
-        return;
     }
 
-    public MessageBranchEntry getMessageBranchEntry() {
+    MessageBranchEntry getMessageBranchEntry() {
         return messageBranchEntry;
     }
 
