@@ -14,10 +14,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.ToolBar;
-import javafx.scene.layout.AnchorPane;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.StackPane;
+import javafx.scene.layout.*;
 import org.fejoa.gui.Account;
 import org.fejoa.gui.AccountManager;
 import sun.plugin.javascript.navig.Anchor;
@@ -47,8 +44,12 @@ public class MainWindow extends BorderPane {
         heading.setId("messenger-heading");
 
         // Create the tool bar containing the add new user button and select user drop down
-        AccountListView accountView = new AccountListView(accountManager, statusView);
-        ToolBar toolBar = new ToolBar(accountView);
+        AccountListView accountView = new AccountListView(accountManager, statusView);  //Hbox
+        Pane spacer = new Pane();
+        HBox.setHgrow(spacer,Priority.ALWAYS);
+
+        ToolBar toolBar = new ToolBar(spacer, accountView);
+
         toolBar.setId("top-tool-bar");
 
         // Create a split pane to add the tool bar under the heading hbox at the top of the window
