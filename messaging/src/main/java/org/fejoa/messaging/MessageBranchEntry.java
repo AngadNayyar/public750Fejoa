@@ -82,19 +82,7 @@ public class MessageBranchEntry implements IStorageDirBundle {
         if (hosts.size() == 0)
             return null;
         String host = hosts.get(0);
-        return getMessageBranchInfo(userData, host);
-    }
-
-    public BranchInfo getMessageBranchInfo(UserData userData, String host) throws IOException, CryptoException {
-        BranchList branchList;
-        if (userData.getMyself().getId().equals(host))
-            branchList = userData.getBranchList();
-        else {
-            // contact host
-            ContactPublic contactPublic = userData.getContactStore().getContactList().get(host);
-            branchList = contactPublic.getBranchList();
-        }
-        return branchList.get(getBranch(), Messenger.MESSENGER_CONTEXT);
+        return userData.getBranchInfo(getBranch(), Messenger.MESSENGER_CONTEXT, host);
     }
 
     public MessageBranch getMessageBranch(UserData userData) throws IOException, CryptoException {

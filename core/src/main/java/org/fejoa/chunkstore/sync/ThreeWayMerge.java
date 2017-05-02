@@ -15,13 +15,14 @@ import java.io.IOException;
 
 public class ThreeWayMerge {
     public interface IConflictSolver {
-        FlatDirectoryBox.Entry solve(FlatDirectoryBox.Entry ours, FlatDirectoryBox.Entry theirs);
+        FlatDirectoryBox.Entry solve(String path, FlatDirectoryBox.Entry ours, FlatDirectoryBox.Entry theirs);
     }
 
     static public IConflictSolver ourSolver() {
         return new IConflictSolver() {
             @Override
-            public FlatDirectoryBox.Entry solve(FlatDirectoryBox.Entry ours, FlatDirectoryBox.Entry theirs) {
+            public FlatDirectoryBox.Entry solve(String path, FlatDirectoryBox.Entry ours,
+                                                FlatDirectoryBox.Entry theirs) {
                 return ours;
             }
         };
@@ -67,7 +68,7 @@ public class ThreeWayMerge {
                 if (!ourEntry.isFile())
                     continue;
                 FlatDirectoryBox.Entry theirEntry = theirTreeAccessor.get(change.path);
-                outTree.put(change.path, conflictSolver.solve(ourEntry, theirEntry));
+                outTree.put(change.path, conflictSolver.solve(change.path, ourEntry, theirEntry));
             }
         }
 

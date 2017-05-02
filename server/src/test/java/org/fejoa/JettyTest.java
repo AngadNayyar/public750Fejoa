@@ -157,7 +157,7 @@ public class JettyTest extends TestCase {
                 remote, authInfo, observer);
         Thread.sleep(1000);
 
-        connectionManager.submit(new LoginJob("userName", "password"), remote, authInfo, observer);
+        connectionManager.submit(new LoginJob(userData.getContext(), "userName", "password"), remote, authInfo, observer);
 
         Thread.sleep(1000);
     }
