@@ -63,19 +63,31 @@ class CreateMessageBranchView extends VBox {
         final TextArea bodyText = new TextArea();
         bodyText.setText("Message Body");
         Button sendButton = new Button("Send >");
+        final Label errorLabel = new Label("");
+        errorLabel.setId("error-label"); //TODO styling
         //Action listener for when user presses send button
         sendButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
+                boolean matched = false;
+                errorLabel.setText("");
                 try {
                     List<ContactPublic> participants = new ArrayList<>();
                     //Checks to see if the contacts that user is sending a message to are valid contacts.
                     for (ContactPublic contactPublic : userData.getContactStore().getContactList().getEntries()) {
                         if (contactPublic.getRemotes().getDefault().toAddress().equals(receiverComboBox.getSelectionModel().getSelectedItem() + receiverTextField.getText())) {
                             participants.add(contactPublic);
-                            System.out.println("matched"); //TODO if none match show error, always fails the last loop??
+                            matched = true;
                         }
                     }
+
+                    if (!matched){
+                        // TODO show error
+                        errorLabel.setText("Sorry that contact was not found");
+                        System.out.println("ERROR: Contact not valid");
+                        return;
+                    }
+                    System.out.println("no error: Contact is valid");
                     //Each message branch is a new thread, Message is the individual messages.
                     //Here the new thread is created and new message added to it.
                     //TODO: Check for existing threads to the same user/users
@@ -93,8 +105,9 @@ class CreateMessageBranchView extends VBox {
             }
         });
         //Add the receiver box, the message body and send button to the GUI.
-        VBox buttonContainer = new VBox();
+        HBox buttonContainer = new HBox();
         buttonContainer.setAlignment(Pos.TOP_RIGHT);
+        buttonContainer.getChildren().add(errorLabel);
         buttonContainer.getChildren().add(sendButton);
 
         getChildren().add(receiverLayout);
