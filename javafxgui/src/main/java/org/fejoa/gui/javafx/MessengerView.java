@@ -219,6 +219,7 @@ class MessageBranchView extends VBox {
                 }
             });
             messageListView.getItems().addAll(messages);
+            conversationThread.getItems().clear();
 
             for (int i = 0; i < messageListView.getItems().size(); i++){
                 HBox messageHBox = new HBox();
