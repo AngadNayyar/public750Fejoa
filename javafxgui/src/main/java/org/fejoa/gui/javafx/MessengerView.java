@@ -93,9 +93,13 @@ class CreateMessageBranchView extends VBox {
             }
         });
         //Add the receiver box, the message body and send button to the GUI.
+        VBox buttonContainer = new VBox();
+        buttonContainer.setAlignment(Pos.TOP_RIGHT);
+        buttonContainer.getChildren().add(sendButton);
+
         getChildren().add(receiverLayout);
         getChildren().add(bodyText);
-        getChildren().add(sendButton);
+        getChildren().add(buttonContainer);
     }
 }
 
