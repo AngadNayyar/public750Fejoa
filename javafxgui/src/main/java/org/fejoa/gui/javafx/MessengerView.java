@@ -251,6 +251,7 @@ public class MessengerView extends SplitPane {
     final private IStatusManager statusManager;
     final private Messenger messenger;
     final ListView<MessageThread> branchListView;
+    final ListView<MessageThread> totalBranchListView = new ListView<>();
     private MessageBranchView currentMessageBranchView;
 
     final private StorageDir.IListener listener = new StorageDir.IListener() {
@@ -316,13 +317,15 @@ public class MessengerView extends SplitPane {
             public void handle(ActionEvent event) {
                 ListView<MessageThread> searchedBranchListView = new ListView<>();
                 String searchedString = searchField.getText();
-                for (MessageThread mt : branchListView.getItems()){
+                for (MessageThread mt : totalBranchListView.getItems()){
                     if (mt.containsParticipant(searchedString)){
                         searchedBranchListView.getItems().add(mt);
                     }
                 }
-                branchLayout.getChildren().remove(branchListView); // TODO needs to also remove the added searchedBranchListView if added
-                branchLayout.getChildren().add(searchedBranchListView); // TODO also needs the listener to work, so maybe change branchListViews items???
+                branchLayout.getChildren().remove(branchListView);
+                branchListView.getItems().clear();
+                branchListView.getItems().addAll(searchedBranchListView.getItems());
+                branchLayout.getChildren().add(branchListView);
             }
         });
 
@@ -360,6 +363,7 @@ public class MessengerView extends SplitPane {
 
     private void update() {
         branchListView.getItems().clear();
+        totalBranchListView.getItems().clear();
         // Get all the entries as participants add to collection then add to branch list view
         try {
             // For each thread, get the message branch and then participants of those message branches, then add those to the MessageThread object and then into the ListView
@@ -378,6 +382,9 @@ public class MessengerView extends SplitPane {
         } catch (CryptoException e) {
             e.printStackTrace();
         }
+        // Copy update listview to totalBranchListView
+        totalBranchListView.getItems().addAll(branchListView.getItems());
+
         List<BranchInfo.Location> locations = new ArrayList<>();
         for (MessageBranchEntry entry : messenger.getBranchList().getEntries()) {
             try {
