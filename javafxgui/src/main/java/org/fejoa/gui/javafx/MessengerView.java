@@ -61,7 +61,7 @@ class CreateMessageBranchView extends VBox {
         receiverLayout.getChildren().add(receiverTextField);
 
         final TextArea bodyText = new TextArea();
-        bodyText.setText("Message Body");
+        bodyText.setPromptText("Message body...");
         Button sendButton = new Button("Send >");
         final Label errorLabel = new Label("");
         errorLabel.setId("error-label"); //TODO styling
