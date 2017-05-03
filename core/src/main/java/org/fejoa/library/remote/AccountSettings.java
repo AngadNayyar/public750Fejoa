@@ -7,10 +7,9 @@
  */
 package org.fejoa.library.remote;
 
-import org.apache.commons.codec.binary.Base64;
-import org.fejoa.library.crypto.CryptoSettings;
-import org.fejoa.library.crypto.JsonCryptoSettings;
+import org.bouncycastle.util.encoders.Base64;
 import org.fejoa.library.UserDataSettings;
+import org.fejoa.library.crypto.UserKeyParameters;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -21,33 +20,29 @@ import java.util.Scanner;
 public class AccountSettings {
     static final public String USER_NAME_KEY = "userName";
     static final public String LOGIN_PASSWORD_KEY = "loginPassword";
-    static final public String LOGIN_KDF_SALT_KEY = "loginKdfSalt";
-    static final public String LOGIN_KDF_SETTINGS_KEY = "loginKdfSettings";
+    static final public String LOGIN_USER_KEY_PARAMS = "loginUserKeyParams";
 
     static final public String USER_DATA_SETTINGS_KEY = "userDataSettings";
 
     final public String userName;
-    final public String derivedPassword;
-    final public byte[] salt;
-    final public CryptoSettings.Password loginSettings;
+    final public byte[] derivedPassword;
+    final public UserKeyParameters loginUserKeyParams;
 
     final public UserDataSettings userDataSettings;
 
-    public AccountSettings(String userName, String derivedPassword, byte[] salt, CryptoSettings.Password loginSettings,
+    public AccountSettings(String userName, byte[] derivedPassword, UserKeyParameters loginUserKeyParams,
                            UserDataSettings userDataSettings) {
         this.userName = userName;
         this.derivedPassword = derivedPassword;
-        this.salt = salt;
-        this.loginSettings = loginSettings;
+        this.loginUserKeyParams = loginUserKeyParams;
 
         this.userDataSettings = userDataSettings;
     }
 
     public AccountSettings(JSONObject object) throws JSONException {
         userName = object.getString(USER_NAME_KEY);
-        derivedPassword = object.getString(LOGIN_PASSWORD_KEY);
-        salt = Base64.decodeBase64(object.getString(LOGIN_KDF_SALT_KEY));
-        loginSettings = JsonCryptoSettings.passwordFromJson(object.getJSONObject(LOGIN_KDF_SETTINGS_KEY));
+        derivedPassword = Base64.decode(object.getString(LOGIN_PASSWORD_KEY));
+        loginUserKeyParams = new UserKeyParameters((object.getJSONObject(LOGIN_USER_KEY_PARAMS)));
         userDataSettings = new UserDataSettings(object.getJSONObject(USER_DATA_SETTINGS_KEY));
     }
 
@@ -64,14 +59,11 @@ public class AccountSettings {
     }
 
     public JSONObject toJson() {
-        String saltBase64 = Base64.encodeBase64String(salt);
-
         JSONObject object = new JSONObject();
         try {
             object.put(USER_NAME_KEY, userName);
-            object.put(LOGIN_PASSWORD_KEY, derivedPassword);
-            object.put(LOGIN_KDF_SALT_KEY, saltBase64);
-            object.put(LOGIN_KDF_SETTINGS_KEY, JsonCryptoSettings.toJson(loginSettings));
+            object.put(LOGIN_PASSWORD_KEY, Base64.toBase64String(derivedPassword));
+            object.put(LOGIN_USER_KEY_PARAMS, loginUserKeyParams.toJson());
             object.put(USER_DATA_SETTINGS_KEY, userDataSettings.toJson());
         } catch (JSONException e) {
             e.printStackTrace();

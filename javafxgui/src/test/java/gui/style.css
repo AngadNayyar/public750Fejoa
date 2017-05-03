@@ -1,4 +1,11 @@
+/*
+This css file is for styling the java fx messenger GUI. 
+*/
+
 .root {
+    -fx-font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
 }
 
 .border-pane {
@@ -21,6 +28,7 @@
     -fx-background-color: white;
     -fx-text-fill: black;
 }
+
 .list-cell:filled:selected {
     -fx-font-weight: bold;
 }
@@ -64,8 +72,45 @@
     -fx-border-style: none;
 }
 #message-label {
-    -fx-padding: 5 65 5 40;
 }
 #top-tool-bar{
-    -fx-padding: 0 0 0 570;
+    -fx-background-color:white;
 }
+#participants-label {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.message-sent{
+    -fx-background-color: dodgerblue;
+    -fx-background-radius: 12 12 3 12;
+    -fx-padding: 8;
+}
+.message-received{
+    -fx-background-color: lightgrey;
+    -fx-background-radius: 12 12 12 3;
+    -fx-padding: 8;
+}
+#message-spacer{
+    -fx-background-color: white;
+}
+
+#account-view-dropdown .list-cell{
+    -fx-background-color: white;
+    -fx-margin: 10;
+    -fx-border-color: white;
+    -fx-border-width: 1 1 1 1;
+    -fx-padding: 3;
+}
+
+#account-view-dropdown .arrow-button {
+   -fx-background-color:white;
+}
+
+#account-view-dropdown{
+    -fx-border-color: white;
+    -fx-border-width: 0px;
+
+}
+
+

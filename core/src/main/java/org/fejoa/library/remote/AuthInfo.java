@@ -29,10 +29,12 @@ abstract public class AuthInfo {
     }
 
     static public class Password extends AuthInfo {
+        final public FejoaContext context;
         final public String password;
 
-        public Password(String password) {
+        public Password(FejoaContext context, String password) {
             super(PASSWORD);
+            this.context = context;
             this.password = password;
         }
 
@@ -80,7 +82,7 @@ abstract public class AuthInfo {
                 String password = context.getRootPassword(remote.getUser(), remote.getServer());
                 if (password == null)
                     password = "";
-                return new AuthInfo.Password(password);
+                return new AuthInfo.Password(context, password);
             case TOKEN:
                 String rawToken = storageDir.readString(AUTH_RAW_TOKEN_KEY);
                 AccessTokenContact tokenContact = new AccessTokenContact(context, rawToken);

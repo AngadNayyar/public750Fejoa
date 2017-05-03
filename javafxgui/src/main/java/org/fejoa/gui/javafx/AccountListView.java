@@ -30,16 +30,42 @@ import org.fejoa.library.support.Task;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.Executor;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.geometry.Pos;
+import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.layout.HBox;
+import org.fejoa.gui.Account;
+import org.fejoa.gui.AccountManager;
+import org.fejoa.gui.IStatusManager;
+import org.fejoa.gui.TaskStatus;
+import org.fejoa.library.Client;
+import org.fejoa.library.Remote;
+import org.fejoa.library.crypto.CryptoException;
+import org.fejoa.library.remote.RemoteJob;
+import org.fejoa.library.support.StorageLib;
+import org.fejoa.library.support.Task;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.concurrent.Executor;
 
 
 public class AccountListView extends HBox {
     final private AccountManager accountManager;
     final ComboBox<Account> accountView = new ComboBox<>();
     private AccountManager.IListener accountManagerListener;
+    Label greetingUser;
 
     public AccountListView(final AccountManager accountManager,
                            final IStatusManager statusManager) {
         this.accountManager = accountManager;
+
+        accountView.setId("account-view-dropdown");
         accountView.setItems(new ObservableListAdapter<>(accountManager.getAccountList()));
         accountView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<Account>() {
             @Override
@@ -64,29 +90,36 @@ public class AccountListView extends HBox {
         accountManagerListener = new AccountManager.IListener() {
             @Override
             public void onAccountSelected(Account account) {
-                if (account != null)
+                if (account != null) {
                     accountView.getSelectionModel().select(account);
-                else
+                    greetingUser.setText("Welcome " + account);
+                }
+                else {
                     accountView.getSelectionModel().clearSelection();
+                }
             }
         };
         accountManager.addListener(accountManagerListener);
 
-        final HBox buttonLayout = new HBox();
+        // Create a hbox for the buttons in the tool bar and create the new user button
         final Button addAccountButton = new Button();
         addAccountButton.setId("add-account-btn");
         addAccountButton.setMinWidth(25.0);
-        final Label greetingUser = new Label("Welcome " + accountManager.getAccountList().get(0).toString() );
 
-        setAlignment(Pos.CENTER);
-//        Label label = new Label("Accounts:");
-//        label.setAlignment(Pos.CENTER);
-//        getChildren().add(label);
-        getChildren().add(buttonLayout);
-        buttonLayout.getChildren().add(addAccountButton);
-        getChildren().add(accountView);
-        setSpacing(5.0);
+        // Create a new label to welcome the logged in user - or just welcome if no current users
+        try {
+            greetingUser = new Label("Welcome " + accountManager.getAccountList().get(0).toString() );
+
+        } catch (IndexOutOfBoundsException e) {
+            greetingUser = new Label("Welcome!");
+        }
+
+        // Add the buttons and labels to the hbox to be added to the toolbar
         getChildren().add(greetingUser);
+        setAlignment(Pos.CENTER);
+        getChildren().add(accountView);
+        getChildren().add(addAccountButton);
+        setSpacing(10.0);
 
         addAccountButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
@@ -124,7 +157,6 @@ public class AccountListView extends HBox {
             client.createAccount(new Remote(user, server), password, new Task.IObserver<Void, RemoteJob.Result>() {
                 @Override
                 public void onProgress(Void aVoid) {
-
                 }
 
                 @Override

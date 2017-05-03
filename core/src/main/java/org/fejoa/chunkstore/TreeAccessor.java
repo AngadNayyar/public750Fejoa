@@ -106,7 +106,7 @@ public class TreeAccessor {
     public FileBox getFileBox(String path) throws IOException, CryptoException {
         FlatDirectoryBox.Entry fileEntry = get(path);
         if (fileEntry == null)
-            throw new NoSuchFileException("Entry not found");
+            throw new NoSuchFileException("Entry not found: " + path);
         assert fileEntry.isFile();
 
         FileBox fileBox = (FileBox)fileEntry.getObject();

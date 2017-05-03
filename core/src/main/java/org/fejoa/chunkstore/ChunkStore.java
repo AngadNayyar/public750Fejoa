@@ -18,127 +18,24 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 
-public class ChunkStore {
-    /**
-     * TODO: make the transaction actually do something, i.e. make a transaction atomic
-     */
-    public class Transaction {
-        public long size() {
-            return ChunkStore.this.size();
-        }
+interface IChunkStoreEngine {
+    void create(File dir, String name) throws IOException;
+    void open(File dir, String name) throws IOException;
 
-        public ChunkStoreIterator iterator() throws IOException {
-            return ChunkStore.this.iterator();
-        }
+    long size();
+    ChunkStore.IChunkStoreIterator iterator() throws IOException;
+    byte[] getChunk(byte[] hash) throws IOException;
+    PutResult<HashValue> put(byte[] data) throws IOException;
+    boolean contains(byte[] hash) throws IOException;
+    void startNewTransaction();
+    void commit() throws IOException;
+    void cancel();
+}
 
-        public byte[] getChunk(HashValue hash) throws IOException {
-            return ChunkStore.this.getChunk(hash);
-        }
-
-        public PutResult<HashValue> put(byte[] data) throws IOException {
-            return ChunkStore.this.put(data);
-        }
-
-        public boolean contains(HashValue hash) throws IOException {
-            return ChunkStore.this.hasChunk(hash);
-        }
-
-        public void commit() throws IOException {
-            currentTransaction = null;
-        }
-
-        public void cancel() {
-            // TODO implement
-        }
-    }
-
-    static class LockBucket {
-        private Map<String, WeakReference<Lock>> lockMap = new HashMap<>();
-
-        public Lock getLock(String id) {
-            WeakReference<Lock> weakObject = lockMap.get(id);
-            if (weakObject != null) {
-                Lock lock = weakObject.get();
-                if (lock != null)
-                    return lock;
-            }
-
-            // create new lock
-            Lock lock = new ReentrantLock();
-            lockMap.put(id, new WeakReference<>(lock));
-            return lock;
-        }
-    }
-
-    final static protected LockBucket lockBucket = new LockBucket();
-    final private BPlusTree tree;
-    final private PackFile packFile;
-    final private Lock fileLock;
-    private Transaction currentTransaction;
-
-    protected ChunkStore(File dir, String name) throws FileNotFoundException {
-        this.tree = new BPlusTree(new RandomAccessFile(new File(dir, name + ".idx"), "rw"));
-        this.packFile = new PackFile(new RandomAccessFile(new File(dir, name + ".pack"), "rw"));
-        this.fileLock = lockBucket.getLock(dir + "/" + name);
-    }
-
-    static public ChunkStore create(File dir, String name) throws IOException {
-        ChunkStore chunkStore = new ChunkStore(dir, name);
-        chunkStore.tree.create(hashSize(), 1024);
-        chunkStore.packFile.create(hashSize());
-        return chunkStore;
-    }
-
-    static public ChunkStore open(File dir, String name) throws IOException {
-        ChunkStore chunkStore = new ChunkStore(dir, name);
-        chunkStore.tree.open();
-        chunkStore.packFile.open();
-        return chunkStore;
-    }
-
-    static public boolean exists(File dir, String name) {
-        return new File(dir, name + ".idx").exists();
-    }
-
-    public byte[] getChunk(HashValue hash) throws IOException {
-        return getChunk(hash.getBytes());
-    }
-
-    public byte[] getChunk(byte[] hash) throws IOException {
-        try {
-            lock();
-            Long position = tree.get(hash);
-            if (position == null)
-                return null;
-            return packFile.get(position.intValue(), hash);
-        } finally {
-            unlock();
-        }
-    }
-
-    public long size() {
-        try {
-            lock();
-            return tree.size();
-        } finally {
-            unlock();
-        }
-    }
-
-    static public class Entry {
-        final public HashValue key;
-        final public byte[] data;
-
-        public Entry(HashValue key, byte[] data) {
-            this.key = key;
-            this.data = data;
-        }
-    }
-
-    public class ChunkStoreIterator implements Iterator<Entry> {
+class SimpleChunkStoreEngine implements IChunkStoreEngine {
+    public class ChunkStoreIterator implements ChunkStore.IChunkStoreIterator {
         final private Iterator<BPlusTree.Entry<Long>> iterator;
 
         ChunkStoreIterator(Iterator<BPlusTree.Entry<Long>> iterator) {
@@ -148,7 +45,7 @@ public class ChunkStore {
         }
 
         public void unlock() {
-            ChunkStore.this.unlock();
+            SimpleChunkStoreEngine.this.unlock();
         }
 
         @Override
@@ -167,7 +64,7 @@ public class ChunkStore {
         }
 
         @Override
-        public Entry next() {
+        public ChunkStore.Entry next() {
             BPlusTree.Entry<Long> next = iterator.next();
             Long position = next.data;
             byte[] chunk;
@@ -177,33 +74,80 @@ public class ChunkStore {
                 e.printStackTrace();
                 return null;
             }
-            return new Entry(new HashValue(next.key), chunk);
+            return new ChunkStore.Entry(new HashValue(next.key), chunk);
         }
     }
 
-    public ChunkStoreIterator iterator() throws IOException {
-        return new ChunkStoreIterator(tree.iterator());
+    final private BPlusTree tree;
+    final private PackFile packFile;
+    final private Lock lock;
+
+    public SimpleChunkStoreEngine(File dir, String name) throws FileNotFoundException {
+        this.tree = new BPlusTree(new RandomAccessFile(new File(dir, name +".idx"), "rw"));
+        this.packFile = new PackFile(new RandomAccessFile(new File(dir, name + ".pack"), "rw"));
+        this.lock = LockBucket.getInstance().getLock(new File(dir, name).getPath());
     }
 
-    public boolean hasChunk(HashValue hashValue) throws IOException {
+    private void lock() {
+        lock.lock();
+    }
+
+    private void unlock() {
+        lock.unlock();
+    }
+
+    @Override
+    public void create(File dir, String name) throws IOException {
         try {
             lock();
-            return tree.get(hashValue.getBytes()) != null;
+            tree.create(ChunkStore.hashSize(), 1024);
+            packFile.create(ChunkStore.hashSize());
         } finally {
             unlock();
         }
     }
 
-    public Transaction openTransaction() throws IOException {
-        synchronized (this) {
-            if (currentTransaction != null)
-                return currentTransaction;
-            currentTransaction = new Transaction();
-            return currentTransaction;
+    @Override
+    public void open(File dir, String name) throws IOException {
+        try {
+            lock();
+            tree.open();
+            packFile.open();
+        } finally {
+            unlock();
         }
     }
 
-    private PutResult<HashValue> put(byte[] data) throws IOException {
+    @Override
+    public long size() {
+        try {
+            lock();
+            return tree.size();
+        } finally {
+            unlock();
+        }
+    }
+
+    @Override
+    public ChunkStore.IChunkStoreIterator iterator() throws IOException {
+        return new ChunkStoreIterator(tree.iterator());
+    }
+
+    @Override
+    public byte[] getChunk(byte[] hash) throws IOException {
+        try {
+            lock();
+            Long position = tree.get(hash);
+            if (position == null)
+                return null;
+            return packFile.get(position.intValue(), hash);
+        } finally {
+            unlock();
+        }
+    }
+
+    @Override
+    public PutResult<HashValue> put(byte[] data) throws IOException {
         try {
             lock();
             // make this configurable
@@ -220,15 +164,182 @@ public class ChunkStore {
         }
     }
 
-    private void lock() {
-        fileLock.lock();
+    @Override
+    public boolean contains(byte[] hash) throws IOException {
+        try {
+            lock();
+            return tree.get(hash) != null;
+        } finally {
+            unlock();
+        }
     }
 
-    private void unlock() {
-        fileLock.unlock();
+    /**
+     * TODO: make the transaction actually do something, i.e. make a transaction atomic
+     */
+    @Override
+    public void startNewTransaction() {
+
     }
 
-    static private int hashSize() {
+    @Override
+    public void commit() throws IOException {
+
+    }
+
+    @Override
+    public void cancel() {
+
+    }
+}
+
+public class ChunkStore {
+    public class Transaction {
+        public long size() {
+            return ChunkStore.this.size();
+        }
+
+        public IChunkStoreIterator iterator() throws IOException {
+            return ChunkStore.this.iterator();
+        }
+
+        public byte[] getChunk(HashValue hash) throws IOException {
+            return ChunkStore.this.getChunk(hash);
+        }
+
+        public PutResult<HashValue> put(byte[] data) throws IOException {
+            return ChunkStore.this.put(data);
+        }
+
+        public boolean contains(HashValue hash) throws IOException {
+            return ChunkStore.this.hasChunk(hash);
+        }
+
+        public void commit() throws IOException {
+            ChunkStore.this.commit();
+        }
+
+        public void cancel() {
+            ChunkStore.this.cancel();
+        }
+    }
+
+    static class DatabaseBucket {
+        private Map<String, WeakReference<IChunkStoreEngine>> map = new HashMap<>();
+
+        synchronized public IChunkStoreEngine getDB(File dir, String name) throws FileNotFoundException {
+            String id = new File(dir, name).getPath();
+            WeakReference<IChunkStoreEngine> weakObject = map.get(id);
+            if (weakObject != null) {
+                IChunkStoreEngine db = weakObject.get();
+                if (db != null)
+                    return db;
+            }
+
+            // create new db
+            IChunkStoreEngine engine = new SimpleChunkStoreEngine(dir, name);
+            map.put(id, new WeakReference<>(engine));
+            return engine;
+        }
+    }
+
+    final static protected DatabaseBucket databaseBucket = new DatabaseBucket();
+    final private IChunkStoreEngine db;
+    private Transaction currentTransaction;
+
+    protected ChunkStore(File dir, String name) throws FileNotFoundException {
+        this.db = databaseBucket.getDB(dir, name);
+    }
+
+    static public ChunkStore create(File dir, String name) throws IOException {
+        ChunkStore chunkStore = new ChunkStore(dir, name);
+        chunkStore.db.create(dir, name);
+        return chunkStore;
+    }
+
+    static public ChunkStore open(File dir, String name) throws IOException {
+        ChunkStore chunkStore = new ChunkStore(dir, name);
+        chunkStore.db.open(dir, name);
+        return chunkStore;
+    }
+
+    static public boolean exists(File dir, String name) {
+        File[] children = dir.listFiles();
+        if (children == null)
+            return false;
+        for (File child : children) {
+            if (!child.isFile())
+                continue;
+            if (child.getName().startsWith(name))
+                return true;
+        }
+        return false;
+    }
+
+    public byte[] getChunk(HashValue hash) throws IOException {
+        return getChunk(hash.getBytes());
+    }
+
+    public byte[] getChunk(byte[] hash) throws IOException {
+        return db.getChunk(hash);
+    }
+
+    public long size() {
+        return db.size();
+    }
+
+    static public class Entry {
+        final public HashValue key;
+        final public byte[] data;
+
+        public Entry(HashValue key, byte[] data) {
+            this.key = key;
+            this.data = data;
+        }
+    }
+
+    public interface IChunkStoreIterator extends Iterator<Entry> {
+        void unlock();
+    }
+
+    public IChunkStoreIterator iterator() throws IOException {
+        return db.iterator();
+    }
+
+    public boolean hasChunk(HashValue hashValue) throws IOException {
+        return db.contains(hashValue.getBytes());
+    }
+
+    // TODO rename to getCurrentTransaction?
+    public Transaction openTransaction() throws IOException {
+        synchronized (this) {
+            if (currentTransaction != null)
+                return currentTransaction;
+            currentTransaction = new Transaction();
+            db.startNewTransaction();
+            return currentTransaction;
+        }
+    }
+
+    private void commit() throws IOException {
+        synchronized (this) {
+            db.commit();
+            currentTransaction = null;
+        }
+    }
+
+    private void cancel() {
+        synchronized (this) {
+            db.cancel();
+            currentTransaction = null;
+        }
+    }
+
+    private PutResult<HashValue> put(byte[] data) throws IOException {
+        return db.put(data);
+    }
+
+    static public int hashSize() {
         return 32;
     }
 

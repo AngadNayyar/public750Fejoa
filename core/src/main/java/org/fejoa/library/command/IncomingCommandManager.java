@@ -7,6 +7,7 @@
  */
 package org.fejoa.library.command;
 
+import org.fejoa.library.Client;
 import org.fejoa.library.database.StorageDir;
 import org.fejoa.library.AppContext;
 import org.fejoa.library.crypto.CryptoException;
@@ -80,13 +81,15 @@ public class IncomingCommandManager {
     final private List<Handler> handlerList = new ArrayList<>();
     final private List<HandlerResponse> ongoingHandling = new ArrayList<>();
 
-    public IncomingCommandManager(UserData userData)
+    public IncomingCommandManager(Client client)
             throws IOException, CryptoException {
-        this.queues.add(userData.getIncomingCommandQueue());
+        this.queues.add(client.getUserData().getIncomingCommandQueue());
 
+        UserData userData = client.getUserData();
         addHandler(new ContactRequestCommandHandler(userData));
         addHandler(new AccessCommandHandler(userData));
         addHandler(new MigrationCommandHandler(userData));
+        addHandler(new UpdateCommandHandler(client));
     }
 
     public void addHandler(Handler handler) {

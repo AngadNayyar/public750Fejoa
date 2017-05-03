@@ -529,14 +529,15 @@ public class BaseBPlusTree<IndexType extends Number, DataType extends Number> {
         }
     }
 
-    private int tileSize = 1024;
-    private short version = 1;
-    private short hashSize;
-    private short depth = 1;
+    private boolean isOpen = false;
+    private int tileSize;
+    private short version;
+    private short depth;
     private long numberOfEntries;
     // Tile count starts at 1. Tile 0 is an invalid tile.
-    private long rootTileIndex = 0l;
-    private long freeTileList = 0l;
+    private long rootTileIndex;
+    private long freeTileList ;
+    private short hashSize;
 
     final private RandomAccessFile file;
     final private IDataType<IndexType> indexType;
@@ -548,6 +549,19 @@ public class BaseBPlusTree<IndexType extends Number, DataType extends Number> {
         this.indexType = indexType;
         this.dataType = dataType;
         this.tileAllocator = new TileAllocator();
+
+        reset();
+    }
+
+    private void reset() {
+        isOpen = false;
+        tileSize = 1024;
+        version = 1;
+        depth = 1;
+        numberOfEntries = 0;
+        // Tile count starts at 1. Tile 0 is an invalid tile.
+        rootTileIndex = 0l;
+        freeTileList = 0l;
     }
 
     public short getDepth() {
@@ -567,15 +581,21 @@ public class BaseBPlusTree<IndexType extends Number, DataType extends Number> {
     }
 
     public void create(int hashSize, int tileSize) throws IOException {
+        reset();
+
         this.hashSize = (short)hashSize;
         this.tileSize = tileSize;
+        this.isOpen = true;
 
         file.setLength(0);
         writeHeader();
     }
 
     public void open() throws IOException {
+        if (isOpen)
+            return;
         readHeader();
+        isOpen = true;
     }
 
     private void readHeader() throws IOException {
