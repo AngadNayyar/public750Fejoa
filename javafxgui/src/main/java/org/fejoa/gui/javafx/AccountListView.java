@@ -12,9 +12,7 @@ import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Label;
+import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import org.fejoa.gui.Account;
 import org.fejoa.gui.AccountManager;
@@ -106,7 +104,9 @@ public class AccountListView extends HBox {
         final Button addAccountButton = new Button();
         addAccountButton.setId("add-account-btn");
         addAccountButton.setMinWidth(25.0);
-
+        final Tooltip tooltip = new Tooltip();
+        tooltip.setText("Add a new account");
+        addAccountButton.setTooltip(tooltip);
 
         // Create a new label to welcome the logged in user - or just welcome if no current users
         try {

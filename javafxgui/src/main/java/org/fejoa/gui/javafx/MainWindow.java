@@ -46,6 +46,7 @@ public class MainWindow extends BorderPane {
         heading.getChildren().add(title);
         heading.setAlignment(Pos.CENTER);
         heading.setId("messenger-heading");
+        setId("main-window-borderpane");
 
         // Create the hbox containing the account functionality for the tool bar
         AccountListView accountView = new AccountListView(accountManager, statusView);
