@@ -29,8 +29,13 @@ This css file is for styling the java fx messenger GUI.
     -fx-text-fill: black;
 }
 
-.list-cell:filled:selected {
-    -fx-font-weight: bold;
+
+#thread-message-list-view .list-cell{
+    -fx-background-color: #f1f0f0;
+}
+
+#thread-message-list-view .list-cell:filled:selected {
+    -fx-text-fill: dodgerblue;
 }
 
 #message-body{
@@ -53,7 +58,7 @@ This css file is for styling the java fx messenger GUI.
     /*-fx-background-color: dodgerblue;*/
 }
 #messenger-heading{
-    -fx-background-color: dimgrey;
+    -fx-background-color: #f1f0f0;
     -fx-font-size: 18px;
 }
 #header-split-pane > .split-pane-divider {
@@ -72,6 +77,10 @@ This css file is for styling the java fx messenger GUI.
     -fx-border-style: none;
 }
 #message-label {
+    -fx-background-color:#f1f0f0;
+}
+#message-title-pane{
+    -fx-background-color:#f1f0f0;
 }
 #top-tool-bar{
     -fx-background-color:white;
@@ -87,7 +96,7 @@ This css file is for styling the java fx messenger GUI.
     -fx-padding: 8;
 }
 .message-received{
-    -fx-background-color: lightgrey;
+    -fx-background-color: #f1f0f0;
     -fx-background-radius: 12 12 12 3;
     -fx-padding: 8;
 }

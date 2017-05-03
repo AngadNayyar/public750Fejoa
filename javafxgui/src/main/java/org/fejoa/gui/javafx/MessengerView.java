@@ -284,6 +284,8 @@ public class MessengerView extends SplitPane {
         update();
         client.getUserData().getStorageDir().addListener(listener);
 
+        branchListView.setId("thread-message-list-view");
+
         final StackPane messageViewStack = new StackPane();
         final CreateMessageBranchView createMessageBranchView = new CreateMessageBranchView(client.getUserData(), messenger);
 
@@ -310,6 +312,7 @@ public class MessengerView extends SplitPane {
         final VBox branchLayout = new VBox();
         VBox branchNamedLayout = new VBox();
         BorderPane messageTitle = new BorderPane();
+        messageTitle.setId("message-title-pane");
         VBox searchBox = new VBox();
 
         searchBox.getChildren().add(searchField);
