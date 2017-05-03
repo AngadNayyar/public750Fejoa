@@ -41,7 +41,7 @@ public class MainWindow extends BorderPane {
         // Create an HBox to contain the label for heading "Portable Cloud Messenger"
         HBox heading = new HBox();
         Label title = new Label("Portable Cloud Messenger");
-        title.setTextFill(Color.DIMGRAY);
+        title.setTextFill(Color.BLACK);
         
         heading.getChildren().add(title);
         heading.setAlignment(Pos.CENTER);
