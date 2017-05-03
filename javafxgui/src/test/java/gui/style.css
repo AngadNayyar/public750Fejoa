@@ -3,7 +3,8 @@ This css file is for styling the java fx messenger GUI.
 */
 
 .root {
-    -fx-font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
+    /*-fx-font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;*/
+    -fx-font-family: "Helvetica", sans-serif;
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;
 
@@ -81,6 +82,7 @@ This css file is for styling the java fx messenger GUI.
     -fx-background-color: -fx-box-border, -fx-control-inner-background;
     -fx-background-insets: 0, 0;
     -fx-padding: 0;
+    -fx-font-size: 14px;
 }
 #conversation-thread-listview {
     -fx-background-color: -fx-box-border, -fx-control-inner-background;
@@ -98,8 +100,8 @@ This css file is for styling the java fx messenger GUI.
     -fx-background-color:white;
 }
 #participants-label {
-    -fx-font-size: 14px;
-    -fx-font-weight: bold;
+    -fx-font-size: 16px;
+    /*-fx-font-weight: bold;*/
 }
 .message-sent{
     -fx-background-color: dodgerblue;
@@ -140,10 +142,6 @@ This css file is for styling the java fx messenger GUI.
 #participants-title-containter{
     -fx-border-width: 0 0 1 0;
     -fx-border-color: silver;
-}
-#participants-label {
-   -fx-font-size: 18px;
-
 }
 #main-window-borderpane {
     -fx-background-color: -fx-box-border, -fx-control-inner-background;

@@ -18,6 +18,7 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.TextFieldListCell;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 import javafx.scene.text.Text;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
@@ -178,7 +179,6 @@ class MessageBranchView extends VBox {
                 });
 
                 textFieldCell.setId("message-body");
-                //textFieldCell.getStyleClass().add("messagebody");
                 return textFieldCell;
             }
         });
@@ -285,6 +285,7 @@ class MessageBranchView extends VBox {
                     textbox.getStyleClass().add("message-sent");
                     messageHBox.getChildren().add(spacer);
                     messageHBox.getChildren().add(textbox);
+                    messageText.setFill(Color.WHITE);
                 } else {
                     textbox.getStyleClass().remove("message-sent");
                     textbox.getStyleClass().add("message-received");
