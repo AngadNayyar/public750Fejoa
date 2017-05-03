@@ -30,6 +30,29 @@ import org.fejoa.library.support.Task;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.Executor;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.geometry.Pos;
+import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.layout.HBox;
+import org.fejoa.gui.Account;
+import org.fejoa.gui.AccountManager;
+import org.fejoa.gui.IStatusManager;
+import org.fejoa.gui.TaskStatus;
+import org.fejoa.library.Client;
+import org.fejoa.library.Remote;
+import org.fejoa.library.crypto.CryptoException;
+import org.fejoa.library.remote.RemoteJob;
+import org.fejoa.library.support.StorageLib;
+import org.fejoa.library.support.Task;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.concurrent.Executor;
 
 
 public class AccountListView extends HBox {
@@ -41,6 +64,8 @@ public class AccountListView extends HBox {
     public AccountListView(final AccountManager accountManager,
                            final IStatusManager statusManager) {
         this.accountManager = accountManager;
+
+        accountView.setId("account-view-dropdown");
         accountView.setItems(new ObservableListAdapter<>(accountManager.getAccountList()));
         accountView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<Account>() {
             @Override
