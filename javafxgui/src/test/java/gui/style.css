@@ -78,12 +78,21 @@ This css file is for styling the java fx messenger GUI.
 }
 #send-btn-panel {
     -fx-border-width: 0;
+    -fx-padding: 5;
 }
 #message-text-area {
     -fx-background-color: -fx-box-border, -fx-control-inner-background;
     -fx-background-insets: 0, 0;
     -fx-padding: 0;
-    -fx-font-size: 14px;
+    -fx-border-color: lightgrey;
+    -fx-border-width: 1 0 0 0;
+}
+.text-area {
+    -fx-background-insets: 0;
+    -fx-background-color: transparent, white, transparent, white;
+}
+.text-area .content {
+    -fx-background-color: transparent, white, transparent, white;
 }
 #conversation-thread-listview {
     -fx-background-color: -fx-box-border, -fx-control-inner-background;
@@ -124,7 +133,7 @@ This css file is for styling the java fx messenger GUI.
     -fx-padding: 3 -10 3 3;
 }
 #account-view-dropdown .arrow-button {
-    -fx-background-color: white;
+   -fx-background-color: white;
    -fx-padding:0 10 0 0;
    -fx-border-width:0px;
 }
@@ -157,6 +166,27 @@ This css file is for styling the java fx messenger GUI.
 }
 #message-branch-view{
     -fx-padding: 0 10;
+}
+
+.send-message-button {
+    -fx-background-image: url("../../../main/resources/send-message.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+
+    -fx-background-size: 20px;
+    -fx-margin: 20;
+}
+
+.add-attachment-button {
+    -fx-background-image: url("../../../main/resources/attachment.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: 20px;
+}
+
+#status-view-splitpane .split-pane-divider{
+    -fx-padding: 1 1 1 0;
+    -fx-color: lightgrey;
 }
 
 
