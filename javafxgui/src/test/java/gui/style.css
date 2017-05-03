@@ -1,3 +1,7 @@
+/*
+This css file is for styling the java fx messenger GUI. 
+*/
+
 .root {
     -fx-font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
 }
@@ -74,4 +78,18 @@
     -fx-padding: 5 250 5 5;
     -fx-font-size: 14px;
     -fx-font-weight: bold;
+}
+
+.message-sent{
+    -fx-background-color: dodgerblue;
+    -fx-background-radius: 12 12 3 12;
+    -fx-padding: 8;
+}
+.message-received{
+    -fx-background-color: lightgrey;
+    -fx-background-radius: 12 12 12 3;
+    -fx-padding: 8;
+}
+#message-spacer{
+    -fx-background-color: white;
 }

@@ -39,17 +39,19 @@ public class MainWindow extends BorderPane {
         HBox heading = new HBox();
         Label title = new Label("Portable Cloud Messenger");
         title.setTextFill(WHITE);
+        
         heading.getChildren().add(title);
         heading.setAlignment(Pos.CENTER);
         heading.setId("messenger-heading");
 
-        // Create the tool bar containing the add new user button and select user drop down
-        AccountListView accountView = new AccountListView(accountManager, statusView);  //Hbox
+        // Create the hbox containing the account functionality for the tool bar
+        AccountListView accountView = new AccountListView(accountManager, statusView);
+        // The spacer pane fills to fit the size of the parent hbox - pushing toolbar to float left.
         Pane spacer = new Pane();
         HBox.setHgrow(spacer,Priority.ALWAYS);
 
+        // Create the tool bar containing the add new user button and select user drop down
         ToolBar toolBar = new ToolBar(spacer, accountView);
-
         toolBar.setId("top-tool-bar");
 
         // Create a split pane to add the tool bar under the heading hbox at the top of the window
