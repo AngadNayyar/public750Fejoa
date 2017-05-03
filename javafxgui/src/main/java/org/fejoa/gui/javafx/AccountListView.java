@@ -12,9 +12,7 @@ import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Label;
+import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import org.fejoa.gui.Account;
 import org.fejoa.gui.AccountManager;
@@ -92,9 +90,10 @@ public class AccountListView extends HBox {
             public void onAccountSelected(Account account) {
                 if (account != null) {
                     accountView.getSelectionModel().select(account);
-                    greetingUser.setText("Welcome " + account);
+                    greetingUser.setText("Welcome,");
                 }
                 else {
+                    greetingUser.setText("Welcome!");
                     accountView.getSelectionModel().clearSelection();
                 }
             }
@@ -105,21 +104,26 @@ public class AccountListView extends HBox {
         final Button addAccountButton = new Button();
         addAccountButton.setId("add-account-btn");
         addAccountButton.setMinWidth(25.0);
+        final Tooltip tooltip = new Tooltip();
+        tooltip.setText("Add a new account");
+        addAccountButton.setTooltip(tooltip);
 
         // Create a new label to welcome the logged in user - or just welcome if no current users
         try {
-            greetingUser = new Label("Welcome " + accountManager.getAccountList().get(0).toString() );
+            greetingUser = new Label("Welcome,");
 
         } catch (IndexOutOfBoundsException e) {
             greetingUser = new Label("Welcome!");
         }
+
+        greetingUser.setId("welcome-label");
 
         // Add the buttons and labels to the hbox to be added to the toolbar
         getChildren().add(greetingUser);
         setAlignment(Pos.CENTER);
         getChildren().add(accountView);
         getChildren().add(addAccountButton);
-        setSpacing(10.0);
+        setSpacing(3.0);
 
         addAccountButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override

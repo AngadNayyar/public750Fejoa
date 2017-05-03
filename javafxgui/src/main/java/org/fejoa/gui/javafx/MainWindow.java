@@ -15,13 +15,16 @@ import javafx.scene.control.Label;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.ToolBar;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
 import org.fejoa.gui.Account;
 import org.fejoa.gui.AccountManager;
 import sun.plugin.javascript.navig.Anchor;
 
 import java.io.File;
 
+import static javafx.scene.paint.Color.BLACK;
 import static javafx.scene.paint.Color.WHITE;
+import static javafx.scene.paint.Color.color;
 
 
 public class MainWindow extends BorderPane {
@@ -38,11 +41,12 @@ public class MainWindow extends BorderPane {
         // Create an HBox to contain the label for heading "Portable Cloud Messenger"
         HBox heading = new HBox();
         Label title = new Label("Portable Cloud Messenger");
-        title.setTextFill(WHITE);
+        title.setTextFill(Color.DIMGRAY);
         
         heading.getChildren().add(title);
         heading.setAlignment(Pos.CENTER);
         heading.setId("messenger-heading");
+        setId("main-window-borderpane");
 
         // Create the hbox containing the account functionality for the tool bar
         AccountListView accountView = new AccountListView(accountManager, statusView);
