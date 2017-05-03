@@ -18,6 +18,8 @@ public class Resources {
     final static public String ICON_REMOTE_32 = "icon_remote_32.png";
     final static public String ICON_NEW_USER = "newuser.png";
     final static public String ICON_ADD_CONTACT = "addcontact.png";
+    final static public String ICON_SEND_MESSAGE = "send-message.png";
+    final static public String ICON_ATTACHMENT = "attachment.png";
 
 
     static private Resources singleton;
