@@ -110,10 +110,12 @@ class CreateMessageBranchView extends VBox {
                 }
             }
         });
-        //Add the receiver box, the message body and send button to the GUI.
+        Button fileButton = new Button("Send Image >");
+        //Add the receiver box, the message body, send image, and send button to the GUI.
         HBox buttonContainer = new HBox();
         buttonContainer.setAlignment(Pos.TOP_RIGHT);
         buttonContainer.getChildren().add(errorLabel);
+        buttonContainer.getChildren().add(fileButton);
         buttonContainer.getChildren().add(sendButton);
         setSpacing(5);
         getChildren().add(receiverLayout);
@@ -228,7 +230,14 @@ class MessageBranchView extends VBox {
                 messageTextArea.setText("");
             }
         });
-        getChildren().add(sendButton);
+        Button fileButton = new Button("Send Image >");
+        HBox buttonContainer = new HBox();
+        buttonContainer.setAlignment(Pos.TOP_RIGHT);
+        buttonContainer.getChildren().add(fileButton);
+        buttonContainer.getChildren().add(sendButton);
+        setSpacing(5);
+
+        getChildren().add(buttonContainer);
         setAlignment(Pos.BOTTOM_RIGHT);
         setId("send-btn-panel");
 
