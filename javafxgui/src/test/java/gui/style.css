@@ -69,13 +69,11 @@ This css file is for styling the java fx messenger GUI.
     -fx-border-style: none;
 }
 #message-label {
-    -fx-padding: 5 65 5 40;
 }
 #top-tool-bar{
     -fx-padding: 0 0 0 570;
 }
 #participants-label {
-    -fx-padding: 5 250 5 5;
     -fx-font-size: 14px;
     -fx-font-weight: bold;
 }
