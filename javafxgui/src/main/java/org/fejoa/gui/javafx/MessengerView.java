@@ -9,6 +9,8 @@ package org.fejoa.gui.javafx;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
@@ -41,28 +43,57 @@ class CreateMessageBranchView extends VBox {
     //This class creates the right hand side of the messenger GUI, when the user is writing a new message.
     public CreateMessageBranchView(final UserData userData, final Messenger messenger)  {
         setBackground(new Background(new BackgroundFill(Color.WHITE, null, null)));
+        setId("message-branch-view");
 
         HBox receiverLayout = new HBox();
-        receiverLayout.getChildren().add(new Label("Receiver:"));
+        receiverLayout.setSpacing(10);
+        receiverLayout.setId("receiver-layout");
+        receiverLayout.setAlignment(Pos.CENTER_LEFT);
+        receiverLayout.getChildren().add(new Label("Send to:"));
+
+        final ComboBox<String> receiverComboBox = new ComboBox<>();
+        for (ContactPublic cp : userData.getContactStore().getContactList().getEntries()){
+            receiverComboBox.getItems().add(cp.getRemotes().getDefault().getUser());
+        }
+        receiverComboBox.setPromptText("Select contact");
+
+
+
         final TextField receiverTextField = new TextField();
-        receiverTextField.setText("User2@http://localhost:8180");
+        receiverTextField.setText("@http://localhost:8180");
         HBox.setHgrow(receiverTextField, Priority.ALWAYS);
+        receiverLayout.getChildren().add(receiverComboBox);
         receiverLayout.getChildren().add(receiverTextField);
 
         final TextArea bodyText = new TextArea();
-        bodyText.setText("Message Body");
+        bodyText.setPromptText("Message body...");
+        bodyText.setWrapText(true);
         Button sendButton = new Button("Send >");
+        final Label errorLabel = new Label("");
+        errorLabel.setId("error-label"); //TODO styling
         //Action listener for when user presses send button
         sendButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
+                boolean matched = false;
+                errorLabel.setText("");
                 try {
                     List<ContactPublic> participants = new ArrayList<>();
                     //Checks to see if the contacts that user is sending a message to are valid contacts.
                     for (ContactPublic contactPublic : userData.getContactStore().getContactList().getEntries()) {
-                        if (contactPublic.getRemotes().getDefault().toAddress().equals(receiverTextField.getText()))
+                        if (contactPublic.getRemotes().getDefault().toAddress().equals(receiverComboBox.getSelectionModel().getSelectedItem() + receiverTextField.getText())) {
                             participants.add(contactPublic);
+                            matched = true;
+                        }
                     }
+
+                    if (!matched){
+                        // TODO show error
+                        errorLabel.setText("Sorry that contact was not found");
+                        System.out.println("ERROR: Contact not valid");
+                        return;
+                    }
+                    System.out.println("no error: Contact is valid");
                     //Each message branch is a new thread, Message is the individual messages.
                     //Here the new thread is created and new message added to it.
                     //TODO: Check for existing threads to the same user/users
@@ -79,10 +110,17 @@ class CreateMessageBranchView extends VBox {
                 }
             }
         });
-        //Add the receiver box, the message body and send button to the GUI.
+        Button fileButton = new Button("Send Image >");
+        //Add the receiver box, the message body, send image, and send button to the GUI.
+        HBox buttonContainer = new HBox();
+        buttonContainer.setAlignment(Pos.TOP_RIGHT);
+        buttonContainer.getChildren().add(errorLabel);
+        buttonContainer.getChildren().add(fileButton);
+        buttonContainer.getChildren().add(sendButton);
+        setSpacing(5);
         getChildren().add(receiverLayout);
         getChildren().add(bodyText);
-        getChildren().add(sendButton);
+        getChildren().add(buttonContainer);
     }
 }
 
@@ -147,6 +185,7 @@ class MessageBranchView extends VBox {
 
         // Added Title to Group Chat (participants names)
         VBox participantsContainer = new VBox();
+        participantsContainer.setId("participants-title-containter");
         final Label participantsLabel = new Label();
         participantsLabel.setId("participants-label");
         String labelString = "";
@@ -162,17 +201,16 @@ class MessageBranchView extends VBox {
         participantsContainer.getChildren().add(participantsLabel);
         getChildren().add(participantsContainer);
         getChildren().add(conversationThread);
-
-
-
+        conversationThread.setId("conversation-thread-listview");
 
         final TextArea messageTextArea = new TextArea();
         messageTextArea.setWrapText(true);
         messageTextArea.setPrefRowCount(3);
         getChildren().add((messageTextArea));
         messageTextArea.setId("message-text-area");
+        messageTextArea.setPromptText("Type message...");
 
-        Button sendButton = new Button("Send");
+        Button sendButton = new Button("Send >");
         sendButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
@@ -191,7 +229,14 @@ class MessageBranchView extends VBox {
                 messageTextArea.setText("");
             }
         });
-        getChildren().add(sendButton);
+        Button fileButton = new Button("Send Image >");
+        HBox buttonContainer = new HBox();
+        buttonContainer.setAlignment(Pos.TOP_RIGHT);
+        buttonContainer.getChildren().add(fileButton);
+        buttonContainer.getChildren().add(sendButton);
+        setSpacing(5);
+
+        getChildren().add(buttonContainer);
         setAlignment(Pos.BOTTOM_RIGHT);
         setId("send-btn-panel");
 
@@ -280,9 +325,12 @@ public class MessengerView extends SplitPane {
         messenger = new Messenger(client);
 
         branchListView = new ListView<>();
+        branchListView.setId("branch-list-view");
         VBox.setVgrow(branchListView, Priority.ALWAYS);
         update();
         client.getUserData().getStorageDir().addListener(listener);
+
+        branchListView.setId("thread-message-list-view");
 
         final StackPane messageViewStack = new StackPane();
         final CreateMessageBranchView createMessageBranchView = new CreateMessageBranchView(client.getUserData(), messenger);
@@ -292,6 +340,9 @@ public class MessengerView extends SplitPane {
         // Create the button for adding a new message and set the id to change the image background in css to icon
         Button createMessageBranchButton = new Button();
         createMessageBranchButton.setId("new-message-btn");
+        final Tooltip tooltip = new Tooltip();
+        tooltip.setText("Create a new message");
+        createMessageBranchButton.setTooltip(tooltip);
         createMessageBranchButton.setMinWidth(25.0);
         createMessageBranchButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
@@ -310,6 +361,7 @@ public class MessengerView extends SplitPane {
         final VBox branchLayout = new VBox();
         VBox branchNamedLayout = new VBox();
         BorderPane messageTitle = new BorderPane();
+        messageTitle.setId("message-title-pane");
         VBox searchBox = new VBox();
 
         searchBox.getChildren().add(searchField);
