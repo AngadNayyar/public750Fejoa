@@ -69,6 +69,9 @@ class CreateMessageBranchView extends VBox {
         bodyText.setPromptText("Message body...");
         bodyText.setWrapText(true);
         Button sendButton = new Button();
+        final Tooltip tooltip = new Tooltip();
+        tooltip.setText("Send message");
+        sendButton.setTooltip(tooltip);
         sendButton.setMinWidth(25.0);
         sendButton.getStyleClass().add("send-message-button");
         final Label errorLabel = new Label("");
@@ -112,7 +115,11 @@ class CreateMessageBranchView extends VBox {
                 }
             }
         });
+        //Create the send attachment button and add a tooltip
         Button fileButton = new Button();
+        final Tooltip tip = new Tooltip();
+        tip.setText("Add an attachment");
+        fileButton.setTooltip(tip);
         fileButton.setMinWidth(25.0);
         fileButton.getStyleClass().add("add-attachment-button");
         //Add the receiver box, the message body, send image, and send button to the GUI.
@@ -215,9 +222,15 @@ class MessageBranchView extends VBox {
         messageTextArea.setId("message-text-area");
         messageTextArea.setPromptText("Type message...");
 
+        // Create send message button, add tool tip and set the id for css
         Button sendButton = new Button();
         sendButton.setMinWidth(25.0);
+        final Tooltip tooltip = new Tooltip();
+        tooltip.setText("Send message");
+        sendButton.setTooltip(tooltip);
         sendButton.getStyleClass().add("send-message-button");
+
+        //Send message button action listener
         sendButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
@@ -237,6 +250,9 @@ class MessageBranchView extends VBox {
             }
         });
         Button fileButton = new Button();
+        final Tooltip tip = new Tooltip();
+        tip.setText("Add an attachment");
+        fileButton.setTooltip(tip);
         fileButton.setMinWidth(25.0);
         fileButton.getStyleClass().add("add-attachment-button");
         HBox buttonContainer = new HBox();
