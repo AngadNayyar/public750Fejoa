@@ -260,6 +260,7 @@ public class MessengerView extends SplitPane {
     final private IStatusManager statusManager;
     final private Messenger messenger;
     final ListView<MessageThread> branchListView;
+    final ListView<MessageThread> totalBranchListView = new ListView<>();
     private MessageBranchView currentMessageBranchView;
 
     final private StorageDir.IListener listener = new StorageDir.IListener() {
@@ -298,18 +299,45 @@ public class MessengerView extends SplitPane {
 
         // Create label "messages" above the list of messages
         Label messageLabel = new Label("Messages");
+        final TextField searchField = new TextField();
+        searchField.setPromptText("Search");
+        searchField.setMaxWidth(Double.MAX_VALUE);
         messageLabel.setId("message-label");
 
-        VBox branchLayout = new VBox();
+        final VBox branchLayout = new VBox();
         VBox branchNamedLayout = new VBox();
         HBox messageTitle = new HBox();
+        VBox searchBox = new VBox();
 
-        // Set the label and the message button onto the header of the messages list 
+        searchBox.getChildren().add(searchField);
+        // Set the label and the message button onto the header of the messages list
         messageTitle.getChildren().add(messageLabel);
         messageTitle.getChildren().add(createMessageBranchButton);
         messageTitle.setAlignment(Pos.CENTER_RIGHT);
         branchLayout.getChildren().add(messageTitle);
+        branchLayout.getChildren().add(searchBox);
         branchLayout.getChildren().add(branchListView); // This is where the list view is added
+
+
+        // Listen for changes in the text
+        searchField.textProperty().addListener(new ChangeListener<String>() {
+            @Override
+            public void changed(ObservableValue<? extends String> observable,
+                                String oldValue, String newValue) {
+                ListView<MessageThread> searchedBranchListView = new ListView<>();
+                String searchedString = searchField.getText();
+                for (MessageThread mt : totalBranchListView.getItems()){
+                    if (mt.containsParticipant(searchedString)){
+                        searchedBranchListView.getItems().add(mt);
+                    }
+                }
+                branchLayout.getChildren().remove(branchListView);
+                branchListView.getItems().clear();
+                branchListView.getItems().addAll(searchedBranchListView.getItems());
+                branchLayout.getChildren().add(branchListView);
+
+            }
+        });
 
         branchListView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<MessageThread>() {
             @Override
@@ -345,6 +373,7 @@ public class MessengerView extends SplitPane {
 
     private void update() {
         branchListView.getItems().clear();
+        totalBranchListView.getItems().clear();
         // Get all the entries as participants add to collection then add to branch list view
         try {
             // For each thread, get the message branch and then participants of those message branches, then add those to the MessageThread object and then into the ListView
@@ -363,6 +392,9 @@ public class MessengerView extends SplitPane {
         } catch (CryptoException e) {
             e.printStackTrace();
         }
+        // Copy update listview to totalBranchListView
+        totalBranchListView.getItems().addAll(branchListView.getItems());
+
         List<BranchInfo.Location> locations = new ArrayList<>();
         for (MessageBranchEntry entry : messenger.getBranchList().getEntries()) {
             try {
@@ -405,6 +437,10 @@ class MessageThread {
     @Override
     public String toString(){
         return participants;
+    }
+
+    Boolean containsParticipant(String participant){
+        return participants.contains(participant);
     }
 
 
