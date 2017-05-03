@@ -163,9 +163,6 @@ class MessageBranchView extends VBox {
         getChildren().add(participantsContainer);
         getChildren().add(conversationThread);
 
-
-
-
         final TextArea messageTextArea = new TextArea();
         messageTextArea.setWrapText(true);
         messageTextArea.setPrefRowCount(3);

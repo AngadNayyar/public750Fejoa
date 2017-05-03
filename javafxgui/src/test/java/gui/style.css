@@ -74,7 +74,10 @@ This css file is for styling the java fx messenger GUI.
     -fx-border-width: 0;
 }
 #message-text-area {
-    -fx-border-style: none;
+    -fx-background-color: -fx-box-border, -fx-control-inner-background;
+    -fx-background-insets: 0, 0;
+    -fx-padding: 0;
+
 }
 #message-label {
     -fx-background-color:#f1f0f0;
@@ -127,3 +130,8 @@ This css file is for styling the java fx messenger GUI.
     -fx-padding:0;
     -fx-margin:0;
 }
+
+.split-pane-divider {
+    -fx-padding: 0;
+}
+

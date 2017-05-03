@@ -39,7 +39,7 @@ public class LoginWindow extends LoginWindowBase {
         portableCloudMessengerTitle.getChildren().add(portableCloud);
         mainLayout.getChildren().add(portableCloudMessengerTitle);
 
-        // Style and add the login window heading 
+        // Style and add the login window heading
         portableCloud.setStyle("-fx-text-fill: dimgrey; -fx-font-weight: bold;");
         portableCloudMessengerTitle.setStyle("-fx-padding: 10; -fx-border-width: 0 0 0 0;  -fx-border-color: dimgrey");
         portableCloud.setAlignment(Pos.CENTER);
