@@ -317,6 +317,7 @@ public class MessengerView extends SplitPane {
         messenger = new Messenger(client);
 
         branchListView = new ListView<>();
+        branchListView.setId("branch-list-view");
         VBox.setVgrow(branchListView, Priority.ALWAYS);
         update();
         client.getUserData().getStorageDir().addListener(listener);

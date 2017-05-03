@@ -124,6 +124,9 @@ This css file is for styling the java fx messenger GUI.
 #message-branch-view{
     -fx-padding: 0 10;
 }
+#branch-list-view .list-cell:selected{
+    -fx-background-color: #EDEDED;
+}
 .text-area{
     -fx-border-radius: 1px;
     -fx-border-color: grey;
