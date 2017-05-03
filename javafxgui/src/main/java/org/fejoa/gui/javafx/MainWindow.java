@@ -66,6 +66,7 @@ public class MainWindow extends BorderPane {
 
         // Create the split pane for the status view - and set the default layout to have the status view collapsed.
         SplitPane splitPane = new SplitPane(clientViewStack, statusView);
+        splitPane.setId("status-view-splitpane");
         splitPane.setOrientation(Orientation.VERTICAL);
         splitPane.setDividerPosition(0, 1);
         setCenter(splitPane);

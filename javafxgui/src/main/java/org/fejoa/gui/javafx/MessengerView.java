@@ -68,7 +68,12 @@ class CreateMessageBranchView extends VBox {
         final TextArea bodyText = new TextArea();
         bodyText.setPromptText("Message body...");
         bodyText.setWrapText(true);
-        Button sendButton = new Button("Send >");
+        Button sendButton = new Button();
+        final Tooltip tooltip = new Tooltip();
+        tooltip.setText("Send message");
+        sendButton.setTooltip(tooltip);
+        sendButton.setMinWidth(25.0);
+        sendButton.getStyleClass().add("send-message-button");
         final Label errorLabel = new Label("");
         errorLabel.setId("error-label"); //TODO styling
         //Action listener for when user presses send button
@@ -110,13 +115,20 @@ class CreateMessageBranchView extends VBox {
                 }
             }
         });
-        Button fileButton = new Button("Send Image >");
+        //Create the send attachment button and add a tooltip
+        Button fileButton = new Button();
+        final Tooltip tip = new Tooltip();
+        tip.setText("Add an attachment");
+        fileButton.setTooltip(tip);
+        fileButton.setMinWidth(25.0);
+        fileButton.getStyleClass().add("add-attachment-button");
         //Add the receiver box, the message body, send image, and send button to the GUI.
         HBox buttonContainer = new HBox();
         buttonContainer.setAlignment(Pos.TOP_RIGHT);
         buttonContainer.getChildren().add(errorLabel);
         buttonContainer.getChildren().add(fileButton);
         buttonContainer.getChildren().add(sendButton);
+        buttonContainer.setSpacing(5);
         setSpacing(5);
         getChildren().add(receiverLayout);
         getChildren().add(bodyText);
@@ -210,7 +222,15 @@ class MessageBranchView extends VBox {
         messageTextArea.setId("message-text-area");
         messageTextArea.setPromptText("Type message...");
 
-        Button sendButton = new Button("Send >");
+        // Create send message button, add tool tip and set the id for css
+        Button sendButton = new Button();
+        sendButton.setMinWidth(25.0);
+        final Tooltip tooltip = new Tooltip();
+        tooltip.setText("Send message");
+        sendButton.setTooltip(tooltip);
+        sendButton.getStyleClass().add("send-message-button");
+
+        //Send message button action listener
         sendButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
@@ -229,11 +249,17 @@ class MessageBranchView extends VBox {
                 messageTextArea.setText("");
             }
         });
-        Button fileButton = new Button("Send Image >");
+        Button fileButton = new Button();
+        final Tooltip tip = new Tooltip();
+        tip.setText("Add an attachment");
+        fileButton.setTooltip(tip);
+        fileButton.setMinWidth(25.0);
+        fileButton.getStyleClass().add("add-attachment-button");
         HBox buttonContainer = new HBox();
         buttonContainer.setAlignment(Pos.TOP_RIGHT);
         buttonContainer.getChildren().add(fileButton);
         buttonContainer.getChildren().add(sendButton);
+        buttonContainer.setSpacing(5);
         setSpacing(5);
 
         getChildren().add(buttonContainer);
