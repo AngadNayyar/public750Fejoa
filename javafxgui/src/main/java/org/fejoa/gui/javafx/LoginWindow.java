@@ -33,17 +33,17 @@ public class LoginWindow extends LoginWindowBase {
     public LoginWindow(final Account account) {
         VBox mainLayout = new VBox();
 
+        // Create a login window heading and label
         HBox portableCloudMessengerTitle = new HBox();
         Label portableCloud = new Label("Portable Cloud Messenger");
         portableCloudMessengerTitle.getChildren().add(portableCloud);
         mainLayout.getChildren().add(portableCloudMessengerTitle);
 
+        // Style and add the login window heading 
         portableCloud.setStyle("-fx-text-fill: dimgrey; -fx-font-weight: bold;");
+        portableCloudMessengerTitle.setStyle("-fx-padding: 10; -fx-border-width: 0 0 0 0;  -fx-border-color: dimgrey");
         portableCloud.setAlignment(Pos.CENTER);
         portableCloudMessengerTitle.setAlignment(Pos.CENTER);
-
-
-
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
