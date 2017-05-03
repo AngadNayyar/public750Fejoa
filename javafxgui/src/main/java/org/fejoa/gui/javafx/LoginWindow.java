@@ -32,14 +32,27 @@ public class LoginWindow extends LoginWindowBase {
 
     public LoginWindow(final Account account) {
         VBox mainLayout = new VBox();
+
+        HBox portableCloudMessengerTitle = new HBox();
+        Label portableCloud = new Label("Portable Cloud Messenger");
+        portableCloudMessengerTitle.getChildren().add(portableCloud);
+        mainLayout.getChildren().add(portableCloudMessengerTitle);
+
+        portableCloud.setStyle("-fx-text-fill: dimgrey; -fx-font-weight: bold;");
+        portableCloud.setAlignment(Pos.CENTER);
+        portableCloudMessengerTitle.setAlignment(Pos.CENTER);
+
+
+
+
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(10);
         grid.setPadding(new Insets(0, 10, 0, 10));
 
         // Set the css of the login window to have a grey background
-        mainLayout.setStyle("-fx-background-color: dimgrey; -fx-text-fill: white;");
-        grid.setStyle("-fx-background-color: dimgrey; -fx-text-fill: white;");
+        mainLayout.setStyle("-fx-background-color: #f1f0f0; -fx-text-fill: white;");
+        grid.setStyle("-fx-background-color: #f1f0f0; -fx-text-fill: white;");
 
         //Added username to show the current account name.
         grid.add(new Label("Username:"), 1, 1);
