@@ -97,16 +97,22 @@ This css file is for styling the java fx messenger GUI.
 
 #account-view-dropdown .list-cell{
     -fx-background-color: white;
-    -fx-margin: 10;
-    -fx-border-color: white;
-    -fx-border-width: 1 1 1 1;
-    -fx-padding: 3;
+    -fx-margin: 10 0 10 10;
+    -fx-border-width: 0px;
+    -fx-padding: 3 0 3 3;
 }
+/*
+#account-view-dropdown .list-view{
+    -fx-padding: 0;
+    -fx-margin: 0;
+}*/
 
 #account-view-dropdown .arrow-button {
-   -fx-background-color:white;
+    -fx-background-color: white;
+   -fx-padding:0 10 0 0;
+   -fx-border-width:0px;
 }
-
+ 
 #account-view-dropdown{
     -fx-border-width: 0px;
     -fx-margin: 0;
