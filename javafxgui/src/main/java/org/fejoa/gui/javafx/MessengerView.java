@@ -16,6 +16,7 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.TextFieldListCell;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Text;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
 import org.fejoa.gui.Account;
@@ -37,6 +38,7 @@ import java.util.*;
 
 
 class CreateMessageBranchView extends VBox {
+    //This class creates the right hand side of the messenger GUI, when the user is writing a new message.
     public CreateMessageBranchView(final UserData userData, final Messenger messenger)  {
         setBackground(new Background(new BackgroundFill(Color.WHITE, null, null)));
 
@@ -50,15 +52,20 @@ class CreateMessageBranchView extends VBox {
         final TextArea bodyText = new TextArea();
         bodyText.setText("Message Body");
         Button sendButton = new Button("Send >");
+        //Action listener for when user presses send button
         sendButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
                 try {
                     List<ContactPublic> participants = new ArrayList<>();
+                    //Checks to see if the contacts that user is sending a message to are valid contacts.
                     for (ContactPublic contactPublic : userData.getContactStore().getContactList().getEntries()) {
                         if (contactPublic.getRemotes().getDefault().toAddress().equals(receiverTextField.getText()))
                             participants.add(contactPublic);
                     }
+                    //Each message branch is a new thread, Message is the individual messages.
+                    //Here the new thread is created and new message added to it.
+                    //TODO: Check for existing threads to the same user/users
                     MessageBranch messageBranch = messenger.createMessageBranch(participants);
                     Message message = Message.create(userData.getContext(), userData.getMyself());
                     message.setBody(bodyText.getText());
@@ -72,19 +79,22 @@ class CreateMessageBranchView extends VBox {
                 }
             }
         });
-
+        //Add the receiver box, the message body and send button to the GUI.
         getChildren().add(receiverLayout);
         getChildren().add(bodyText);
         getChildren().add(sendButton);
     }
 }
 
+//This is the view for when a message thread is selected, so it will show the messages in the conversation
 class MessageBranchView extends VBox {
     final UserData userData;
     final MessageBranchEntry messageBranchEntry;
     final MessageBranch messageBranch;
 
     final ListView<Message> messageListView = new ListView<>();
+    final ListView<HBox> conversationThread = new ListView<>();
+
 
     final StorageDir.IListener storageListener = new StorageDir.IListener() {
         @Override
@@ -135,7 +145,7 @@ class MessageBranchView extends VBox {
             }
         });
 
-        // Added Title to Group Chat (participants name)
+        // Added Title to Group Chat (participants names)
         final Label participantsLabel = new Label();
         participantsLabel.setId("participants-label");
         String labelString = "";
@@ -148,7 +158,7 @@ class MessageBranchView extends VBox {
         participantsLabel.setText(labelString);
 
         getChildren().add(participantsLabel);
-        getChildren().add(messageListView);
+        getChildren().add(conversationThread);
 
         final TextArea messageTextArea = new TextArea();
         getChildren().add((messageTextArea));
@@ -178,6 +188,33 @@ class MessageBranchView extends VBox {
         setId("send-btn-panel");
 
         messageBranch.getStorageDir().addListener(storageListener);
+        update();
+        for (int i = 0; i < messageListView.getItems().size(); i++){
+            HBox messageHBox = new HBox();
+            Text messageText = new Text();
+            HBox textbox = new HBox();
+            textbox.getChildren().add(messageText);
+            Message mes = messageListView.getItems().get(i);
+            messageText.setText(mes.getBody());
+            Pane spacer = new Pane();
+            spacer.setId("message-spacer");
+            HBox.setHgrow(spacer, Priority.ALWAYS);
+
+            if (userData.getMyself().getId().equals(mes.getSender())){
+                textbox.getStyleClass().remove("message-received");
+                textbox.getStyleClass().add("message-sent");
+                messageHBox.getChildren().add(spacer);
+                messageHBox.getChildren().add(textbox);
+            } else {
+                textbox.getStyleClass().remove("message-sent");
+                textbox.getStyleClass().add("message-received");
+                messageHBox.getChildren().add(textbox);
+                messageHBox.getChildren().add(spacer);
+            }
+
+
+            conversationThread.getItems().add(messageHBox);
+        }
         update();
     }
 
