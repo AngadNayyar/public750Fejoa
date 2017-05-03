@@ -108,9 +108,12 @@ This css file is for styling the java fx messenger GUI.
 }
 
 #account-view-dropdown{
-    -fx-border-color: white;
     -fx-border-width: 0px;
-
+    -fx-margin: 0;
+    -fx-padding:0;
 }
 
-
+#welcome-label{
+    -fx-padding:0;
+    -fx-margin:0;
+}
