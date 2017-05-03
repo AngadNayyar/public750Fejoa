@@ -160,7 +160,10 @@ class MessageBranchView extends VBox {
         getChildren().add(participantsLabel);
         getChildren().add(conversationThread);
 
+
         final TextArea messageTextArea = new TextArea();
+        messageTextArea.setWrapText(true);
+        messageTextArea.setPrefRowCount(3);
         getChildren().add((messageTextArea));
         messageTextArea.setId("message-text-area");
 
@@ -211,7 +214,6 @@ class MessageBranchView extends VBox {
                 messageHBox.getChildren().add(textbox);
                 messageHBox.getChildren().add(spacer);
             }
-
 
             conversationThread.getItems().add(messageHBox);
         }
