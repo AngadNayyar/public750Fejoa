@@ -161,6 +161,8 @@ class MessageBranchView extends VBox {
         getChildren().add(conversationThread);
 
 
+
+
         final TextArea messageTextArea = new TextArea();
         messageTextArea.setWrapText(true);
         messageTextArea.setPrefRowCount(3);
@@ -192,6 +194,12 @@ class MessageBranchView extends VBox {
 
         messageBranch.getStorageDir().addListener(storageListener);
         update();
+        try {
+            conversationThread.scrollTo(conversationThread.getItems().size());
+        } catch (IndexOutOfBoundsException e){
+
+        }
+
     }
 
     private void update() {
@@ -211,7 +219,7 @@ class MessageBranchView extends VBox {
                 }
             });
             messageListView.getItems().addAll(messages);
-            
+
             for (int i = 0; i < messageListView.getItems().size(); i++){
                 HBox messageHBox = new HBox();
                 Text messageText = new Text();
