@@ -185,6 +185,7 @@ class MessageBranchView extends VBox {
 
         // Added Title to Group Chat (participants names)
         VBox participantsContainer = new VBox();
+        participantsContainer.setId("participants-title-containter");
         final Label participantsLabel = new Label();
         participantsLabel.setId("participants-label");
         String labelString = "";
@@ -200,9 +201,7 @@ class MessageBranchView extends VBox {
         participantsContainer.getChildren().add(participantsLabel);
         getChildren().add(participantsContainer);
         getChildren().add(conversationThread);
-
-
-
+        conversationThread.setId("conversation-thread-listview");
 
         final TextArea messageTextArea = new TextArea();
         messageTextArea.setWrapText(true);
@@ -331,6 +330,8 @@ public class MessengerView extends SplitPane {
         update();
         client.getUserData().getStorageDir().addListener(listener);
 
+        branchListView.setId("thread-message-list-view");
+
         final StackPane messageViewStack = new StackPane();
         final CreateMessageBranchView createMessageBranchView = new CreateMessageBranchView(client.getUserData(), messenger);
 
@@ -339,6 +340,9 @@ public class MessengerView extends SplitPane {
         // Create the button for adding a new message and set the id to change the image background in css to icon
         Button createMessageBranchButton = new Button();
         createMessageBranchButton.setId("new-message-btn");
+        final Tooltip tooltip = new Tooltip();
+        tooltip.setText("Create a new message");
+        createMessageBranchButton.setTooltip(tooltip);
         createMessageBranchButton.setMinWidth(25.0);
         createMessageBranchButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
@@ -357,6 +361,7 @@ public class MessengerView extends SplitPane {
         final VBox branchLayout = new VBox();
         VBox branchNamedLayout = new VBox();
         BorderPane messageTitle = new BorderPane();
+        messageTitle.setId("message-title-pane");
         VBox searchBox = new VBox();
 
         searchBox.getChildren().add(searchField);
