@@ -192,32 +192,6 @@ class MessageBranchView extends VBox {
 
         messageBranch.getStorageDir().addListener(storageListener);
         update();
-        for (int i = 0; i < messageListView.getItems().size(); i++){
-            HBox messageHBox = new HBox();
-            Text messageText = new Text();
-            HBox textbox = new HBox();
-            textbox.getChildren().add(messageText);
-            Message mes = messageListView.getItems().get(i);
-            messageText.setText(mes.getBody());
-            Pane spacer = new Pane();
-            spacer.setId("message-spacer");
-            HBox.setHgrow(spacer, Priority.ALWAYS);
-
-            if (userData.getMyself().getId().equals(mes.getSender())){
-                textbox.getStyleClass().remove("message-received");
-                textbox.getStyleClass().add("message-sent");
-                messageHBox.getChildren().add(spacer);
-                messageHBox.getChildren().add(textbox);
-            } else {
-                textbox.getStyleClass().remove("message-sent");
-                textbox.getStyleClass().add("message-received");
-                messageHBox.getChildren().add(textbox);
-                messageHBox.getChildren().add(spacer);
-            }
-
-            conversationThread.getItems().add(messageHBox);
-        }
-        update();
     }
 
     private void update() {
@@ -237,6 +211,33 @@ class MessageBranchView extends VBox {
                 }
             });
             messageListView.getItems().addAll(messages);
+            
+            for (int i = 0; i < messageListView.getItems().size(); i++){
+                HBox messageHBox = new HBox();
+                Text messageText = new Text();
+                HBox textbox = new HBox();
+                textbox.getChildren().add(messageText);
+                Message mes = messageListView.getItems().get(i);
+                messageText.setText(mes.getBody());
+                Pane spacer = new Pane();
+                spacer.setId("message-spacer");
+                HBox.setHgrow(spacer, Priority.ALWAYS);
+
+                if (userData.getMyself().getId().equals(mes.getSender())){
+                    textbox.getStyleClass().remove("message-received");
+                    textbox.getStyleClass().add("message-sent");
+                    messageHBox.getChildren().add(spacer);
+                    messageHBox.getChildren().add(textbox);
+                } else {
+                    textbox.getStyleClass().remove("message-sent");
+                    textbox.getStyleClass().add("message-received");
+                    messageHBox.getChildren().add(textbox);
+                    messageHBox.getChildren().add(spacer);
+                }
+
+                conversationThread.getItems().add(messageHBox);
+            }
+
         } catch (IOException e) {
             e.printStackTrace();
         } catch (CryptoException e) {
