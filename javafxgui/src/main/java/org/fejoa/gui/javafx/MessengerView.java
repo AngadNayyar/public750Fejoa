@@ -9,8 +9,6 @@ package org.fejoa.gui.javafx;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
@@ -45,19 +43,10 @@ class CreateMessageBranchView extends VBox {
         setBackground(new Background(new BackgroundFill(Color.WHITE, null, null)));
 
         HBox receiverLayout = new HBox();
-        receiverLayout.getChildren().add(new Label("Send to:"));
-
-        final ComboBox<String> receiverComboBox = new ComboBox<>();
-        for (ContactPublic cp : userData.getContactStore().getContactList().getEntries()){
-            receiverComboBox.getItems().add(cp.getRemotes().getDefault().getUser());
-        }
-
-
-
+        receiverLayout.getChildren().add(new Label("Receiver:"));
         final TextField receiverTextField = new TextField();
-        receiverTextField.setText("@http://localhost:8180");
+        receiverTextField.setText("User2@http://localhost:8180");
         HBox.setHgrow(receiverTextField, Priority.ALWAYS);
-        receiverLayout.getChildren().add(receiverComboBox);
         receiverLayout.getChildren().add(receiverTextField);
 
         final TextArea bodyText = new TextArea();
@@ -71,10 +60,8 @@ class CreateMessageBranchView extends VBox {
                     List<ContactPublic> participants = new ArrayList<>();
                     //Checks to see if the contacts that user is sending a message to are valid contacts.
                     for (ContactPublic contactPublic : userData.getContactStore().getContactList().getEntries()) {
-                        if (contactPublic.getRemotes().getDefault().toAddress().equals(receiverComboBox.getSelectionModel().getSelectedItem() + receiverTextField.getText())) {
+                        if (contactPublic.getRemotes().getDefault().toAddress().equals(receiverTextField.getText()))
                             participants.add(contactPublic);
-                            System.out.println("matched"); //TODO if none match show error, always fails the last loop??
-                        }
                     }
                     //Each message branch is a new thread, Message is the individual messages.
                     //Here the new thread is created and new message added to it.
@@ -93,13 +80,9 @@ class CreateMessageBranchView extends VBox {
             }
         });
         //Add the receiver box, the message body and send button to the GUI.
-        VBox buttonContainer = new VBox();
-        buttonContainer.setAlignment(Pos.TOP_RIGHT);
-        buttonContainer.getChildren().add(sendButton);
-
         getChildren().add(receiverLayout);
         getChildren().add(bodyText);
-        getChildren().add(buttonContainer);
+        getChildren().add(sendButton);
     }
 }
 
