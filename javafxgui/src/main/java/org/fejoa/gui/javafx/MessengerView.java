@@ -146,6 +146,7 @@ class MessageBranchView extends VBox {
         });
 
         // Added Title to Group Chat (participants names)
+        VBox participantsContainer = new VBox();
         final Label participantsLabel = new Label();
         participantsLabel.setId("participants-label");
         String labelString = "";
@@ -157,7 +158,9 @@ class MessageBranchView extends VBox {
         }
         participantsLabel.setText(labelString);
 
-        getChildren().add(participantsLabel);
+        participantsContainer.setAlignment(Pos.TOP_CENTER);
+        participantsContainer.getChildren().add(participantsLabel);
+        getChildren().add(participantsContainer);
         getChildren().add(conversationThread);
 
 
@@ -306,17 +309,17 @@ public class MessengerView extends SplitPane {
 
         final VBox branchLayout = new VBox();
         VBox branchNamedLayout = new VBox();
-        HBox messageTitle = new HBox();
+        BorderPane messageTitle = new BorderPane();
         VBox searchBox = new VBox();
 
         searchBox.getChildren().add(searchField);
         // Set the label and the message button onto the header of the messages list
-        messageTitle.getChildren().add(messageLabel);
-        messageTitle.getChildren().add(createMessageBranchButton);
-        messageTitle.setAlignment(Pos.CENTER_RIGHT);
+        messageTitle.setCenter(messageLabel);
+        messageTitle.setRight(createMessageBranchButton);
         branchLayout.getChildren().add(messageTitle);
         branchLayout.getChildren().add(searchBox);
         branchLayout.getChildren().add(branchListView); // This is where the list view is added
+
 
 
         // Listen for changes in the text
