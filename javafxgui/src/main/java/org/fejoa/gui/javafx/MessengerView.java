@@ -43,14 +43,19 @@ class CreateMessageBranchView extends VBox {
     //This class creates the right hand side of the messenger GUI, when the user is writing a new message.
     public CreateMessageBranchView(final UserData userData, final Messenger messenger)  {
         setBackground(new Background(new BackgroundFill(Color.WHITE, null, null)));
+        setId("message-branch-view");
 
         HBox receiverLayout = new HBox();
+        receiverLayout.setSpacing(10);
+        receiverLayout.setId("receiver-layout");
+        receiverLayout.setAlignment(Pos.CENTER_LEFT);
         receiverLayout.getChildren().add(new Label("Send to:"));
 
         final ComboBox<String> receiverComboBox = new ComboBox<>();
         for (ContactPublic cp : userData.getContactStore().getContactList().getEntries()){
             receiverComboBox.getItems().add(cp.getRemotes().getDefault().getUser());
         }
+        receiverComboBox.setPromptText("Select contact");
 
 
 
