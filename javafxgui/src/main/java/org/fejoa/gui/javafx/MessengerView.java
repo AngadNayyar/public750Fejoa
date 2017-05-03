@@ -290,17 +290,17 @@ public class MessengerView extends SplitPane {
 
         // Create label "messages" above the list of messages
         Label messageLabel = new Label("Messages");
-        final TextField searchField = new TextField("Search");
-        Button searchButton = new Button("-O"); // TODO Make a listener for this
+        final TextField searchField = new TextField();
+        searchField.setPromptText("Search");
+        searchField.setMaxWidth(Double.MAX_VALUE);
         messageLabel.setId("message-label");
 
         final VBox branchLayout = new VBox();
         VBox branchNamedLayout = new VBox();
         HBox messageTitle = new HBox();
-        HBox searchBox = new HBox();
+        VBox searchBox = new VBox();
 
         searchBox.getChildren().add(searchField);
-        searchBox.getChildren().add(searchButton);
         // Set the label and the message button onto the header of the messages list
         messageTitle.getChildren().add(messageLabel);
         messageTitle.getChildren().add(createMessageBranchButton);
@@ -309,12 +309,12 @@ public class MessengerView extends SplitPane {
         branchLayout.getChildren().add(searchBox);
         branchLayout.getChildren().add(branchListView); // This is where the list view is added
 
-        // TODO Make a text box for text to be entered, then make a button to be used to search
-        // TODO apply a listener to that button, and on click search through branchListView
-        // TODO place this inside listener
-        searchButton.setOnAction(new EventHandler<ActionEvent>() {
+
+        // Listen for changes in the text
+        searchField.textProperty().addListener(new ChangeListener<String>() {
             @Override
-            public void handle(ActionEvent event) {
+            public void changed(ObservableValue<? extends String> observable,
+                                String oldValue, String newValue) {
                 ListView<MessageThread> searchedBranchListView = new ListView<>();
                 String searchedString = searchField.getText();
                 for (MessageThread mt : totalBranchListView.getItems()){
@@ -326,6 +326,7 @@ public class MessengerView extends SplitPane {
                 branchListView.getItems().clear();
                 branchListView.getItems().addAll(searchedBranchListView.getItems());
                 branchLayout.getChildren().add(branchListView);
+
             }
         });
 
