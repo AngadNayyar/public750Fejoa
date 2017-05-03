@@ -67,6 +67,7 @@ class CreateMessageBranchView extends VBox {
 
         final TextArea bodyText = new TextArea();
         bodyText.setPromptText("Message body...");
+        bodyText.setWrapText(true);
         Button sendButton = new Button("Send >");
         final Label errorLabel = new Label("");
         errorLabel.setId("error-label"); //TODO styling
@@ -206,8 +207,9 @@ class MessageBranchView extends VBox {
         messageTextArea.setPrefRowCount(3);
         getChildren().add((messageTextArea));
         messageTextArea.setId("message-text-area");
+        messageTextArea.setPromptText("Type message...");
 
-        Button sendButton = new Button("Send");
+        Button sendButton = new Button("Send >");
         sendButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
