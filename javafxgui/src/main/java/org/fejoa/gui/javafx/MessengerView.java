@@ -23,8 +23,10 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.scene.text.Text;
+import javafx.stage.FileChooser;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
+import org.apache.commons.io.FilenameUtils;
 import org.fejoa.gui.Account;
 import org.fejoa.gui.IStatusManager;
 import org.fejoa.library.BranchInfo;
@@ -39,8 +41,11 @@ import org.fejoa.messaging.MessageBranch;
 import org.fejoa.messaging.MessageBranchEntry;
 import org.fejoa.messaging.Messenger;
 
-import java.io.IOException;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.*;
 import java.util.*;
+import org.apache.commons.codec.binary.Base64;
 
 
 class CreateMessageBranchView extends VBox {
@@ -181,6 +186,61 @@ class CreateMessageBranchView extends VBox {
         fileButton.setTooltip(tip);
         fileButton.setMinWidth(25.0);
         fileButton.getStyleClass().add("add-attachment-button");
+        final FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Select file to send");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.gif"));
+        fileButton.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                boolean matched = false;
+                errorLabel.setText("");
+                try {
+                    List<ContactPublic> participants = new ArrayList<>();
+                    //Checks to see if the contacts that user is sending a message to are valid contacts.
+                    for (ContactPublic contactPublic : userData.getContactStore().getContactList().getEntries()) {
+                        if (contactPublic.getRemotes().getDefault().toAddress().equals(receiverComboBox.getSelectionModel().getSelectedItem() + receiverTextField.getText())) {
+                            participants.add(contactPublic);
+                            matched = true;
+                        }
+                    }
+
+                    if (!matched) {
+                        // TODO show error
+                        errorLabel.setText("Sorry that contact was not found");
+                        System.out.println("ERROR: Contact not valid");
+                        return;
+                    }
+                    System.out.println("no error: Contact is valid");
+                    //Each message branch is a new thread, Message is the individual messages.
+                    //Here the new thread is created and new message added to it.
+                    //TODO: Check for existing threads to the same user/users
+                    File file = fileChooser.showOpenDialog(null);
+                    if (file != null) {
+                        //Open file and send as message
+
+                        // Reading a Image file from file system
+                        FileInputStream imageInFile = new FileInputStream(file);
+                        byte imageData[] = new byte[(int) file.length()];
+                        imageInFile.read(imageData);
+
+                        // Converting Image byte array into Base64 String
+                        String imageDataString = Base64.encodeBase64URLSafeString(imageData);
+                        MessageBranch messageBranch = messenger.createMessageBranch(participants);
+                        Message message = Message.create(userData.getContext(), userData.getMyself());
+                        message.setBody(imageDataString);
+                        messageBranch.addMessage(message);
+                        messageBranch.commit();
+                        userData.getKeyStore().commit();
+                        messenger.publishMessageBranch(messageBranch);
+                        messenger.getAppContext().commit();
+                        imageInFile.close();
+                    }
+                }catch (Exception e) {
+                            e.printStackTrace();
+                }
+            }
+        });
+
         //Add the receiver box, the message body, send image, and send button to the GUI.
         HBox buttonContainer = new HBox();
         buttonContainer.setAlignment(Pos.TOP_RIGHT);
@@ -339,6 +399,37 @@ class MessageBranchView extends VBox {
         fileButton.setTooltip(tip);
         fileButton.setMinWidth(25.0);
         fileButton.getStyleClass().add("add-attachment-button");
+        final FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Select file to send");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.gif"));
+        fileButton.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                File file = fileChooser.showOpenDialog(null );
+                if (file != null){
+                    //Open file and send as message
+                    try {
+
+                        // Reading a Image file from file system
+                        FileInputStream imageInFile = new FileInputStream(file);
+                        byte imageData[] = new byte[(int) file.length()];
+                        imageInFile.read(imageData);
+
+                        // Converting Image byte array into Base64 String
+                        String imageDataString = Base64.encodeBase64URLSafeString(imageData);
+                        Message message = Message.create(userData.getContext(), userData.getMyself());
+                        message.setBody(imageDataString);
+                        messageBranch.addMessage(message);
+
+                        imageInFile.close();
+                        messageBranch.commit();
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+
+                }
+            }
+        });
         HBox buttonContainer = new HBox();
         buttonContainer.setAlignment(Pos.TOP_RIGHT);
         buttonContainer.getChildren().add(fileButton);
@@ -380,30 +471,75 @@ class MessageBranchView extends VBox {
             conversationThread.getItems().clear();
 
             for (int i = 0; i < messageListView.getItems().size(); i++){
-                HBox messageHBox = new HBox();
-                Text messageText = new Text();
-                HBox textbox = new HBox();
-                textbox.getChildren().add(messageText);
-                Message mes = messageListView.getItems().get(i);
-                messageText.setText(mes.getBody());
-                Pane spacer = new Pane();
-                spacer.setId("message-spacer");
-                HBox.setHgrow(spacer, Priority.ALWAYS);
+                if (messageListView.getItems().get(i).getBody().length() < 500) {
+                    HBox messageHBox = new HBox();
+                    Text messageText = new Text();
+                    HBox textbox = new HBox();
+                    textbox.getChildren().add(messageText);
+                    Message mes = messageListView.getItems().get(i);
+                    messageText.setText(mes.getBody());
+                    Pane spacer = new Pane();
+                    spacer.setId("message-spacer");
+                    HBox.setHgrow(spacer, Priority.ALWAYS);
 
-                if (userData.getMyself().getId().equals(mes.getSender())){
-                    textbox.getStyleClass().remove("message-received");
-                    textbox.getStyleClass().add("message-sent");
-                    messageHBox.getChildren().add(spacer);
-                    messageHBox.getChildren().add(textbox);
-                    messageText.setFill(Color.WHITE);
+                    if (userData.getMyself().getId().equals(mes.getSender())) {
+                        textbox.getStyleClass().remove("message-received");
+                        textbox.getStyleClass().add("message-sent");
+                        messageHBox.getChildren().add(spacer);
+                        messageHBox.getChildren().add(textbox);
+                        messageText.setFill(Color.WHITE);
+                    } else {
+                        textbox.getStyleClass().remove("message-sent");
+                        textbox.getStyleClass().add("message-received");
+                        messageHBox.getChildren().add(textbox);
+                        messageHBox.getChildren().add(spacer);
+                    }
+
+                    conversationThread.getItems().add(messageHBox);
                 } else {
-                    textbox.getStyleClass().remove("message-sent");
-                    textbox.getStyleClass().add("message-received");
-                    messageHBox.getChildren().add(textbox);
-                    messageHBox.getChildren().add(spacer);
-                }
+                    Message message = messageListView.getItems().get(i);
+                    // Converting a Base64 String into Image byte array
+                    final byte[] imageByteArray = Base64.decodeBase64(message.getBody());
+                    HBox messageHBox = new HBox();
+                    Button downloadB = new Button("Download image");
+                    Pane spacer = new Pane();
+                    spacer.setId("message-spacer");
+                    HBox.setHgrow(spacer, Priority.ALWAYS);
+                    final FileChooser imageSaver = new FileChooser();
+                    imageSaver.setTitle("Save Image");
+                    imageSaver.setInitialDirectory(new File("C:\\"));
+                    imageSaver.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.gif"));
 
-                conversationThread.getItems().add(messageHBox);
+                    downloadB.setOnAction(new EventHandler<ActionEvent>() {
+                        @Override
+                        public void handle(ActionEvent actionEvent) {
+                            try {
+                                File f1 = imageSaver.showSaveDialog(null);
+                                FileOutputStream imageOutFile = null;
+                                imageOutFile = new FileOutputStream(f1);
+                                imageOutFile.write(imageByteArray);
+
+                                imageOutFile.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                                System.out.print("NO FILE G");
+                            }
+                        }
+                    });
+                    if (userData.getMyself().getId().equals(message.getSender())) {
+//                        textbox.getStyleClass().remove("message-received");
+//                        textbox.getStyleClass().add("message-sent");
+                        messageHBox.getChildren().add(spacer);
+                        messageHBox.getChildren().add(downloadB);
+                    } else {
+//                        textbox.getStyleClass().remove("message-sent");
+//                        textbox.getStyleClass().add("message-received");
+                        messageHBox.getChildren().add(downloadB);
+                        messageHBox.getChildren().add(spacer);
+                    }
+
+                    conversationThread.getItems().add(messageHBox);
+                }
             }
 
         } catch (IOException e) {
