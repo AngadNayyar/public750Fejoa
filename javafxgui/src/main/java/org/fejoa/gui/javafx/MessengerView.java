@@ -364,22 +364,9 @@ class MessageBranchView extends VBox {
                         String imageDataString = Base64.encodeBase64URLSafeString(imageData);
                         Message message = Message.create(userData.getContext(), userData.getMyself());
                         message.setBody(imageDataString);
-//                        System.out.print(Arrays.toString(byteImage));
-//                        System.out.print(byteImage.length);
                         messageBranch.addMessage(message);
 
-                        // Converting a Base64 String into Image byte array
-                        byte[] imageByteArray = Base64.decodeBase64(message.getBody());
-
-                        // Write a image byte array into file system
-                        FileOutputStream imageOutFile = new FileOutputStream(
-                                "C:\\Users\\Angad\\Videos\\Brooklyn\\14\\harry.jpg");
-
-                        imageOutFile.write(imageByteArray);
-
                         imageInFile.close();
-                        imageOutFile.close();
-
                         messageBranch.commit();
                     }catch (Exception e){
                         e.printStackTrace();
@@ -450,6 +437,50 @@ class MessageBranchView extends VBox {
                         textbox.getStyleClass().remove("message-sent");
                         textbox.getStyleClass().add("message-received");
                         messageHBox.getChildren().add(textbox);
+                        messageHBox.getChildren().add(spacer);
+                    }
+
+                    conversationThread.getItems().add(messageHBox);
+                } else {
+                    System.out.print("ENTER");
+                    Message message = messageListView.getItems().get(i);
+                    // Converting a Base64 String into Image byte array
+                    final byte[] imageByteArray = Base64.decodeBase64(message.getBody());
+                    HBox messageHBox = new HBox();
+                    Button downloadB = new Button("Download image");
+                    Pane spacer = new Pane();
+                    spacer.setId("message-spacer");
+                    HBox.setHgrow(spacer, Priority.ALWAYS);
+                    final FileChooser imageSaver = new FileChooser();
+                    imageSaver.setTitle("Save Image");
+                    imageSaver.setInitialDirectory(new File("C:\\"));
+                    imageSaver.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.gif"));
+
+                    downloadB.setOnAction(new EventHandler<ActionEvent>() {
+                        @Override
+                        public void handle(ActionEvent actionEvent) {
+                            try {
+                                File f1 = imageSaver.showSaveDialog(null);
+                                FileOutputStream imageOutFile = null;
+                                imageOutFile = new FileOutputStream(f1);
+                                imageOutFile.write(imageByteArray);
+
+                                imageOutFile.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                                System.out.print("NO FILE G");
+                            }
+                        }
+                    });
+                    if (userData.getMyself().getId().equals(message.getSender())) {
+//                        textbox.getStyleClass().remove("message-received");
+//                        textbox.getStyleClass().add("message-sent");
+                        messageHBox.getChildren().add(spacer);
+                        messageHBox.getChildren().add(downloadB);
+                    } else {
+//                        textbox.getStyleClass().remove("message-sent");
+//                        textbox.getStyleClass().add("message-received");
+                        messageHBox.getChildren().add(downloadB);
                         messageHBox.getChildren().add(spacer);
                     }
 
