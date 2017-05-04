@@ -19,8 +19,10 @@ import javafx.scene.control.cell.TextFieldListCell;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
+import javafx.stage.FileChooser;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
+import org.apache.commons.io.FilenameUtils;
 import org.fejoa.gui.Account;
 import org.fejoa.gui.IStatusManager;
 import org.fejoa.library.BranchInfo;
@@ -35,7 +37,9 @@ import org.fejoa.messaging.MessageBranch;
 import org.fejoa.messaging.MessageBranchEntry;
 import org.fejoa.messaging.Messenger;
 
-import java.io.IOException;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.*;
 import java.util.*;
 
 
@@ -230,6 +234,39 @@ class MessageBranchView extends VBox {
             }
         });
         Button fileButton = new Button("Send Image >");
+        final FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Select file to send");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.gif"));
+        fileButton.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                File file = fileChooser.showOpenDialog(null );
+                if (file != null){
+                    //Open file and send as message
+                    try {
+                        System.out.print("Start");
+                        BufferedImage inputImage = ImageIO.read(file);
+                        String extension = FilenameUtils.getExtension(file.toString());
+                        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+                        ImageIO.write(inputImage, extension, byteStream);
+                        byte[] byteImage = byteStream.toByteArray();
+
+//                        InputStream in = new ByteArrayInputStream(byteImage);
+//                        BufferedImage bImage = ImageIO.read(in);
+//                        ImageIO.write(bImage, "jpg", new File("C:\\Users\\Angad\\Videos\\Brooklyn\\14\\harry.jpg"));
+
+                        Message message = Message.create(userData.getContext(), userData.getMyself());
+                        message.addAttachment("imageattached", byteImage, "imagefile");
+                        messageBranch.addMessage(message);
+                        messageBranch.commit();
+                        System.out.print("End");
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+
+                }
+            }
+        });
         HBox buttonContainer = new HBox();
         buttonContainer.setAlignment(Pos.TOP_RIGHT);
         buttonContainer.getChildren().add(fileButton);
