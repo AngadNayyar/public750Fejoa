@@ -160,7 +160,7 @@ public class ClientView extends BorderPane {
         TabPane tabPane = new TabPane();
         tabPane.setId("tab-pane-menu");
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
-        tabPane.setSide(Side.LEFT);
+        tabPane.setSide(Side.TOP);
 
         Tab gatewayTab = new Tab("Gateway");
         gatewayTab.setContent(new GatewayView(client, statusManager));

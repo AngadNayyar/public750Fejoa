@@ -42,7 +42,10 @@ public class MainWindow extends BorderPane {
 
         // Create an HBox to contain the label for heading "Portable Cloud Messenger"
         HBox heading = new HBox();
-        ImageView logo = new ImageView(new Image(Resources.ICON_LOGO));
+        Image logoImage = new Image(Resources.ICON_LOGO);
+        ImageView logo = new ImageView(logoImage);
+        logo.setFitHeight(30.0);
+        logo.setFitWidth(300.0);
 
         heading.getChildren().add(logo);
         heading.setAlignment(Pos.CENTER);
@@ -56,6 +59,7 @@ public class MainWindow extends BorderPane {
         Pane spacer = new Pane();
         HBox.setHgrow(spacer,Priority.ALWAYS);
         Pane leftHeaderSpacer = new Pane();
+        leftHeaderSpacer.setPrefWidth(150.0);
         HBox.setHgrow(leftHeaderSpacer,Priority.ALWAYS);
 
         // Create a HBox to add the tool bar under the heading hbox at the top of the window
