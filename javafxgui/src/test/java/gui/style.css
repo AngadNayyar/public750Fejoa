@@ -31,8 +31,9 @@ This css file is for styling the java fx messenger GUI.
 }
 #thread-message-list-view {
     -fx-background-color: -fx-box-border, -fx-control-inner-background;
-        -fx-background-insets: 0, 0;
-        -fx-padding: 0;
+    -fx-background-insets: 0, 0;
+    -fx-padding: 0;
+    -fx-background-color: #f1f0f0;
 }
 #thread-message-list-view .list-cell{
     -fx-background-color: #f1f0f0;
