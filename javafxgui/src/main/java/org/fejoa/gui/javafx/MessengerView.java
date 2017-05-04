@@ -107,10 +107,8 @@ class CreateMessageBranchView extends VBox {
                     if (!matched){
                         // TODO show error
                         errorLabel.setText("Sorry that contact was not found");
-                        System.out.println("ERROR: Contact not valid");
                         return;
                     }
-                    System.out.println("no error: Contact is valid");
                     //Each message branch is a new thread, Message is the individual messages.
                     //Here the new thread is created and new message added to it.
                     //TODO: Check for existing threads to the same user/users
