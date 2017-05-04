@@ -16,6 +16,7 @@ import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.TextFieldListCell;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
@@ -56,9 +57,12 @@ class CreateMessageBranchView extends VBox {
             receiverComboBox.getItems().add(cp.getRemotes().getDefault().getUser());
         }
         receiverComboBox.setPromptText("Select contact");
-        receiverComboBox.setOnAction(new EventHandler<ActionEvent>() { //TODO Change to be when its clicked
+
+
+        receiverComboBox.addEventFilter(MouseEvent.MOUSE_PRESSED, new EventHandler<MouseEvent>() {
             @Override
-            public void handle(ActionEvent event) {
+            public void handle(MouseEvent mouseEvent) {
+                receiverComboBox.getItems().clear();
                 for (ContactPublic cp : userData.getContactStore().getContactList().getEntries()){
                     receiverComboBox.getItems().add(cp.getRemotes().getDefault().getUser());
                 }
