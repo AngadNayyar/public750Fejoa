@@ -91,7 +91,7 @@ class CreateMessageBranchView extends VBox {
         final Label errorLabel = new Label("");
         errorLabel.setId("error-label"); //TODO styling
 
-        // Send a message when enter is pressed by the user
+        // Create event handler to send a message when enter is pressed by the user
         bodyText.setOnKeyReleased(new EventHandler<KeyEvent>() {
             @Override
             public void handle(KeyEvent keyEvent) {
@@ -283,7 +283,7 @@ class MessageBranchView extends VBox {
         messageTextArea.setId("message-text-area");
         messageTextArea.setPromptText("Type message...");
 
-        // Send a message when enter is pressed by the user
+        // Create event handler to send a message when enter is pressed by the user
         messageTextArea.setOnKeyReleased(new EventHandler<KeyEvent>() {
             @Override
             public void handle(KeyEvent keyEvent) {
@@ -558,7 +558,7 @@ public class MessengerView extends SplitPane {
         } catch (CryptoException e) {
             e.printStackTrace();
         }
-        // Copy update listview to totalBranchListView
+        // Copy update list view to totalBranchListView
         totalBranchListView.getItems().addAll(branchListView.getItems());
 
         List<BranchInfo.Location> locations = new ArrayList<>();
