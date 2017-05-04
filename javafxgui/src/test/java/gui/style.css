@@ -63,10 +63,13 @@ This css file is for styling the java fx messenger GUI.
     /*-fx-background-color: dodgerblue;*/
 }
 #messenger-heading{
-    -fx-background-color: white/*#f1f0f0*/;
     -fx-font-size: 18px;
     -fx-font-weight: 100;
 }
+#header-split-pane {
+    -fx-padding: 8 0 12 0;
+}
+
 #header-split-pane > .split-pane-divider {
     -fx-padding: 0;
 }
