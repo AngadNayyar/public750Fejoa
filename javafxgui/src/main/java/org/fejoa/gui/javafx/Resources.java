@@ -22,6 +22,13 @@ public class Resources {
     final static public String ICON_ATTACHMENT = "attachment.png";
     final static public String ICON_LOGO = "logo.png";
     final static public String ICON_CLOUD = "cloud.png";
+    final static public String ICON_MESSENGER = "messenger.png";
+    final static public String ICON_BRANCH = "branch.png";
+    final static public String ICON_CONTACTS = "contacts.png";
+    final static public String ICON_HISTORY = "history.png";
+    final static public String ICON_GATEWAY= "gateway.png";
+    final static public String ICON_FILES = "files.png";
+
 
     static private Resources singleton;
 
