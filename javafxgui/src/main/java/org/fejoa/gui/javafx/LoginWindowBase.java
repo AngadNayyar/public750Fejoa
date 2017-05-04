@@ -19,7 +19,7 @@ import javafx.stage.WindowEvent;
 
 
 public abstract class LoginWindowBase extends Stage {
-    final protected Button okButton = new Button("ok");
+    final protected Button okButton = new Button("OK");
     final protected Label statusLabel = new Label();
 
     public LoginWindowBase() {
@@ -48,7 +48,7 @@ public abstract class LoginWindowBase extends Stage {
     protected void validate(String error) {
         if (error == null) {
             okButton.setDisable(false);
-            doneLabel("ok");
+            doneLabel("OK");
         } else {
             okButton.setDisable(true);
             if (error.equals("")) {
