@@ -28,8 +28,10 @@ This css file is for styling the java fx messenger GUI.
     -fx-margin: 0 0 0 10;
     -fx-font-size: 14;
 }
-.tab-pane{
-    -fx-border-width: 0;
+
+.tab-content-area {
+    -fx-border-width: 1;
+    -fx-border-color: lightgrey;
 }
 
 .tab{
@@ -54,6 +56,9 @@ This css file is for styling the java fx messenger GUI.
 }
 #message-body{
     -fx-font-size: 14px;
+}
+.tab:selected {
+    -fx-color: grey;
 }
 #add-account-btn{
     -fx-background-image: url("../../../main/resources/newuser.png");
@@ -154,6 +159,7 @@ This css file is for styling the java fx messenger GUI.
 #welcome-label{
     -fx-padding:0;
     -fx-margin:0;
+    -fx-font-size: 14px;
 }
 .split-pane-divider {
     -fx-padding: 0;

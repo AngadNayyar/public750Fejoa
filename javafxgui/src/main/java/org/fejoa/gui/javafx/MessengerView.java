@@ -402,7 +402,6 @@ public class MessengerView extends SplitPane {
         messageLabel.setId("message-label");
 
         final VBox branchLayout = new VBox();
-        VBox branchNamedLayout = new VBox();
         BorderPane messageTitle = new BorderPane();
         messageTitle.setId("message-title-pane");
         VBox searchBox = new VBox();
@@ -455,7 +454,6 @@ public class MessengerView extends SplitPane {
             }
         });
 
-//        getItems().add(branchNamedLayout);
         getItems().add(branchLayout);
         getItems().add(messageViewStack);
 

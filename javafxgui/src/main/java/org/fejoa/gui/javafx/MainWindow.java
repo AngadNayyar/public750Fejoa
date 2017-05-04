@@ -44,8 +44,8 @@ public class MainWindow extends BorderPane {
         HBox heading = new HBox();
         Image logoImage = new Image(Resources.ICON_LOGO);
         ImageView logo = new ImageView(logoImage);
-        logo.setFitHeight(30.0);
-        logo.setFitWidth(300.0);
+        logo.setFitHeight(35.0);
+        logo.setFitWidth(350.0);
 
         heading.getChildren().add(logo);
         heading.setAlignment(Pos.CENTER);

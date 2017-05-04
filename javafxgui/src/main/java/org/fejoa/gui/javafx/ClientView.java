@@ -12,6 +12,9 @@ import javafx.collections.ObservableList;
 import javafx.geometry.Side;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import javafx.scene.control.Tooltip;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.BorderPane;
@@ -162,31 +165,73 @@ public class ClientView extends BorderPane {
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         tabPane.setSide(Side.TOP);
 
-        Tab gatewayTab = new Tab("Gateway");
+        Tab gatewayTab = new Tab();
+        ImageView gatewayView = new ImageView(new Image(Resources.ICON_GATEWAY));
+        gatewayView.setFitWidth(20.0);
+        gatewayView.setFitHeight(20.0);
+        gatewayTab.setGraphic(gatewayView);
         gatewayTab.setContent(new GatewayView(client, statusManager));
+        final Tooltip gatewaytooltip = new Tooltip();
+        gatewaytooltip.setText("Gateway");
+        gatewayTab.setTooltip(gatewaytooltip);
         tabPane.getTabs().add(gatewayTab);
 
-        Tab userDataStorageTab = new Tab("Branches");
+        Tab userDataStorageTab = new Tab();
+        ImageView branchView = new ImageView(new Image(Resources.ICON_BRANCH));
+        branchView.setFitWidth(20.0);
+        branchView.setFitHeight(20.0);
+        userDataStorageTab.setGraphic(branchView);
         userDataStorageTab.setContent(new UserDataStorageView(client));
+        final Tooltip branchtooltip = new Tooltip();
+        branchtooltip.setText("Branches");
+        userDataStorageTab.setTooltip(branchtooltip);
         tabPane.getTabs().add(userDataStorageTab);
 
-        Tab historyTab = new Tab("History");
+        Tab historyTab = new Tab();
+        ImageView historyView = new ImageView(new Image(Resources.ICON_HISTORY));
+        historyView.setFitWidth(20.0);
+        historyView.setFitHeight(20.0);
+        historyTab.setGraphic(historyView);
         historyTab.setContent(new HistoryView(client.getUserData()));
+        final Tooltip historytooltip = new Tooltip();
+        historytooltip.setText("History");
+        historyTab.setTooltip(historytooltip);
         tabPane.getTabs().add(historyTab);
 
-        Tab contactsTab = new Tab("Contacts");
+        Tab contactsTab = new Tab();
+        ImageView contactsView = new ImageView(new Image(Resources.ICON_CONTACTS));
+        contactsView.setFitHeight(20.0);
+        contactsView.setFitWidth(20.0);
+        contactsTab.setGraphic(contactsView);
         contactsTab.setContent(new ContactsView(client, contactRequests, statusManager));
+        final Tooltip contactstooltip = new Tooltip();
+        contactstooltip.setText("Contacts");
+        contactsTab.setTooltip(contactstooltip);
         tabPane.getTabs().add(contactsTab);
 
-        Tab fileStorageTab = new Tab("Files");
+        Tab fileStorageTab = new Tab();
+        ImageView fileView = new ImageView(new Image(Resources.ICON_FILES));
+        fileView.setFitWidth(20.0);
+        fileView.setFitHeight(20.0);
+        fileStorageTab.setGraphic(fileView);
         fileStorageTab.setContent(new FileStorageView(client, statusManager));
+        final Tooltip filetooltip = new Tooltip();
+        filetooltip.setText("Files");
+        fileStorageTab.setTooltip(filetooltip);
         tabPane.getTabs().add(fileStorageTab);
 
         // Add a messenger view to the tab content of the messages tab
-        Tab messengerTap = new Tab("Messenger");
+        Tab messengerTap = new Tab();
         MessengerView messengerView = new MessengerView(client, statusManager);
+        ImageView messageView = new ImageView(new Image(Resources.ICON_MESSENGER));
+        messageView.setFitHeight(20.0);
+        messageView.setFitWidth(20.0);
+        messengerTap.setGraphic(messageView);
         messengerView.setId("messenger-view");
         messengerTap.setContent(messengerView);
+        final Tooltip messagetooltip = new Tooltip();
+        messagetooltip.setText("Messenger");
+        messengerTap.setTooltip(messagetooltip);
         tabPane.getTabs().add(messengerTap);
 
         // set the default selected tab to be the messages tab when opening the gui
