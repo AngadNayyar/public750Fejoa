@@ -74,6 +74,8 @@ public class MainWindow extends BorderPane {
         splitPane.setDividerPosition(0, 1);
         setCenter(splitPane);
 
+        clientViewStack.setId("client-view-stack-pane");
+
         accountManagerListener = new AccountManager.IListener() {
             @Override
             public void onAccountSelected(Account account) {
@@ -86,7 +88,9 @@ public class MainWindow extends BorderPane {
                         return;
                     }
                 }
-                clientViewStack.getChildren().add(new ClientView(account.client, statusView));
+                ClientView cv = new ClientView(account.client, statusView);
+                cv.setId("client-view");
+                clientViewStack.getChildren().add(cv);
                 //clientViewStack.setPrefHeight(0.0);
             }
         };

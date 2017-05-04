@@ -78,6 +78,7 @@ class CreateMessageBranchView extends VBox {
         receiverLayout.getChildren().add(receiverTextField);
 
         final TextArea bodyText = new TextArea();
+        bodyText.setId("create-new-message-body");
         bodyText.setPromptText("Message body...");
         bodyText.setWrapText(true);
         Button sendButton = new Button();
