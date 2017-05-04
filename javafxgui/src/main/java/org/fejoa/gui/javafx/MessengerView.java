@@ -208,7 +208,6 @@ class MessageBranchView extends VBox {
     final ListView<Message> messageListView = new ListView<>();
     final ListView<HBox> conversationThread = new ListView<>();
 
-
     final StorageDir.IListener storageListener = new StorageDir.IListener() {
         @Override
         public void onTipChanged(DatabaseDiff diff) {
@@ -288,7 +287,7 @@ class MessageBranchView extends VBox {
         messageTextArea.setOnKeyReleased(new EventHandler<KeyEvent>() {
             @Override
             public void handle(KeyEvent keyEvent) {
-                if ((keyEvent.getCode() == KeyCode.ENTER))  {
+                if (keyEvent.getCode() == KeyCode.ENTER)  {
                     int len = messageTextArea.getLength();
                     String body = messageTextArea.getText(0, len-1);
                     if (body.equals(""))
