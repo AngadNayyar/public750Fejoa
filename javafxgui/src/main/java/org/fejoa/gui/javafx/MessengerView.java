@@ -391,6 +391,7 @@ public class MessengerView extends SplitPane {
             @Override
             public void handle(ActionEvent actionEvent) {
                 createMessageBranchView.toFront();
+                update();
             }
         });
 
