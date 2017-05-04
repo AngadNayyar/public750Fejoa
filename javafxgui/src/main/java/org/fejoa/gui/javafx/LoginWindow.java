@@ -15,6 +15,8 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -35,14 +37,20 @@ public class LoginWindow extends LoginWindowBase {
 
         // Create a login window heading and label
         HBox portableCloudMessengerTitle = new HBox();
-        Label portableCloud = new Label("Portable Cloud Messenger");
-        portableCloudMessengerTitle.getChildren().add(portableCloud);
+
+        // Add the image logo to the
+        Image logoImage = new Image(Resources.ICON_LOGO);
+        ImageView logo = new ImageView(logoImage);
+        logo.setFitHeight(25.0);
+        logo.setFitWidth(250.0);
+
+        // Add the elements to the log in window
+        portableCloudMessengerTitle.getChildren().add(logo);
         mainLayout.getChildren().add(portableCloudMessengerTitle);
 
         // Style and add the login window heading
-        portableCloud.setStyle("-fx-text-fill: dimgrey; -fx-font-weight: bold;");
         portableCloudMessengerTitle.setStyle("-fx-padding: 10; -fx-border-width: 0 0 0 0;  -fx-border-color: dimgrey");
-        portableCloud.setAlignment(Pos.CENTER);
+        //portableCloud.setAlignment(Pos.CENTER);
         portableCloudMessengerTitle.setAlignment(Pos.CENTER);
 
         GridPane grid = new GridPane();
@@ -51,7 +59,7 @@ public class LoginWindow extends LoginWindowBase {
         grid.setPadding(new Insets(0, 10, 0, 10));
 
         // Set the css of the login window to have a grey background
-        mainLayout.setStyle("-fx-background-color: #f1f0f0; -fx-text-fill: white;");
+        mainLayout.setStyle("-fx-background-color: #f1f0f0; -fx-text-fill: white; -fx-padding:10;");
         grid.setStyle("-fx-background-color: #f1f0f0; -fx-text-fill: white;");
 
         //Added username to show the current account name.
@@ -74,7 +82,7 @@ public class LoginWindow extends LoginWindowBase {
 
         HBox buttonLayout = new HBox();
         buttonLayout.setAlignment(Pos.BOTTOM_RIGHT);
-        Button cancelButton = new Button("cancel");
+        Button cancelButton = new Button("Cancel");
         cancelButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent actionEvent) {
