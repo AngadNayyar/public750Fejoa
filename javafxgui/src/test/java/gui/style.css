@@ -3,10 +3,10 @@ This css file is for styling the java fx messenger GUI.
 */
 
 .root {
-    -fx-font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
+    /*-fx-font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;*/
+    -fx-font-family: "Helvetica", sans-serif;
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;
-
 }
 .border-pane {
   -fx-color: blue;
@@ -30,8 +30,9 @@ This css file is for styling the java fx messenger GUI.
 }
 #thread-message-list-view {
     -fx-background-color: -fx-box-border, -fx-control-inner-background;
-        -fx-background-insets: 0, 0;
-        -fx-padding: 0;
+    -fx-background-insets: 0, 0;
+    -fx-padding: 0;
+    -fx-background-color: #f1f0f0;
 }
 #thread-message-list-view .list-cell{
     -fx-background-color: #f1f0f0;
@@ -62,14 +63,18 @@ This css file is for styling the java fx messenger GUI.
     /*-fx-background-color: dodgerblue;*/
 }
 #messenger-heading{
-    -fx-background-color: #f1f0f0;
     -fx-font-size: 18px;
+    -fx-font-weight: 100;
 }
+#header-split-pane {
+    -fx-padding: 8 0 12 0;
+}
+
 #header-split-pane > .split-pane-divider {
     -fx-padding: 0;
 }
 .tab-pane .tab-header-background {
-    -fx-background-color: dimgrey;
+    -fx-background-color: white;
 }
 #messenger-view > .split-pane-divider {
     -fx-padding: 0.1;
@@ -108,8 +113,8 @@ This css file is for styling the java fx messenger GUI.
     -fx-background-color:white;
 }
 #participants-label {
-    -fx-font-size: 14px;
-    -fx-font-weight: bold;
+    -fx-font-size: 16px;
+    /*-fx-font-weight: bold;*/
 }
 .message-sent{
     -fx-background-color: dodgerblue;
@@ -151,10 +156,6 @@ This css file is for styling the java fx messenger GUI.
     -fx-border-width: 0 0 1 0;
     -fx-border-color: silver;
 }
-#participants-label {
-   -fx-font-size: 18px;
-
-}
 #main-window-borderpane {
     -fx-background-color: -fx-box-border, -fx-control-inner-background;
     -fx-background-insets: 0, 0;
@@ -162,14 +163,12 @@ This css file is for styling the java fx messenger GUI.
     -fx-border-width: 0;
     -fx-border-color: silver;
 }
-
 #receiver-layout{
     -fx-padding: 3 20 3 20;
 }
 #message-branch-view{
     -fx-padding: 0 10;
 }
-
 .send-message-button {
     -fx-background-image: url("../../../main/resources/send-message.png");
     -fx-background-repeat: no-repeat;
@@ -178,19 +177,27 @@ This css file is for styling the java fx messenger GUI.
     -fx-background-size: 20px;
     -fx-margin: 20;
 }
-
 .add-attachment-button {
     -fx-background-image: url("../../../main/resources/attachment.png");
     -fx-background-repeat: no-repeat;
     -fx-background-position: center;
     -fx-background-size: 20px;
 }
-
 #status-view-splitpane .split-pane-divider{
     -fx-padding: 1 1 1 0;
     -fx-color: lightgrey;
 }
-
-
+#create-new-message-body{
+    -fx-border-width: 1;
+    -fx-border-color: lightgrey;
+}
+#status-view-splitpane{
+    -fx-background-color: -fx-box-border, -fx-control-inner-background;
+    -fx-background-insets: 0, 0;
+    -fx-padding: 0;
+    -fx-border-width: 0;
+    -fx-background-insets: 0;
+    -fx-background-color: transparent, white, transparent, white;
+}
 
 

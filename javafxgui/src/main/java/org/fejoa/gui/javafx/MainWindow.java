@@ -14,6 +14,8 @@ import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.ToolBar;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import org.fejoa.gui.Account;
@@ -40,27 +42,24 @@ public class MainWindow extends BorderPane {
 
         // Create an HBox to contain the label for heading "Portable Cloud Messenger"
         HBox heading = new HBox();
-        Label title = new Label("Portable Cloud Messenger");
-        title.setTextFill(Color.DIMGRAY);
-        
-        heading.getChildren().add(title);
+        ImageView logo = new ImageView(new Image(Resources.ICON_LOGO));
+
+        heading.getChildren().add(logo);
         heading.setAlignment(Pos.CENTER);
         heading.setId("messenger-heading");
         setId("main-window-borderpane");
 
         // Create the hbox containing the account functionality for the tool bar
         AccountListView accountView = new AccountListView(accountManager, statusView);
-        // The spacer pane fills to fit the size of the parent hbox - pushing toolbar to float left.
+
+        // Create spacer panes to fill the parent hbox - pushing toolbar to float left.
         Pane spacer = new Pane();
         HBox.setHgrow(spacer,Priority.ALWAYS);
+        Pane leftHeaderSpacer = new Pane();
+        HBox.setHgrow(leftHeaderSpacer,Priority.ALWAYS);
 
-        // Create the tool bar containing the add new user button and select user drop down
-        ToolBar toolBar = new ToolBar(spacer, accountView);
-        toolBar.setId("top-tool-bar");
-
-        // Create a split pane to add the tool bar under the heading hbox at the top of the window
-        SplitPane headerSplit = new SplitPane(heading, toolBar);
-        headerSplit.setOrientation(Orientation.VERTICAL);
+        // Create a HBox to add the tool bar under the heading hbox at the top of the window
+        HBox headerSplit = new HBox(leftHeaderSpacer, heading, spacer, accountView);
         headerSplit.setId("header-split-pane");
         setTop(headerSplit);
 
@@ -70,6 +69,8 @@ public class MainWindow extends BorderPane {
         splitPane.setOrientation(Orientation.VERTICAL);
         splitPane.setDividerPosition(0, 1);
         setCenter(splitPane);
+
+        clientViewStack.setId("client-view-stack-pane");
 
         accountManagerListener = new AccountManager.IListener() {
             @Override
@@ -83,7 +84,9 @@ public class MainWindow extends BorderPane {
                         return;
                     }
                 }
-                clientViewStack.getChildren().add(new ClientView(account.client, statusView));
+                ClientView cv = new ClientView(account.client, statusView);
+                cv.setId("client-view");
+                clientViewStack.getChildren().add(cv);
                 //clientViewStack.setPrefHeight(0.0);
             }
         };

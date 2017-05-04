@@ -16,8 +16,10 @@ import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.TextFieldListCell;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 import javafx.scene.text.Text;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
@@ -58,6 +60,16 @@ class CreateMessageBranchView extends VBox {
         receiverComboBox.setPromptText("Select contact");
 
 
+        receiverComboBox.addEventFilter(MouseEvent.MOUSE_PRESSED, new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent mouseEvent) {
+                receiverComboBox.getItems().clear();
+                for (ContactPublic cp : userData.getContactStore().getContactList().getEntries()){
+                    receiverComboBox.getItems().add(cp.getRemotes().getDefault().getUser());
+                }
+            }
+        });
+
 
         final TextField receiverTextField = new TextField();
         receiverTextField.setText("@http://localhost:8180");
@@ -66,6 +78,7 @@ class CreateMessageBranchView extends VBox {
         receiverLayout.getChildren().add(receiverTextField);
 
         final TextArea bodyText = new TextArea();
+        bodyText.setId("create-new-message-body");
         bodyText.setPromptText("Message body...");
         bodyText.setWrapText(true);
         Button sendButton = new Button();
@@ -134,6 +147,10 @@ class CreateMessageBranchView extends VBox {
         getChildren().add(bodyText);
         getChildren().add(buttonContainer);
     }
+
+    private void updateComboBox(){
+
+    }
 }
 
 //This is the view for when a message thread is selected, so it will show the messages in the conversation
@@ -190,7 +207,6 @@ class MessageBranchView extends VBox {
                 });
 
                 textFieldCell.setId("message-body");
-                //textFieldCell.getStyleClass().add("messagebody");
                 return textFieldCell;
             }
         });
@@ -311,6 +327,7 @@ class MessageBranchView extends VBox {
                     textbox.getStyleClass().add("message-sent");
                     messageHBox.getChildren().add(spacer);
                     messageHBox.getChildren().add(textbox);
+                    messageText.setFill(Color.WHITE);
                 } else {
                     textbox.getStyleClass().remove("message-sent");
                     textbox.getStyleClass().add("message-received");
