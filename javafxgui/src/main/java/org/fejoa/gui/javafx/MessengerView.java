@@ -56,7 +56,14 @@ class CreateMessageBranchView extends VBox {
             receiverComboBox.getItems().add(cp.getRemotes().getDefault().getUser());
         }
         receiverComboBox.setPromptText("Select contact");
-
+        receiverComboBox.setOnAction(new EventHandler<ActionEvent>() { //TODO Change to be when its clicked
+            @Override
+            public void handle(ActionEvent event) {
+                for (ContactPublic cp : userData.getContactStore().getContactList().getEntries()){
+                    receiverComboBox.getItems().add(cp.getRemotes().getDefault().getUser());
+                }
+            }
+        });
 
 
         final TextField receiverTextField = new TextField();
@@ -133,6 +140,10 @@ class CreateMessageBranchView extends VBox {
         getChildren().add(receiverLayout);
         getChildren().add(bodyText);
         getChildren().add(buttonContainer);
+    }
+
+    private void updateComboBox(){
+
     }
 }
 
