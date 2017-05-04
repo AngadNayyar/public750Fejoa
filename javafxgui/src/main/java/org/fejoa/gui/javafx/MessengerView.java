@@ -16,6 +16,8 @@ import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.TextFieldListCell;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
@@ -59,7 +61,6 @@ class CreateMessageBranchView extends VBox {
         }
         receiverComboBox.setPromptText("Select contact");
 
-
         receiverComboBox.addEventFilter(MouseEvent.MOUSE_PRESSED, new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
@@ -69,7 +70,6 @@ class CreateMessageBranchView extends VBox {
                 }
             }
         });
-
 
         final TextField receiverTextField = new TextField();
         receiverTextField.setText("@http://localhost:8180");
@@ -87,6 +87,7 @@ class CreateMessageBranchView extends VBox {
         sendButton.setTooltip(tooltip);
         sendButton.setMinWidth(25.0);
         sendButton.getStyleClass().add("send-message-button");
+
         final Label errorLabel = new Label("");
         errorLabel.setId("error-label"); //TODO styling
         //Action listener for when user presses send button
@@ -237,6 +238,49 @@ class MessageBranchView extends VBox {
         getChildren().add((messageTextArea));
         messageTextArea.setId("message-text-area");
         messageTextArea.setPromptText("Type message...");
+
+        messageTextArea.setOnKeyTyped(new EventHandler<KeyEvent>() {
+            @Override
+            public void handle(KeyEvent keyEvent) {
+                if (keyEvent.getCode() == KeyCode.ENTER)  {
+                    String body = messageTextArea.getText();
+                    if (body.equals(""))
+                        return;
+                    try {
+                        Message message = Message.create(userData.getContext(), userData.getMyself());
+                        message.setBody(body);
+                        messageBranch.addMessage(message);
+                        messageBranch.commit();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return;
+                    }
+                    messageTextArea.setText("");
+                }
+            }
+        });
+
+        messageTextArea.setOnKeyReleased(new EventHandler<KeyEvent>() {
+            @Override
+            public void handle(KeyEvent keyEvent) {
+                if (keyEvent.getCode() == KeyCode.ENTER)  {
+                    int len = messageTextArea.getLength();
+                    String body = messageTextArea.getText(0, len-1);
+                    if (body.equals(""))
+                        return;
+                    try {
+                        Message message = Message.create(userData.getContext(), userData.getMyself());
+                        message.setBody(body);
+                        messageBranch.addMessage(message);
+                        messageBranch.commit();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return;
+                    }
+                    messageTextArea.setText("");
+                }
+            }
+        });
 
         // Create send message button, add tool tip and set the id for css
         Button sendButton = new Button();
