@@ -7,7 +7,6 @@ This css file is for styling the java fx messenger GUI.
     -fx-font-family: "Helvetica", sans-serif;
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;
-
 }
 .border-pane {
   -fx-color: blue;
@@ -192,7 +191,10 @@ This css file is for styling the java fx messenger GUI.
     -fx-padding: 1 1 1 0;
     -fx-color: lightgrey;
 }
-
+#create-new-message-body{
+    -fx-border-width: 1;
+    -fx-border-color: lightgrey;
+}
 
 
 
