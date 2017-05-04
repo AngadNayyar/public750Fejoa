@@ -9,6 +9,7 @@ package gui;
 
 import javafx.application.Application;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import org.fejoa.gui.javafx.MainWindow;
 import org.fejoa.gui.javafx.Resources;
@@ -48,6 +49,8 @@ public class ClientGui extends Application {
         stage.setHeight(600);
         stage.setWidth(800);
         stage.setResizable(true);
+        stage.setTitle("Portable Cloud Messenger");
+        stage.getIcons().add(new Image(Resources.ICON_CLOUD));
 
         stage.show();
     }
