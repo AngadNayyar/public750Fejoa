@@ -353,22 +353,28 @@ class MessageBranchView extends VBox {
                 if (file != null){
                     //Open file and send as message
                     try {
-                        System.out.print("Start");
                         BufferedImage inputImage = ImageIO.read(file);
                         String extension = FilenameUtils.getExtension(file.toString());
                         ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
                         ImageIO.write(inputImage, extension, byteStream);
                         byte[] byteImage = byteStream.toByteArray();
 
-//                        InputStream in = new ByteArrayInputStream(byteImage);
-//                        BufferedImage bImage = ImageIO.read(in);
-//                        ImageIO.write(bImage, "jpg", new File("C:\\Users\\Angad\\Videos\\Brooklyn\\14\\harry.jpg"));
-
                         Message message = Message.create(userData.getContext(), userData.getMyself());
-                        message.addAttachment("imageattached", byteImage, "imagefile");
+                        message.setBody(Arrays.toString(byteImage));
+//                        System.out.print(Arrays.toString(byteImage));
+//                        System.out.print(byteImage.length);
                         messageBranch.addMessage(message);
+                        String[] byteValues = message.getBody().substring(1, message.getBody().length() - 1).split(",");
+                        byte[] bytes = new byte[byteValues.length];
+                        for (int i=0, len=bytes.length; i<len; i++) {
+                            bytes[i] = Byte.parseByte(byteValues[i].trim());
+                        }
+                        InputStream in = new ByteArrayInputStream(bytes);
+                        BufferedImage bImage = ImageIO.read(in);
+                        ImageIO.write(bImage, "jpg", new File("C:\\Users\\Angad\\Videos\\Brooklyn\\14\\harry.jpg"));
+
+
                         messageBranch.commit();
-                        System.out.print("End");
                     }catch (Exception e){
                         e.printStackTrace();
                     }
@@ -417,30 +423,32 @@ class MessageBranchView extends VBox {
             conversationThread.getItems().clear();
 
             for (int i = 0; i < messageListView.getItems().size(); i++){
-                HBox messageHBox = new HBox();
-                Text messageText = new Text();
-                HBox textbox = new HBox();
-                textbox.getChildren().add(messageText);
-                Message mes = messageListView.getItems().get(i);
-                messageText.setText(mes.getBody());
-                Pane spacer = new Pane();
-                spacer.setId("message-spacer");
-                HBox.setHgrow(spacer, Priority.ALWAYS);
+                if (messageListView.getItems().get(i).getBody().length() < 1000) {
+                    HBox messageHBox = new HBox();
+                    Text messageText = new Text();
+                    HBox textbox = new HBox();
+                    textbox.getChildren().add(messageText);
+                    Message mes = messageListView.getItems().get(i);
+                    messageText.setText(mes.getBody());
+                    Pane spacer = new Pane();
+                    spacer.setId("message-spacer");
+                    HBox.setHgrow(spacer, Priority.ALWAYS);
 
-                if (userData.getMyself().getId().equals(mes.getSender())){
-                    textbox.getStyleClass().remove("message-received");
-                    textbox.getStyleClass().add("message-sent");
-                    messageHBox.getChildren().add(spacer);
-                    messageHBox.getChildren().add(textbox);
-                    messageText.setFill(Color.WHITE);
-                } else {
-                    textbox.getStyleClass().remove("message-sent");
-                    textbox.getStyleClass().add("message-received");
-                    messageHBox.getChildren().add(textbox);
-                    messageHBox.getChildren().add(spacer);
+                    if (userData.getMyself().getId().equals(mes.getSender())) {
+                        textbox.getStyleClass().remove("message-received");
+                        textbox.getStyleClass().add("message-sent");
+                        messageHBox.getChildren().add(spacer);
+                        messageHBox.getChildren().add(textbox);
+                        messageText.setFill(Color.WHITE);
+                    } else {
+                        textbox.getStyleClass().remove("message-sent");
+                        textbox.getStyleClass().add("message-received");
+                        messageHBox.getChildren().add(textbox);
+                        messageHBox.getChildren().add(spacer);
+                    }
+
+                    conversationThread.getItems().add(messageHBox);
                 }
-
-                conversationThread.getItems().add(messageHBox);
             }
 
         } catch (IOException e) {
