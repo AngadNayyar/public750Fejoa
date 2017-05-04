@@ -45,6 +45,7 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.*;
+import org.apache.commons.codec.binary.Base64;
 
 
 class CreateMessageBranchView extends VBox {
@@ -353,26 +354,31 @@ class MessageBranchView extends VBox {
                 if (file != null){
                     //Open file and send as message
                     try {
-                        BufferedImage inputImage = ImageIO.read(file);
-                        String extension = FilenameUtils.getExtension(file.toString());
-                        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-                        ImageIO.write(inputImage, extension, byteStream);
-                        byte[] byteImage = byteStream.toByteArray();
 
+                        // Reading a Image file from file system
+                        FileInputStream imageInFile = new FileInputStream(file);
+                        byte imageData[] = new byte[(int) file.length()];
+                        imageInFile.read(imageData);
+
+                        // Converting Image byte array into Base64 String
+                        String imageDataString = Base64.encodeBase64URLSafeString(imageData);
                         Message message = Message.create(userData.getContext(), userData.getMyself());
-                        message.setBody(Arrays.toString(byteImage));
+                        message.setBody(imageDataString);
 //                        System.out.print(Arrays.toString(byteImage));
 //                        System.out.print(byteImage.length);
                         messageBranch.addMessage(message);
-                        String[] byteValues = message.getBody().substring(1, message.getBody().length() - 1).split(",");
-                        byte[] bytes = new byte[byteValues.length];
-                        for (int i=0, len=bytes.length; i<len; i++) {
-                            bytes[i] = Byte.parseByte(byteValues[i].trim());
-                        }
-                        InputStream in = new ByteArrayInputStream(bytes);
-                        BufferedImage bImage = ImageIO.read(in);
-                        ImageIO.write(bImage, "jpg", new File("C:\\Users\\Angad\\Videos\\Brooklyn\\14\\harry.jpg"));
 
+                        // Converting a Base64 String into Image byte array
+                        byte[] imageByteArray = Base64.decodeBase64(message.getBody());
+
+                        // Write a image byte array into file system
+                        FileOutputStream imageOutFile = new FileOutputStream(
+                                "C:\\Users\\Angad\\Videos\\Brooklyn\\14\\harry.jpg");
+
+                        imageOutFile.write(imageByteArray);
+
+                        imageInFile.close();
+                        imageOutFile.close();
 
                         messageBranch.commit();
                     }catch (Exception e){
@@ -423,7 +429,7 @@ class MessageBranchView extends VBox {
             conversationThread.getItems().clear();
 
             for (int i = 0; i < messageListView.getItems().size(); i++){
-                if (messageListView.getItems().get(i).getBody().length() < 1000) {
+                if (messageListView.getItems().get(i).getBody().length() < 500) {
                     HBox messageHBox = new HBox();
                     Text messageText = new Text();
                     HBox textbox = new HBox();
