@@ -16,6 +16,8 @@ import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.TextFieldListCell;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
@@ -59,7 +61,6 @@ class CreateMessageBranchView extends VBox {
         }
         receiverComboBox.setPromptText("Select contact");
 
-
         receiverComboBox.addEventFilter(MouseEvent.MOUSE_PRESSED, new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
@@ -69,7 +70,6 @@ class CreateMessageBranchView extends VBox {
                 }
             }
         });
-
 
         final TextField receiverTextField = new TextField();
         receiverTextField.setText("@http://localhost:8180");
@@ -87,8 +87,54 @@ class CreateMessageBranchView extends VBox {
         sendButton.setTooltip(tooltip);
         sendButton.setMinWidth(25.0);
         sendButton.getStyleClass().add("send-message-button");
+
         final Label errorLabel = new Label("");
         errorLabel.setId("error-label"); //TODO styling
+
+        // Create event handler to send a message when enter is pressed by the user
+        bodyText.setOnKeyReleased(new EventHandler<KeyEvent>() {
+            @Override
+            public void handle(KeyEvent keyEvent) {
+
+                if ((keyEvent.getCode() == KeyCode.ENTER))  {
+                boolean matched = false;
+                errorLabel.setText("");
+                try {
+                    List<ContactPublic> participants = new ArrayList<>();
+                    //Checks to see if the contacts that user is sending a message to are valid contacts.
+                    for (ContactPublic contactPublic : userData.getContactStore().getContactList().getEntries()) {
+                        if (contactPublic.getRemotes().getDefault().toAddress().equals(receiverComboBox.getSelectionModel().getSelectedItem() + receiverTextField.getText())) {
+                            participants.add(contactPublic);
+                            matched = true;
+                        }
+                    }
+
+                    if (!matched){
+                        // TODO show error
+                        errorLabel.setText("Sorry that contact was not found");
+                        System.out.println("ERROR: Contact not valid");
+                        return;
+                    }
+                    System.out.println("no error: Contact is valid");
+                    //Each message branch is a new thread, Message is the individual messages.
+                    //Here the new thread is created and new message added to it.
+                    //TODO: Check for existing threads to the same user/users
+                    MessageBranch messageBranch = messenger.createMessageBranch(participants);
+                    Message message = Message.create(userData.getContext(), userData.getMyself());
+                    int len = bodyText.getLength();
+                    message.setBody(bodyText.getText(0, len-1));
+                    messageBranch.addMessage(message);
+                    messageBranch.commit();
+                    userData.getKeyStore().commit();
+                    messenger.publishMessageBranch(messageBranch);
+                    messenger.getAppContext().commit();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }}
+        });
+
+
         //Action listener for when user presses send button
         sendButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
@@ -161,7 +207,6 @@ class MessageBranchView extends VBox {
 
     final ListView<Message> messageListView = new ListView<>();
     final ListView<HBox> conversationThread = new ListView<>();
-
 
     final StorageDir.IListener storageListener = new StorageDir.IListener() {
         @Override
@@ -237,6 +282,29 @@ class MessageBranchView extends VBox {
         getChildren().add((messageTextArea));
         messageTextArea.setId("message-text-area");
         messageTextArea.setPromptText("Type message...");
+
+        // Create event handler to send a message when enter is pressed by the user
+        messageTextArea.setOnKeyReleased(new EventHandler<KeyEvent>() {
+            @Override
+            public void handle(KeyEvent keyEvent) {
+                if (keyEvent.getCode() == KeyCode.ENTER)  {
+                    int len = messageTextArea.getLength();
+                    String body = messageTextArea.getText(0, len-1);
+                    if (body.equals(""))
+                        return;
+                    try {
+                        Message message = Message.create(userData.getContext(), userData.getMyself());
+                        message.setBody(body);
+                        messageBranch.addMessage(message);
+                        messageBranch.commit();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return;
+                    }
+                    messageTextArea.setText("");
+                }
+            }
+        });
 
         // Create send message button, add tool tip and set the id for css
         Button sendButton = new Button();
@@ -489,7 +557,7 @@ public class MessengerView extends SplitPane {
         } catch (CryptoException e) {
             e.printStackTrace();
         }
-        // Copy update listview to totalBranchListView
+        // Copy update list view to totalBranchListView
         totalBranchListView.getItems().addAll(branchListView.getItems());
 
         List<BranchInfo.Location> locations = new ArrayList<>();
