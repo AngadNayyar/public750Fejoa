@@ -71,7 +71,7 @@ This css file is for styling the java fx messenger GUI.
     -fx-padding: 0;
 }
 .tab-pane .tab-header-background {
-    -fx-background-color: dimgrey;
+    -fx-background-color: white;
 }
 #messenger-view > .split-pane-divider {
     -fx-padding: 0.1;
