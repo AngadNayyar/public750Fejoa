@@ -13,6 +13,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.layout.GridPane;
@@ -21,6 +22,9 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import org.fejoa.gui.Account;
 import org.fejoa.library.crypto.CryptoException;
+
+import java.io.File;
+import java.nio.file.Path;
 
 
 public class LoginWindow extends LoginWindowBase {
@@ -54,9 +58,18 @@ public class LoginWindow extends LoginWindowBase {
         mainLayout.setStyle("-fx-background-color: #f1f0f0; -fx-text-fill: white;");
         grid.setStyle("-fx-background-color: #f1f0f0; -fx-text-fill: white;");
 
+        // Build combo box to select from
+        ComboBox<String> accountComboBox = new ComboBox<>();
+        File accountFile = account.accountDir.getParentFile();
+        for (String accountName : accountFile.list()){
+            accountComboBox.getItems().add(accountName);
+        }
+
+
         //Added username to show the current account name.
         grid.add(new Label("Username:"), 1, 1);
-        grid.add(new Label(account.toString()), 2, 1);
+        grid.add(accountComboBox, 2, 1); // TODO
+//        grid.add(new Label(account.toString()), 2, 1);
         grid.add(new Label("Password:"), 1, 2);
         grid.add(passwordField, 2, 2);
         mainLayout.getChildren().add(grid);
