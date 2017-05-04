@@ -186,6 +186,61 @@ class CreateMessageBranchView extends VBox {
         fileButton.setTooltip(tip);
         fileButton.setMinWidth(25.0);
         fileButton.getStyleClass().add("add-attachment-button");
+        final FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Select file to send");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.gif"));
+        fileButton.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                boolean matched = false;
+                errorLabel.setText("");
+                try {
+                    List<ContactPublic> participants = new ArrayList<>();
+                    //Checks to see if the contacts that user is sending a message to are valid contacts.
+                    for (ContactPublic contactPublic : userData.getContactStore().getContactList().getEntries()) {
+                        if (contactPublic.getRemotes().getDefault().toAddress().equals(receiverComboBox.getSelectionModel().getSelectedItem() + receiverTextField.getText())) {
+                            participants.add(contactPublic);
+                            matched = true;
+                        }
+                    }
+
+                    if (!matched) {
+                        // TODO show error
+                        errorLabel.setText("Sorry that contact was not found");
+                        System.out.println("ERROR: Contact not valid");
+                        return;
+                    }
+                    System.out.println("no error: Contact is valid");
+                    //Each message branch is a new thread, Message is the individual messages.
+                    //Here the new thread is created and new message added to it.
+                    //TODO: Check for existing threads to the same user/users
+                    File file = fileChooser.showOpenDialog(null);
+                    if (file != null) {
+                        //Open file and send as message
+
+                        // Reading a Image file from file system
+                        FileInputStream imageInFile = new FileInputStream(file);
+                        byte imageData[] = new byte[(int) file.length()];
+                        imageInFile.read(imageData);
+
+                        // Converting Image byte array into Base64 String
+                        String imageDataString = Base64.encodeBase64URLSafeString(imageData);
+                        MessageBranch messageBranch = messenger.createMessageBranch(participants);
+                        Message message = Message.create(userData.getContext(), userData.getMyself());
+                        message.setBody(imageDataString);
+                        messageBranch.addMessage(message);
+                        messageBranch.commit();
+                        userData.getKeyStore().commit();
+                        messenger.publishMessageBranch(messageBranch);
+                        messenger.getAppContext().commit();
+                        imageInFile.close();
+                    }
+                }catch (Exception e) {
+                            e.printStackTrace();
+                }
+            }
+        });
+
         //Add the receiver box, the message body, send image, and send button to the GUI.
         HBox buttonContainer = new HBox();
         buttonContainer.setAlignment(Pos.TOP_RIGHT);
@@ -442,7 +497,6 @@ class MessageBranchView extends VBox {
 
                     conversationThread.getItems().add(messageHBox);
                 } else {
-                    System.out.print("ENTER");
                     Message message = messageListView.getItems().get(i);
                     // Converting a Base64 String into Image byte array
                     final byte[] imageByteArray = Base64.decodeBase64(message.getBody());
